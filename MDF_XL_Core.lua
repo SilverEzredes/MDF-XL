@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 04/11/2024
--- Version: v0.4.85
+-- Updated: 04/13/2024
+-- Version: v0.5.10
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -301,6 +301,14 @@ end
 local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
     for _, armor in pairs(armorData) do
         if MDFXL_table[armor.ID] then
+            MDFXL_table[armor.ID].Materials = {}
+            MDFXL_table[armor.ID].Parts = {}
+            --MDFXL_table[armor.ID].Enabled = {}
+        end
+    end
+
+    for _, armor in pairs(armorData) do
+        if MDFXL_table[armor.ID] then
             local player = characterManager:get_ManualPlayer()
             local playerEquipment = player and player:get_Valid() and player:get_GameObject():get_Transform():find(armor.ID)
 
@@ -318,7 +326,35 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                         if nativesMesh then
                             armor.MeshName = nativesMesh
                         end
-                                
+                        
+                        for MatName, _ in pairs(MDFXL_table[armor.ID].Materials) do
+                            local found = false
+                            for i = 0, MatCount - 1 do
+                                if MatName == render_mesh:call("getMaterialName", i) then
+                                    found = true
+                                    break
+                                end
+                            end
+                            if not found then
+                                MDFXL_table[armor.ID].Materials[MatName] = nil
+                            end
+                        end
+        
+                        local newPartNames = {}
+                        for i = 0, MatCount - 1 do
+                            local MatName = render_mesh:call("getMaterialName", i)
+                            if MatName then
+                                table.insert(newPartNames, MatName)
+                            end
+                        end
+        
+                        for PartIndex, PartName in ipairs(MDFXL_table[armor.ID].Parts) do
+                            if not func.table_contains(newPartNames, PartName) then
+                                table.remove(MDFXL_table[armor.ID].Parts, PartIndex)
+                                table.remove(MDFXL_table[armor.ID].Enabled, PartIndex)
+                            end
+                        end
+
                         if MatCount then
                             for i = 0, MatCount - 1 do
                                 local MatName = render_mesh:call("getMaterialName", i)
@@ -403,62 +439,6 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                 MDFXL.DD2.ArmorParams[armor.ID].Materials = {}
                 MDFXL.DD2.ArmorParams[armor.ID].Parts = {}
                 MDFXL.DD2.ArmorParams[armor.ID].Enabled = {}
-            end
-        end
-    end
-    
-    for armorID, armorParams in pairs(MDFXL.DD2.ArmorParams) do
-        if armorData[armorID] then
-            local player = characterManager:get_ManualPlayer()
-            local playerEquipment = player and player:get_Valid() and player:get_GameObject():get_Transform():find(armorID)
-            
-            if playerEquipment then
-                local playerArmor = playerEquipment:get_GameObject()
-                
-                if playerArmor then
-                    local render_mesh = playerArmor:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
-                    
-                    if render_mesh then
-                        local currentEnabledMats = {}
-                        local currentMatNames = {}
-                        local MatCount = render_mesh:call("get_MaterialNum")
-                        
-                        if MatCount then
-                            for i = 0, MatCount - 1 do
-                                local MatName = render_mesh:call("getMaterialName", i)
-                                local EnabledMat = render_mesh:call("getMaterialsEnableIndices", i)
-                                table.insert(currentMatNames, MatName)
-                                
-                                if EnabledMat then
-                                    table.insert(currentEnabledMats, i)
-                                end
-                            end
-                        end
-                        
-                        local materialNamesChanged = false
-                        for _, PartName in ipairs(armorParams.Parts) do
-                            if not func.table_contains(currentMatNames, PartName) then
-                                materialNamesChanged = true
-                                break
-                            end
-                        end
-    
-                        if materialNamesChanged then
-                            MDFXL.DD2.ArmorParams[armorID].Materials = {}
-                            MDFXL.DD2.ArmorParams[armorID].Parts = {}
-                            MDFXL.DD2.ArmorParams[armorID].Enabled = {}
-    
-                            for _, MatName in ipairs(currentMatNames) do
-                                MDFXL.DD2.ArmorParams[armorID].Materials[MatName] = {}
-                                table.insert(MDFXL.DD2.ArmorParams[armorID].Parts, MatName)
-                            end
-                        end
-                    end
-                end
-            elseif not playerEquipment then
-                MDFXL.DD2.ArmorParams[armorID].Materials = {}
-                MDFXL.DD2.ArmorParams[armorID].Parts = {}
-                MDFXL.DD2.ArmorParams[armorID].Enabled = {}
             end
         end
     end
@@ -1052,10 +1032,13 @@ re.on_draw_ui(function ()
         imgui.same_line()
         imgui.button("(4)")
         func.tooltip("The search functions are case-sensitive.")
+        imgui.same_line()
+        imgui.button("(5)")
+        func.tooltip("For any armor type, if the default preset is selected, the mesh editor will reset when exiting the equipment/inventory menu.")
         
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v0.4.85 | 04/11/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v0.5.10 | 04/13/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
