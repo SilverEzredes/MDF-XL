@@ -2,8 +2,8 @@
 -- MDF XL Docs
 
 -- Author: SilverEzredes
--- Updated: 04/20/2024
--- Version: v1.0.0
+-- Updated: 04/21/2024
+-- Version: v1.0.1
 
 --/////////////////////////////////////--
 local func = require("_SharedCore\\Functions")
@@ -29,7 +29,7 @@ local function MDFXL_Docs_Chapter_01()
         imgui.spacing()
         imgui.indent(10)
         imgui.text("If you're experiencing crashes or technical difficulties, please upload a screenshot of the error under 'ScriptRunner' along with your")
-        imgui.text_colored("re2_framework_log.txt", 0xFF00BBFF)
+        imgui.text_colored("re2_framework_log.txt", 0xFFFF9900)
         func.tooltip("[YourSteamLibrary/steamapps/common/Dragons Dogma 2/re2_framework_log.txt]\nThe same folder where the DD2.exe can be found.")
         imgui.same_line()
         imgui.text("file from the game's root folder.")
@@ -161,7 +161,7 @@ local function MDFXL_Docs_Chapter_02()
     if imgui.tree_node("2.4 - MDF-XL - Outfit Manager") then
         imgui.spacing()
         imgui.indent(10)
-        imgui.text("Similar to the MDF-XL window, but unlike that window, changing a preset here does not apply immediately. This is intentional to allow for quickly building outfit presets.\n[Save Outfit Preset] save the current preset to '[OutfitPresetName].json' found in [Dragons Dogma 2/reframework/data/MDF-XL/_Outfits/[OutfitPresetName].json")
+        imgui.text("Similar to the MDF-XL window, but unlike that window, changing a preset here does not apply immediately. This is intentional to allow for quickly building outfit presets.\n[Save Outfit Preset] saves the current preset to '[OutfitPresetName].json' found in [Dragons Dogma 2/reframework/data/MDF-XL/_Outfits/[OutfitPresetName].json")
         imgui.spacing()
         imgui.indent(-10)
         imgui.tree_pop()
@@ -176,19 +176,27 @@ local function MDFXL_Docs_Chapter_02()
     end
 end
 
+local function draw_material_param_gui(matparam, color, text)
+    imgui.text_colored(matparam, color)
+    imgui.indent(10)
+    imgui.text(text)
+    imgui.indent(-10)
+    imgui.spacing()
+end
+
 local function MDFXL_Docs_Chapter_03()
     imgui.spacing()
     imgui.indent(10)
-    imgui.text("[BaseColor]                 - ALBD tint. | Vec4 RGBA")
-    imgui.text("[BaseDetail_TilingScale]    - Detail map tiling scale. | Float")
-    imgui.text("[BrainwashRate]             - Dragonsplague overlay toggle. | Float 0.0 - 1.0")
-    imgui.text("[Brainwash_Color]           - Dragonsplague overlay color. | Vec4 RGBA")
-    imgui.text("[DragonGrade_Enable]        - Wyrmfire overlay toggle. | Float 0.0 - 1.0")
-    imgui.text("[Emissive_Enable]           - Emissive toggle. | Float 0.0 - 1.0")
-    imgui.text("[EmissiveColor1]            - Primary emissive color. | Vec4 RGBA")
-    imgui.text("[EmissiveColor2]            - Secondary emissive color. | Vec4 RGBA")
-    imgui.text("[Enable_ExtraPatternMap]    - True color replacer toggle. | Float 0.0 - 1.0")
-    imgui.text("[ExtraPatternMap_Color]     - The color of true color replacer. | Vec4 RGBA")
+    draw_material_param_gui("[BaseColor]", 0xFFDBFF00, "ALBD tint. | Vec4 RGBA")
+    draw_material_param_gui("[BaseDetail_TilingScale]", 0xFF00BBFF, "Detail map tiling scale. | Float")
+    draw_material_param_gui("[BrainwashRate]", 0xFF00BBFF, "Dragonsplague overlay toggle. | Float 0.0 - 1.0")
+    draw_material_param_gui("[Brainwash_Color]", 0xFFDBFF00, "Dragonsplague overlay color. | Vec4 RGBA")
+    draw_material_param_gui("[DragonGrade_Enable]", 0xFF00BBFF, "Wyrmfire overlay toggle. | Float 0.0 - 1.0")
+    draw_material_param_gui("[Emissive_Enable]", 0xFF00BBFF, "Emissive toggle. | Float 0.0 - 1.0")
+    draw_material_param_gui("[EmissiveColor1]", 0xFFDBFF00, "Primary emissive color. | Vec4 RGBA")
+    draw_material_param_gui("[EmissiveColor2]", 0xFFDBFF00, "Secondary emissive color. | Vec4 RGBA")
+    draw_material_param_gui("[Enable_ExtraPatternMap]", 0xFF00BBFF, "True color replacer toggle. | Float 0.0 - 1.0")
+    draw_material_param_gui("[ExtraPatternMap_Color]", 0xFFDBFF00, "The color of true color replacer. | Vec4 RGBA")
     imgui.spacing()
     imgui.indent(-10)
     imgui.tree_pop()

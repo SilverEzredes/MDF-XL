@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 04/20/2024
--- Version: v1.0.00
+-- Updated: 04/24/2024
+-- Version: v1.0.22
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -16,15 +16,16 @@ local wc = false
 local last_time = 0.0
 local tick_interval = 1.0 / 2.5
 
-local characterManager = sdk.get_managed_singleton("app.CharacterManager")
-local itemManager = sdk.get_managed_singleton("app.ItemManager")
-local GUIManager = sdk.get_managed_singleton("app.GuiManager")
-
 local isPlayerInScene = false
 local isNowLoading = false
 local isLoadingScreenBypass = false
 local isEquipmentUpdated = false
 local isEquipmentDefaultsDumped = false
+local isEquipmentMenuHidden = false
+local isPauseMenuHidden = false
+local isEquipmentMenuDrawn = false
+local isItemMenuDrawn = false
+local isItemMenuHidden = false
 local show_MDFXL_Editor = false
 local show_MDFXL_OutfitManager = false
 local show_MDFXL_Docs = false
@@ -41,6 +42,10 @@ local searchQuery = ""
 local outfit_presets = {}
 local outfit_preset_indx = 1
 local dump_outfit_presets = false
+
+local characterManager = sdk.get_managed_singleton("app.CharacterManager")
+local itemManager = sdk.get_managed_singleton("app.ItemManager")
+local GUIManager = sdk.get_managed_singleton("app.GuiManager")
 
 local MDFXL_default_settings = {
     allowAutoJsonCache = true,
@@ -258,7 +263,20 @@ local MDFXL_Master = {
             "PantsWLs",
             "Underwear",
         },
-        ArmorOutfitPresets = {},
+        ArmorOutfitPresets = {
+        },
+        Weapon = {
+            WP01      =     {ID = "",         Type = "Weapon",        MeshName = "",  MeshPath = "",  MDFPath = ""},
+        },
+        WeaponParams = {
+            WP01 = {
+                Presets = {},
+                current_preset_indx = 1,
+                Materials = {},
+                Enabled = {},
+                Parts = {},
+            },
+        },
     }
 }
 
@@ -312,7 +330,7 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
             MDFXL_table[armor.ID].Parts = {}
         end
     end
-
+    
     for _, armor in pairs(armorData) do
         if MDFXL_table[armor.ID] then
             local player = characterManager:get_ManualPlayer()
@@ -332,10 +350,10 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                         nativesMDF = nativesMDF and nativesMDF:call("ToString()")
                         if nativesMesh then
                             local meshPath = string.gsub(nativesMesh, "Resource%[", "natives/stm/")
-                            local formatedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
-                            armor.MeshPath = formatedMeshPath
+                            local formattedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
+                            armor.MeshPath = formattedMeshPath
                             if MDFXL_settings.isDEBUG then
-                                log.info("[MDF-XL " .. formatedMeshPath .. "]")
+                               log.info("[MDF-XL] " .. formattedMeshPath .. "]")
                             end
                         end
                         nativesMesh = nativesMesh and nativesMesh:match("([^/]-)%.mesh]$")
@@ -344,10 +362,10 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                         end
                         if nativesMDF then
                             local mdfPath = string.gsub(nativesMDF, "Resource%[", "natives/stm/")
-                            local formatedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
-                            armor.MDFPath = formatedMDFPath
+                            local formattedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
+                            armor.MDFPath = formattedMDFPath
                             if MDFXL_settings.isDEBUG then
-                                log.info("[MDF-XL " .. formatedMDFPath .. "]")
+                                log.info("[MDF-XL] " .. formattedMDFPath .. "]")
                             end
                         end
 
@@ -400,7 +418,7 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                                     end
                                     
                                     if EnabledMat then
-                                        if  MDFXL.DD2.ArmorParams[armor.ID].current_preset_indx == 1 or nil then
+                                        if  MDFXL.DD2.ArmorParams[armor.ID].current_preset_indx >= 1 then
                                             for k, _ in ipairs(MDFXL.DD2.ArmorParams[armor.ID].Parts) do
                                                 MDFXL.DD2.ArmorParams[armor.ID].Enabled[k] = true
                                             end
@@ -469,6 +487,32 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
     json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
     json.dump_file("MDF-XL/__Holders/_MaterialParamUpdateHolder.json", MDFXL_MaterialParamUpdateHolder)
 end
+
+-- local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
+--     for _, weapon in  pairs(weaponData) do
+--         local player = characterManager:get_ManualPlayer()
+--         local playerTransforms = player and player:get_Valid() and player:get_GameObject():get_Transform()
+--         local playerChildren = func.get_children(playerTransforms)
+        
+--         for i, child in pairs(playerChildren) do
+--             local childStrings = child:call("ToString()")
+--             local playerArmament = childStrings:match("wp[^1].*")
+--             if playerArmament then
+--                 playerArmament = playerArmament:gsub("@.*", "")
+--                 weapon.ID = playerArmament
+--                 local playerEquipment = playerTransforms:find(playerArmament)
+
+--                 if playerEquipment then
+--                     local playerWeapon = playerEquipment:get_GameObject()
+
+--                     if playerWeapon then
+--                         --log.info(weapon.ID)
+--                     end
+--                 end
+--             end
+--         end
+--     end
+-- end
 
 local function dump_PlayerEquipmentMaterialParamDefaults(armorData)
     for _, armor in pairs(armorData) do
@@ -563,7 +607,7 @@ local function cache_MDFXL_json_files(armorData)
                     
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[Loaded " .. filepath .. " for MDF-XL]")
+                            log.info("[Loaded " .. filepath .. " for "  .. armor.MeshName .. " MDF-XL]")
                         end
                         table.insert(json_names, name)
                     end
@@ -579,7 +623,7 @@ local function cache_MDFXL_json_files(armorData)
                     end
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[Removed " .. name .. " from MDF-XL]")
+                            log.info("[Removed " .. name .. " from " .. armor.MeshName .. "MDF-XL]")
                         end
                         table.remove(json_names, i)
                     end
@@ -606,7 +650,10 @@ local function update_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_tab
             
                 if playerEquipment then
                     local playerArmor = playerEquipment:get_GameObject()
-
+                    if MDFXL_settings.isDEBUG then
+                        log.info("[MDF-XL] update_PlayerEquipmentMaterialParams_Manager] " .. tostring(playerEquipment:call("ToString()")))
+                    end
+                   
                     if playerArmor then
                         local render_mesh = playerArmor:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
                         
@@ -702,7 +749,7 @@ local function get_MasterEquipmentData(armorData)
             last_time = os.clock()
             dumped_MDFXL_defaults = true
             if MDFXL_settings.isDEBUG then
-                log.info("[MDF-XL Master Data Updated]")
+                log.info("[MDF-XL] Master Data Updated]")
             end
         end
     end
@@ -717,7 +764,7 @@ local function update_OnLoadingScreens(armorData)
             isLoadingScreenBypass = true
             wc = true
             if MDFXL_settings.isDEBUG then
-                log.info("[MDF-XL Now Loading]")
+                log.info("[MDF-XL] Now Loading]")
             end
             for _, armor in pairs(armorData) do
                 if MDFXL.DD2.ArmorParams[armor.ID].current_preset_indx > 1 then
@@ -747,8 +794,42 @@ sdk.hook(sdk.find_type_definition("app.ItemManager"):get_method("applyEquipChang
     end
 )
 
+sdk.hook(sdk.find_type_definition("app.ui060101"):get_method("onHidden()"),
+    function(args)
+        isPauseMenuHidden = true
+    end
+)
+
+sdk.hook(sdk.find_type_definition("app.ui060301_00"):get_method("Initialize()"),
+    function(args)
+        isItemMenuDrawn = true
+        isEquipmentMenuHidden = false
+    end
+)
+
+sdk.hook(sdk.find_type_definition("app.ui060301_00"):get_method("onDestroy()"),
+    function(args)
+        isItemMenuHidden = true
+    end
+)
+
+sdk.hook(sdk.find_type_definition("app.ui060401_00"):get_method("Initialize()"),
+    function(args)
+        isEquipmentMenuDrawn = true
+        isItemMenuHidden = false
+    end
+)
+
+sdk.hook(sdk.find_type_definition("app.ui060401_00"):get_method("onDestroy()"),
+    function(args)
+        isEquipmentMenuHidden = true
+    end
+)
+
 local function update_MasterEquipmentData()
-    if isEquipmentUpdated then
+    local isPaused = GUIManager:call("isPausedGUI")
+    
+    if isEquipmentUpdated and isPauseMenuHidden and not isPaused and isEquipmentMenuHidden and isEquipmentMenuDrawn then
         get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
         MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
         dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
@@ -756,9 +837,34 @@ local function update_MasterEquipmentData()
             cache_MDFXL_json_files(MDFXL.DD2.Armor)
         end
         if MDFXL_settings.isDEBUG then
-            log.info("[MDF-XL New Item Equipped]")
+            log.info("[MDF-XL] Left pause menu, master data updated.]")
         end
-        isEquipmentUpdated = false
+        isEquipmentMenuDrawn = false
+        isEquipmentMenuHidden = false
+    end
+
+    if isEquipmentUpdated and isPauseMenuHidden and not isPaused and isItemMenuDrawn and isItemMenuHidden then
+        get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
+        dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
+        if MDFXL_settings.allowAutoJsonCache then
+            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+        end
+        if MDFXL_settings.isDEBUG then
+            log.info("[MDF-XL] Left pause menu, master data updated.]")
+        end
+        isItemMenuDrawn = false
+        isItemMenuHidden = false
+    end
+
+    if not isPaused and isEquipmentMenuHidden then
+        get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
+        dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
+        if MDFXL_settings.allowAutoJsonCache then
+            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+        end
+        isEquipmentMenuHidden = false
     end
 end
 
@@ -780,8 +886,8 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
         imgui.spacing()
         imgui.spacing()
         for _, armor in ipairs(armorOrder) do
-            imgui.spacing()
             local armorData = MDFXL.DD2.Armor[armor]
+            imgui.spacing()
             imgui.indent(20)
 
             imgui.push_id(_)
@@ -880,7 +986,6 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                                                         MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
                                                     end
                                                 end
-                                                
                                             end
                                         end
                                     end
@@ -919,7 +1024,6 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                                                         MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
                                                     end
                                                 end
-                                                
                                             end
                                         end
                                     end
@@ -1298,6 +1402,7 @@ re.on_draw_ui(function ()
         
         if imgui.tree_node("MDF-XL Settings") then
             imgui.begin_rect()
+            
             imgui.spacing()
             imgui.indent(5)
             imgui.spacing()
@@ -1324,9 +1429,13 @@ re.on_draw_ui(function ()
             imgui.tree_pop()
         end
         
+        if wc or changed then
+            json.dump_file("MDF-XL/MDF-XL_Settings.json", MDFXL_settings)
+        end
+
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.0.00 | 04/20/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.0.22 | 04/24/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
