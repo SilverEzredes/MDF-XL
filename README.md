@@ -13,4 +13,4 @@ MDF-XL is a runtime material editor with a robust JSON preset system utilizing [
 
 [alphaZomega](https://github.com/alphazolam) for his work on [EMV](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
 
-koune_samson, baronbeefbowl, b00marrows, Dimpleboob, mellamocarlos, hakz01, darckray, jenya66, lupercal2024, tempjen_90619 and others for testing.
+koune_samson, baronbeefbowl, b00marrows, Dimpleboob, mellamocarlos, hakz01, darckray, jenya66, lupercal2024, tempjen_90619, beethy and others for testing.
