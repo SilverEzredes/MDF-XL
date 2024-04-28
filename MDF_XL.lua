@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 04/24/2024
--- Version: v1.0.22
+-- Updated: 04/27/2024
+-- Version: v1.0.40
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -26,6 +26,10 @@ local isPauseMenuHidden = false
 local isEquipmentMenuDrawn = false
 local isItemMenuDrawn = false
 local isItemMenuHidden = false
+local isHKSavedPresets = false
+local isHKLoadPresets = false
+local isHKEmissiveToggle = false
+local isHKLoadPresetsEditorBypass = false
 local show_MDFXL_Editor = false
 local show_MDFXL_OutfitManager = false
 local show_MDFXL_Docs = false
@@ -42,6 +46,12 @@ local searchQuery = ""
 local outfit_presets = {}
 local outfit_preset_indx = 1
 local dump_outfit_presets = false
+local loadingPresetStartTime = 0
+local elapsedLoadTime = 0
+local progressLoad = 0.0
+local savingPresetStartTime = 0
+local elapsedSaveTime = 0
+local progressSave = 0.0
 
 local characterManager = sdk.get_managed_singleton("app.CharacterManager")
 local itemManager = sdk.get_managed_singleton("app.ItemManager")
@@ -50,11 +60,20 @@ local GUIManager = sdk.get_managed_singleton("app.GuiManager")
 local MDFXL_default_settings = {
     allowAutoJsonCache = true,
     isDEBUG = false,
+    showMDFXLConsole = true,
     showMeshName = true,
     showMaterialCount = true,
+    showPresetPath = false,
     showMeshPath = true,
     showMDFPath = true,
     isEmissiveHighlightEnabled = false,
+    use_modifier = true,
+    hotkeys = {
+		["Modifier"] = "LControl",
+        ["Update Preset Lists"] = "U",
+        ["Emissive Highlighting"] = "E",
+        ["Save Presets"] = "S",
+    },
 }
 
 local MDFXL_Master = {
@@ -263,8 +282,7 @@ local MDFXL_Master = {
             "PantsWLs",
             "Underwear",
         },
-        ArmorOutfitPresets = {
-        },
+        ArmorOutfitPresets = {},
         Weapon = {
             WP01      =     {ID = "",         Type = "Weapon",        MeshName = "",  MeshPath = "",  MDFPath = ""},
         },
@@ -282,6 +300,7 @@ local MDFXL_Master = {
 
 local MDFXL = hk.merge_tables({}, MDFXL_Master) and hk.recurse_def_settings(json.load_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json") or {}, MDFXL_Master)
 local MDFXL_settings = hk.merge_tables({}, MDFXL_default_settings) and hk.recurse_def_settings(json.load_file("MDF-XL/MDF-XL_Settings.json") or {}, MDFXL_default_settings)
+hk.setup_hotkeys(MDFXL_settings.hotkeys)
 
 local function get_CharacterManager()
     if characterManager == nil then characterManager = sdk.get_managed_singleton("app.CharacterManager") end
@@ -418,7 +437,7 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                                     end
                                     
                                     if EnabledMat then
-                                        if  MDFXL.DD2.ArmorParams[armor.ID].current_preset_indx >= 1 then
+                                        if  MDFXL.DD2.ArmorParams[armor.ID].Presets == "Default Preset" or nil then
                                             for k, _ in ipairs(MDFXL.DD2.ArmorParams[armor.ID].Parts) do
                                                 MDFXL.DD2.ArmorParams[armor.ID].Enabled[k] = true
                                             end
@@ -487,7 +506,7 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
     json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
     json.dump_file("MDF-XL/__Holders/_MaterialParamUpdateHolder.json", MDFXL_MaterialParamUpdateHolder)
 end
-
+--TODO
 -- local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
 --     for _, weapon in  pairs(weaponData) do
 --         local player = characterManager:get_ManualPlayer()
@@ -506,7 +525,48 @@ end
 --                     local playerWeapon = playerEquipment:get_GameObject()
 
 --                     if playerWeapon then
---                         --log.info(weapon.ID)
+--                         local render_mesh = playerWeapon:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
+
+--                         if render_mesh then
+--                             local MatCount = render_mesh:call("get_MaterialNum")
+--                             local nativesMesh = render_mesh:getMesh()
+--                             local nativesMDF = render_mesh:get_Material()
+--                             nativesMesh = nativesMesh and nativesMesh:call("ToString()")
+--                             nativesMDF = nativesMDF and nativesMDF:call("ToString()")
+--                             if nativesMesh then
+--                                 local meshPath = string.gsub(nativesMesh, "Resource%[", "natives/stm/")
+--                                 local formattedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
+--                                 weapon.MeshPath = formattedMeshPath
+--                                 if MDFXL_settings.isDEBUG then
+--                                    log.info("[MDF-XL] " .. formattedMeshPath .. "]")
+--                                 end
+--                             end
+--                             nativesMesh = nativesMesh and nativesMesh:match("([^/]-)%.mesh]$")
+--                             if nativesMesh then
+--                                 weapon.MeshName = nativesMesh
+--                             end
+--                             if nativesMDF then
+--                                 local mdfPath = string.gsub(nativesMDF, "Resource%[", "natives/stm/")
+--                                 local formattedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
+--                                 weapon.MDFPath = formattedMDFPath
+--                                 if MDFXL_settings.isDEBUG then
+--                                     log.info("[MDF-XL] " .. formattedMDFPath .. "]")
+--                                 end
+--                             end
+--                             --TODO
+--                             -- for MatName, _ in pairs(MDFXL_table[weapon.ID].Materials) do
+--                             --     local found = false
+--                             --     for i = 0, MatCount - 1 do
+--                             --         if MatName == render_mesh:call("getMaterialName", i) then
+--                             --             found = true
+--                             --             break
+--                             --         end
+--                             --     end
+--                             --     if not found then
+--                             --         MDFXL_table[weapon.ID].Materials[MatName] = nil
+--                             --     end
+--                             -- end
+--                         end
 --                     end
 --                 end
 --             end
@@ -644,7 +704,6 @@ local function update_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_tab
         if MDFXL_table[armor.ID] then
             if MDFXL_table[armor.ID].isUpdated or isLoadingScreenBypass then
                 local player = characterManager:get_ManualPlayer()
-                --local inventoryPlayer = string.gsub(player:get_GameObject():ToString(), "ch000000_00", "MockupModel_ch000000_00")
                
                 local playerEquipment = player and player:get_Valid() and player:get_GameObject():get_Transform():find(armor.ID)
             
@@ -868,15 +927,96 @@ local function update_MasterEquipmentData()
     end
 end
 
+local function update_via_Hotkeys(armorData)
+    local KM_UPL_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Update Preset Lists")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Update Preset Lists"))
+    local KM_EH_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Emissive Highlighting")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Emissive Highlighting"))
+    local KM_SA_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Save Presets")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Save Presets"))
+
+    if KM_UPL_controls then
+        isHKLoadPresets = true
+        cache_MDFXL_json_files(MDFXL.DD2.Armor)
+    end
+    --TODO
+    -- if KM_UPL_controls and isHKLoadPresetsEditorBypass then
+    --     cache_MDFXL_json_files(MDFXL.DD2.Armor)
+    -- end
+    if KM_EH_controls then
+        isHKEmissiveToggle = true
+        MDFXL_settings.isEmissiveHighlightEnabled = not MDFXL_settings.isEmissiveHighlightEnabled
+    end
+    if KM_SA_controls then
+        isHKSavedPresets = true
+        for _, armor in pairs(armorData) do
+            local armorType = MDFXL.DD2.ArmorParams[armor.ID]
+    
+            if armorType then
+                if armor.MeshName ~= "" then
+                    json.dump_file("MDF-XL\\".. armor.Type .. "\\" .. armor.ID .. "\\" .. armor.MeshName .. "\\Current Preset.json", armorType)
+                end
+            end
+        end
+    end
+end
+
 re.on_frame( function()
     update_MasterEquipmentData()
     get_MasterEquipmentData(MDFXL.DD2.Armor)
     update_OnLoadingScreens(MDFXL.DD2.Armor)
-    if show_MDFXL_Editor and (changed or wc) then
-        isLoadingScreenBypass = false
-        changed = false
-        wc = false
-        update_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+    if show_MDFXL_Editor then
+        update_via_Hotkeys(MDFXL.DD2.Armor)
+        if isHKLoadPresets then
+            progressLoad = math.min(progressLoad + 0.020, 1.0)
+            if loadingPresetStartTime == 0 then
+                loadingPresetStartTime = os.clock()
+                
+            else
+                elapsedLoadTime = os.clock() - loadingPresetStartTime
+            
+                if elapsedLoadTime >= 1.0 then
+                    if progressLoad > 0.99 then
+                        progressLoad = 0.0
+                    end
+                    isHKLoadPresets = false
+                    loadingPresetStartTime = 0
+                end
+            end
+        end
+        if isHKSavedPresets then
+            progressSave = math.min(progressSave + 0.012, 1.0)
+            if savingPresetStartTime == 0 then
+                savingPresetStartTime = os.clock()
+                
+            else
+                elapsedSaveTime = os.clock() - savingPresetStartTime
+            
+                if elapsedSaveTime >= 1.5 then
+                    if progressSave > 0.99 then
+                        progressSave = 0.0
+                    end
+                    isHKSavedPresets = false
+                    savingPresetStartTime = 0
+                end
+            end
+        end
+        if isHKEmissiveToggle then
+            if savingPresetStartTime == 0 then
+                savingPresetStartTime = os.clock()
+                
+            else
+                elapsedSaveTime = os.clock() - savingPresetStartTime
+            
+                if elapsedSaveTime >= 1.0 then
+                    isHKEmissiveToggle = false
+                    savingPresetStartTime = 0
+                end
+            end
+        end
+        if changed or wc then
+            isLoadingScreenBypass = false
+            changed = false
+            wc = false
+            update_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        end
     end
 end)
 
@@ -903,7 +1043,6 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
 
                 if MDFXL_settings.showMeshName then
                     imgui.same_line()
-
                     imgui.text("[ Mesh Name:")
                     imgui.same_line()
                     imgui.text_colored(armorData.MeshName, 0xFF00BBFF)
@@ -913,7 +1052,6 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
 
                 if MDFXL_settings.showMaterialCount then
                     imgui.same_line()
-
                     imgui.text("[ Material Count:")
                     imgui.same_line()
                     imgui.text_colored(#MDFXL.DD2.ArmorParams[armorData.ID].Parts, 0xFFDBFF00)
@@ -952,6 +1090,10 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                 
                 imgui.spacing()
 
+                if MDFXL_settings.showPresetPath and #MDFXL.DD2.ArmorParams[armorData.ID].Parts > 0 then
+                    imgui.input_text("Preset Path", "Dragons Dogma 2/reframework/data/MDF-XL/" .. armorData.Type .. "/" .. armorData.ID .. "/" .. armorData.MeshName .. "/" .. presetName .. ".json")
+                end
+
                 if MDFXL_settings.showMeshPath then
                     imgui.push_id(armorData.MeshPath)
                     imgui.input_text("Mesh Path", armorData.MeshPath)
@@ -963,94 +1105,43 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                     imgui.input_text("MDF Path", armorData.MDFPath)
                     imgui.pop_id()
                 end
-
+                
                 if imgui.tree_node("Mesh Editor") then
+                    local isArmorHovered = imgui.is_item_hovered()
                     imgui.spacing()
                     imgui.text_colored(ui.draw_line("=", 78), 0xFF00BBFF)
                     imgui.indent(15)
-
+                    
                     for i, partName in ipairs(MDFXL.DD2.ArmorParams[armorData.ID].Parts) do
-                        if  MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i] == MDFXL_MaterialEditorDefaultsHolder.DD2.ArmorParams[armorData.ID].Enabled[i] then
-                            changed, MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i] = imgui.checkbox(partName, MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i]); wc = wc or changed
+                        local enabledMeshPart = MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i]
+                        local defaultEnabledMeshPart = MDFXL_MaterialEditorDefaultsHolder.DD2.ArmorParams[armorData.ID].Enabled[i]
+            
+                        if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
+                            changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
+                            MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i] = enabledMeshPart
+            
                             if MDFXL_settings.isEmissiveHighlightEnabled then
-                                if imgui.is_item_hovered() then
-                                    for matName, matData in func.orderedPairs(MDFXL.DD2.ArmorParams[armorData.ID].Materials) do
-                                        if partName == matName then
-                                            for paramName, paramValue in func.orderedPairs(matData) do
-                                                if paramName == "Emissive_Enable" then
-                                                    if type(paramValue) == "table" then
-                                                        paramValue[1] = 1.0
-                                                        wc = true
-                                                    end
-                                                    if changed or wc then
-                                                        MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                                if not imgui.is_item_hovered() then
-                                    for matName, matData in func.orderedPairs(MDFXL.DD2.ArmorParams[armorData.ID].Materials) do
-                                        if partName == matName then
-                                            for paramName, paramValue in func.orderedPairs(matData) do
-                                                if paramName == "Emissive_Enable" then
-                                                    if type(paramValue) == "table" then
-                                                        paramValue[1] = 0.0
-                                                        wc = true
-                                                    end
-                                                    if changed or wc then
-                                                        MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
-                                                    end
-                                                end
-                                            end
+                                local isHovered = imgui.is_item_hovered()
+
+                                for matName, matData in func.orderedPairs(MDFXL.DD2.ArmorParams[armorData.ID].Materials) do
+                                    if partName == matName then
+                                        local paramValue = matData["Emissive_Enable"]
+                                        if paramValue then
+                                            paramValue[1] = (isHovered or isArmorHovered) and 1.0 or 0.0
+                                            wc = true
+                                            MDFXL_MaterialParamUpdateHolder[matName]["Emissive_Enable"].isMaterialParamUpdated = true
                                         end
                                     end
                                 end
                             end
-                        elseif  MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i] ~= MDFXL_MaterialEditorDefaultsHolder.DD2.ArmorParams[armorData.ID].Enabled[i] then
-                            changed, MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i] = imgui.checkbox(partName, MDFXL.DD2.ArmorParams[armorData.ID].Enabled[i]); wc = wc or changed
-                            if MDFXL_settings.isEmissiveHighlightEnabled then
-                                if imgui.is_item_hovered() then
-                                    for matName, matData in func.orderedPairs(MDFXL.DD2.ArmorParams[armorData.ID].Materials) do
-                                        if partName == matName then
-                                            for paramName, paramValue in func.orderedPairs(matData) do
-                                                if paramName == "Emissive_Enable" then
-                                                    if type(paramValue) == "table" then
-                                                        paramValue[1] = 1.0
-                                                        wc = true
-                                                    end
-                                                    if changed or wc then
-                                                        MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                                if not imgui.is_item_hovered() then
-                                    for matName, matData in func.orderedPairs(MDFXL.DD2.ArmorParams[armorData.ID].Materials) do
-                                        if partName == matName then
-                                            for paramName, paramValue in func.orderedPairs(matData) do
-                                                if paramName == "Emissive_Enable" then
-                                                    if type(paramValue) == "table" then
-                                                        paramValue[1] = 0.0
-                                                        wc = true
-                                                    end
-                                                    if changed or wc then
-                                                        MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                            end
+                        end
+            
+                        if enabledMeshPart ~= defaultEnabledMeshPart then
                             imgui.same_line()
                             imgui.text_colored("*", 0xFF00BBFF)
                         end
                     end
-                    
+            
                     imgui.indent(-15)
                     imgui.text_colored(ui.draw_line("=", 78), 0xFF00BBFF)
                     imgui.tree_pop()
@@ -1354,6 +1445,37 @@ re.on_draw_ui(function ()
         imgui.same_line()
         changed, show_MDFXL_Editor = imgui.checkbox("Open MDF-XL - Editor", show_MDFXL_Editor); wc = wc or changed
         imgui.spacing()
+        if show_MDFXL_Editor and MDFXL_settings.showMDFXLConsole then
+            imgui.indent(2)
+            imgui.begin_rect()
+            imgui.indent(5)
+            imgui.text("MDF-XL Console:")
+            imgui.text(ui.draw_line(" ", 100))
+            if isHKSavedPresets then
+                imgui.progress_bar(progressSave, Vector2f.new(300, 20), string.format("Saving Presets: %.1f%%", progressSave * 100))
+                imgui.spacing()
+            end
+            if isHKLoadPresets then
+                imgui.progress_bar(progressLoad, Vector2f.new(300, 20), string.format("Loading Presets: %.1f%%", progressLoad * 100))
+                imgui.spacing()
+            end
+            if isHKEmissiveToggle then
+                if MDFXL_settings.isEmissiveHighlightEnabled then
+                    imgui.text("Emissive Highlight:")
+                    imgui.same_line()
+                    imgui.text_colored("[ON]", 0xFF00FF00)
+                elseif not MDFXL_settings.isEmissiveHighlightEnabled then
+                    imgui.text("Emissive Highlight:")
+                    imgui.same_line()
+                    imgui.text_colored("[OFF]", 0xFF0000FF)
+                end
+            end
+            imgui.indent(-5)
+            imgui.end_rect(2)
+            imgui.indent(-2)
+            imgui.spacing()
+        end
+        
         changed, presetSearchQuery = imgui.input_text("Search", presetSearchQuery); wc = wc or changed
         imgui.text(ui.draw_line("-", 135) .. ui.draw_line(" ", 5))
 
@@ -1385,26 +1507,33 @@ re.on_draw_ui(function ()
        
         imgui.text(ui.draw_line("-", 135) .. ui.draw_line(" ", 5))
 
-        changed, show_MDFXL_Docs = imgui.checkbox("Open MDF-XL User Manual", show_MDFXL_Docs); wc = wc or changed
-        
-        if not show_MDFXL_Docs or imgui.begin_window("MDF-XL Documentation", true, 0) == false then
-            show_MDFXL_Docs = false
-        else
-            imgui.spacing()
-            imgui.indent()
-            
-            draw_MDFXL_Docs_GUI()
-            
-            imgui.unindent()
-            imgui.end_window()
-        end
         imgui.spacing()
         
         if imgui.tree_node("MDF-XL Settings") then
             imgui.begin_rect()
-            
             imgui.spacing()
             imgui.indent(5)
+            if imgui.button("Reset to Defaults") then
+                wc = true
+                changed = true
+                MDFXL_settings = hk.recurse_def_settings({}, MDFXL_default_settings); wc = wc or changed
+                hk.reset_from_defaults_tbl(MDFXL_default_settings.hotkeys)
+            end
+            imgui.same_line()
+            changed, show_MDFXL_Docs = imgui.checkbox("Open MDF-XL User Manual", show_MDFXL_Docs); wc = wc or changed
+        
+            if not show_MDFXL_Docs or imgui.begin_window("MDF-XL Documentation", true, 0) == false then
+                show_MDFXL_Docs = false
+            else
+                imgui.spacing()
+                imgui.indent()
+                
+                draw_MDFXL_Docs_GUI()
+                
+                imgui.unindent()
+                imgui.end_window()
+            end
+
             imgui.spacing()
             
             imgui.text("MDF-XL:")
@@ -1412,20 +1541,32 @@ re.on_draw_ui(function ()
             func.tooltip("Enable/Disable auto-caching of JSON files. When disabled, you can manually cache the JSON files using the 'Update Preset Lists' button, which will improve performance on lower-end rigs.\nLeave this on if you don't know what you are doing.")
             changed, MDFXL_settings.isDEBUG = imgui.checkbox("Debug Mode", MDFXL_settings.isDEBUG); wc = wc or changed
             func.tooltip("Enable/Disable debug mode. When enabled, MDF-XL will log significantly more information in the re2_framework_log.txt file, located in the game's root folder.")
-
+            changed, MDFXL_settings.showMDFXLConsole = imgui.checkbox("Show MDF-XL Console", MDFXL_settings.showMDFXLConsole)
             imgui.spacing()
 
             imgui.text("MDF-XL - Editor:")
             changed, MDFXL_settings.showMeshName = imgui.checkbox("Show Mesh Name", MDFXL_settings.showMeshName); wc = wc or changed
             changed, MDFXL_settings.showMaterialCount = imgui.checkbox("Show Material Count", MDFXL_settings.showMaterialCount); wc = wc or changed
+            changed, MDFXL_settings.showPresetPath = imgui.checkbox("Show Preset Path", MDFXL_settings.showPresetPath); wc = wc or changed
             changed, MDFXL_settings.showMeshPath = imgui.checkbox("Show Mesh Path", MDFXL_settings.showMeshPath); wc = wc or changed
             changed, MDFXL_settings.showMDFPath = imgui.checkbox("Show MDF Path", MDFXL_settings.showMDFPath); wc = wc or changed
             changed, MDFXL_settings.isEmissiveHighlightEnabled = imgui.checkbox("Emissive Highlighting", MDFXL_settings.isEmissiveHighlightEnabled); wc = wc or changed
             func.tooltip("Enable/Disable Emissive Highlighting for the mesh editor. When enabled, submeshes will glow when hovered over in the Mesh Editor.\nThis option is resource-intensive and will impact performance while the MDF-XL Editor is open.")
+            if imgui.tree_node("Hotkey Settings") then
+                changed, MDFXL_settings.use_modifier = imgui.checkbox("", MDFXL_settings.use_modifier); wc = wc or changed
+                func.tooltip("Require that you hold down this button.")
+                imgui.same_line()
+                changed = hk.hotkey_setter("Modifier"); wc = wc or changed
+                imgui.text(ui.draw_line("-", 60).. ui.draw_line(" ", 2))
+                changed = hk.hotkey_setter("Save Presets", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("Update Preset Lists", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("Emissive Highlighting", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
+                imgui.tree_pop()
+            end
             
             imgui.indent(-5)
             imgui.spacing()
-            imgui.end_rect(2)
+            imgui.end_rect(3)
             imgui.tree_pop()
         end
         
@@ -1435,7 +1576,7 @@ re.on_draw_ui(function ()
 
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.0.22 | 04/24/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.0.40 | 04/27/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)

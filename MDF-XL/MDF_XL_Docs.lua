@@ -2,8 +2,8 @@
 -- MDF XL Docs
 
 -- Author: SilverEzredes
--- Updated: 04/21/2024
--- Version: v1.0.1
+-- Updated: 04/27/2024
+-- Version: v1.0.2
 
 --/////////////////////////////////////--
 local func = require("_SharedCore\\Functions")
@@ -187,10 +187,12 @@ end
 local function MDFXL_Docs_Chapter_03()
     imgui.spacing()
     imgui.indent(10)
+    draw_material_param_gui("[AlphaTestRef]", 0xFF00BBFF, "ATOC R channel balance. | Float 0.0 - 1.0")
     draw_material_param_gui("[BaseColor]", 0xFFDBFF00, "ALBD tint. | Vec4 RGBA")
     draw_material_param_gui("[BaseDetail_TilingScale]", 0xFF00BBFF, "Detail map tiling scale. | Float")
     draw_material_param_gui("[BrainwashRate]", 0xFF00BBFF, "Dragonsplague overlay toggle. | Float 0.0 - 1.0")
     draw_material_param_gui("[Brainwash_Color]", 0xFFDBFF00, "Dragonsplague overlay color. | Vec4 RGBA")
+    draw_material_param_gui("[Brainwash_LightInfulence]", 0xFF00BBFF, "ATOC B channel strength on Dragonsplague overlay. | Float 0.0 - 1.0")
     draw_material_param_gui("[DragonGrade_Enable]", 0xFF00BBFF, "Wyrmfire overlay toggle. | Float 0.0 - 1.0")
     draw_material_param_gui("[Emissive_Enable]", 0xFF00BBFF, "Emissive toggle. | Float 0.0 - 1.0")
     draw_material_param_gui("[EmissiveColor1]", 0xFFDBFF00, "Primary emissive color. | Vec4 RGBA")
