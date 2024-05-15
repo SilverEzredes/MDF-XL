@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 04/27/2024
--- Version: v1.0.40
+-- Updated: 05/15/2024
+-- Version: v1.1.20
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -284,10 +284,10 @@ local MDFXL_Master = {
         },
         ArmorOutfitPresets = {},
         Weapon = {
-            WP01      =     {ID = "",         Type = "Weapon",        MeshName = "",  MeshPath = "",  MDFPath = ""},
+            WP01R      =     {ID = "",         Type = "WP01R",        MeshName = "",  MeshPath = "",  MDFPath = ""},
         },
         WeaponParams = {
-            WP01 = {
+            WP01R = {
                 Presets = {},
                 current_preset_indx = 1,
                 Materials = {},
@@ -295,6 +295,9 @@ local MDFXL_Master = {
                 Parts = {},
             },
         },
+        WeaponOrder = {
+            "WP01R"
+        }
     }
 }
 
@@ -437,7 +440,7 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
                                     end
                                     
                                     if EnabledMat then
-                                        if  MDFXL.DD2.ArmorParams[armor.ID].Presets == "Default Preset" or nil then
+                                        if MDFXL.DD2.ArmorParams[armor.ID].current_preset_indx >= 1 or nil then
                                             for k, _ in ipairs(MDFXL.DD2.ArmorParams[armor.ID].Parts) do
                                                 MDFXL.DD2.ArmorParams[armor.ID].Enabled[k] = true
                                             end
@@ -506,73 +509,180 @@ local function get_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
     json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
     json.dump_file("MDF-XL/__Holders/_MaterialParamUpdateHolder.json", MDFXL_MaterialParamUpdateHolder)
 end
---TODO
--- local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
---     for _, weapon in  pairs(weaponData) do
---         local player = characterManager:get_ManualPlayer()
---         local playerTransforms = player and player:get_Valid() and player:get_GameObject():get_Transform()
---         local playerChildren = func.get_children(playerTransforms)
+
+local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
+    for _, weapon in pairs(weaponData) do
+        if MDFXL_table[weapon.Type] then
+            MDFXL_table[weapon.Type].Materials = {}
+            MDFXL_table[weapon.Type].Parts = {}
+        end
+    end
+
+    for _, weapon in  pairs(weaponData) do
+        local player = characterManager:get_ManualPlayer()
+        local playerTransforms = player and player:get_Valid() and player:get_GameObject():get_Transform()
+        local playerChildren = func.get_children(playerTransforms)
         
---         for i, child in pairs(playerChildren) do
---             local childStrings = child:call("ToString()")
---             local playerArmament = childStrings:match("wp[^1].*")
---             if playerArmament then
---                 playerArmament = playerArmament:gsub("@.*", "")
---                 weapon.ID = playerArmament
---                 local playerEquipment = playerTransforms:find(playerArmament)
+        for i, child in pairs(playerChildren) do
+            local childStrings = child:call("ToString()")
+            local playerArmament = childStrings:match("wp[^1].*")
+            if playerArmament then
+                playerArmament = playerArmament:gsub("@.*", "")
+                weapon.ID = playerArmament
+                local playerEquipment = playerTransforms:find(playerArmament)
 
---                 if playerEquipment then
---                     local playerWeapon = playerEquipment:get_GameObject()
+                if playerEquipment then
+                    local playerWeapon = playerEquipment:get_GameObject()
 
---                     if playerWeapon then
---                         local render_mesh = playerWeapon:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
+                    if playerWeapon then
+                        local render_mesh = playerWeapon:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
 
---                         if render_mesh then
---                             local MatCount = render_mesh:call("get_MaterialNum")
---                             local nativesMesh = render_mesh:getMesh()
---                             local nativesMDF = render_mesh:get_Material()
---                             nativesMesh = nativesMesh and nativesMesh:call("ToString()")
---                             nativesMDF = nativesMDF and nativesMDF:call("ToString()")
---                             if nativesMesh then
---                                 local meshPath = string.gsub(nativesMesh, "Resource%[", "natives/stm/")
---                                 local formattedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
---                                 weapon.MeshPath = formattedMeshPath
---                                 if MDFXL_settings.isDEBUG then
---                                    log.info("[MDF-XL] " .. formattedMeshPath .. "]")
---                                 end
---                             end
---                             nativesMesh = nativesMesh and nativesMesh:match("([^/]-)%.mesh]$")
---                             if nativesMesh then
---                                 weapon.MeshName = nativesMesh
---                             end
---                             if nativesMDF then
---                                 local mdfPath = string.gsub(nativesMDF, "Resource%[", "natives/stm/")
---                                 local formattedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
---                                 weapon.MDFPath = formattedMDFPath
---                                 if MDFXL_settings.isDEBUG then
---                                     log.info("[MDF-XL] " .. formattedMDFPath .. "]")
---                                 end
---                             end
---                             --TODO
---                             -- for MatName, _ in pairs(MDFXL_table[weapon.ID].Materials) do
---                             --     local found = false
---                             --     for i = 0, MatCount - 1 do
---                             --         if MatName == render_mesh:call("getMaterialName", i) then
---                             --             found = true
---                             --             break
---                             --         end
---                             --     end
---                             --     if not found then
---                             --         MDFXL_table[weapon.ID].Materials[MatName] = nil
---                             --     end
---                             -- end
---                         end
---                     end
---                 end
---             end
---         end
---     end
--- end
+                        if render_mesh then
+                            local MatCount = render_mesh:call("get_MaterialNum")
+                            local nativesMesh = render_mesh:getMesh()
+                            local nativesMDF = render_mesh:get_Material()
+                            nativesMesh = nativesMesh and nativesMesh:call("ToString()")
+                            nativesMDF = nativesMDF and nativesMDF:call("ToString()")
+                            if nativesMesh then
+                                local meshPath = string.gsub(nativesMesh, "Resource%[", "natives/stm/")
+                                local formattedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
+                                weapon.MeshPath = formattedMeshPath
+                                if MDFXL_settings.isDEBUG then
+                                   log.info("[MDF-XL] " .. formattedMeshPath .. "]")
+                                end
+                            end
+                            nativesMesh = nativesMesh and nativesMesh:match("([^/]-)%.mesh]$")
+                            if nativesMesh then
+                                weapon.MeshName = nativesMesh
+                            end
+                            if nativesMDF then
+                                local mdfPath = string.gsub(nativesMDF, "Resource%[", "natives/stm/")
+                                local formattedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
+                                weapon.MDFPath = formattedMDFPath
+                                if MDFXL_settings.isDEBUG then
+                                    log.info("[MDF-XL] " .. formattedMDFPath .. "]")
+                                end
+                            end
+                            
+                            for MatName, _ in pairs(MDFXL_table[weapon.Type].Materials) do
+                                local found = false
+                                for j = 0, MatCount - 1 do
+                                    if MatName == render_mesh:call("getMaterialName", j) then
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if not found then
+                                    MDFXL_table[weapon.Type].Materials[MatName] = nil
+                                end
+                            end
+                            --TODO
+                            local newPartNames = {}
+                            for j = 0, MatCount - 1 do
+                                local MatName = render_mesh:call("getMaterialName", j)
+                                if MatName then
+                                    table.insert(newPartNames, MatName)
+                                end
+                            end
+            
+                            for PartIndex, PartName in ipairs(MDFXL_table[weapon.Type].Parts) do
+                                if not func.table_contains(newPartNames, PartName) then
+                                    table.remove(MDFXL_table[weapon.Type].Parts, PartIndex)
+                                    table.remove(MDFXL_table[weapon.Type].Enabled, PartIndex)
+                                end
+                            end
+
+                            if MatCount then
+                                for j = 0, MatCount - 1 do
+                                    local MatName = render_mesh:call("getMaterialName", j)
+                                    local MatParam = render_mesh:call("getMaterialVariableNum", j)
+                                    local EnabledMat = render_mesh:call("getMaterialsEnableIndices", j)
+                                    
+                                    if MatName then
+                                        if not MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName] then
+                                            MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName] = {}
+                                        end
+                                        if not func.table_contains(MDFXL.DD2.WeaponParams[weapon.Type].Parts, MatName) then
+                                            table.insert(MDFXL.DD2.WeaponParams[weapon.Type].Parts, MatName)
+                                        end
+                                        if not MDFXL_MaterialParamUpdateHolder[MatName] then
+                                            MDFXL_MaterialParamUpdateHolder[MatName] = {}
+                                        end
+                                        if not func.table_contains(MDFXL_MaterialParamUpdateHolder[MatName], MatName) then
+                                            table.insert(MDFXL_MaterialParamUpdateHolder, MatName)
+                                        end
+                                        
+                                        if EnabledMat then
+                                            if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx >= 1 or nil then
+                                                for k, _ in ipairs(MDFXL.DD2.WeaponParams[weapon.Type].Parts) do
+                                                    MDFXL.DD2.WeaponParams[weapon.Type].Enabled[k] = true
+                                                end
+                                            end
+                                        end
+                                        
+                                        if MatParam then
+                                            for k = 0, MatParam - 1 do
+                                                local MatParamNames = render_mesh:call("getMaterialVariableName", j, k)
+                                                local MatType = render_mesh:call("getMaterialVariableType", j, k)
+                                            
+                                                if MatParamNames then
+                                                    if not MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames] then
+                                                        MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames] = {}
+                                                    end
+                                                    if not MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames] then
+                                                        MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames] = {}
+                                                    end
+                                                    if not func.table_contains(MDFXL_MaterialParamUpdateHolder[MatName], MatParamNames) then
+                                                        table.insert(MDFXL_MaterialParamUpdateHolder[MatName], MatParamNames)
+                                                    end
+                                                    MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated = false
+    
+                                                    if MatType then
+                                                        if MatType == 1 then
+                                                            local MatType_Float = render_mesh:call("getMaterialFloat", j, k)
+                                                            if not func.table_contains(MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames], MatType_Float) then
+                                                                table.insert(MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames], MatType_Float)
+                                                            end
+                                                        elseif MatType == 4 then
+                                                            local MatType_Float4 = render_mesh:call("getMaterialFloat4", j, k)
+                                                            local MatType_Float4_New = {MatType_Float4.x, MatType_Float4.y, MatType_Float4.z, MatType_Float4.w}
+                                                            local contains = false
+                                                            for _, value in ipairs(MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames]) do
+                                                                if #value == 4 then
+                                                                    value[1] = MatType_Float4_New[1]
+                                                                    value[2] = MatType_Float4_New[2]
+                                                                    value[3] = MatType_Float4_New[3]
+                                                                    value[4] = MatType_Float4_New[4]
+                                                                    contains = true
+                                                                    break
+                                                                end
+                                                            end
+                                                        
+                                                            if not contains then
+                                                                table.insert(MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames], MatType_Float4_New)
+                                                            end
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                elseif not playerEquipment then
+                    weapon.MeshName = ""
+                    MDFXL.DD2.WeaponParams[weapon.Type].Materials = {}
+                    MDFXL.DD2.WeaponParams[weapon.Type].Parts = {}
+                    MDFXL.DD2.WeaponParams[weapon.Type].Enabled = {}
+                end
+            end
+        end
+        json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
+        json.dump_file("MDF-XL/__Holders/_MaterialParamUpdateHolder.json", MDFXL_MaterialParamUpdateHolder)
+    end
+end
 
 local function dump_PlayerEquipmentMaterialParamDefaults(armorData)
     for _, armor in pairs(armorData) do
@@ -598,7 +708,31 @@ local function dump_PlayerEquipmentMaterialParamCurrents(armorData)
     end
 end
 
-local function cache_MDFXL_json_files(armorData)
+local function dump_PlayerArmamentMaterialParamsDefaults(weaponData)
+    for _, weapon in pairs(weaponData) do
+        local weaponType = MDFXL.DD2.WeaponParams[weapon.Type]
+
+        if weaponType then
+            if weapon.MeshName ~= "" then
+                json.dump_file("MDF-XL\\Weapons\\" .. weapon.Type .. "\\" .. weapon.MeshName .. "\\Default Preset.json", weaponType)
+            end
+        end
+    end
+end
+
+local function dump_PlayerArmamentMaterialParamsCurrents(weaponData)
+    for _, weapon in pairs(weaponData) do
+        local weaponType = MDFXL.DD2.WeaponParams[weapon.Type]
+
+        if weaponType then
+            if weapon.MeshName ~= "" then
+                json.dump_file("MDF-XL\\Weapons\\" .. weapon.Type .. "\\" .. weapon.MeshName .. "\\Current Preset.json", weaponType)
+            end
+        end
+    end
+end
+
+local function cache_MDFXL_json_files(armorData, weaponData)
     local MDFXL_outfitPresets = MDFXL.DD2.ArmorOutfitPresets
     if MDFXL_outfitPresets then
         local json_names = MDFXL.DD2.ArmorOutfitPresets or {}
@@ -618,7 +752,7 @@ local function cache_MDFXL_json_files(armorData)
                 
                 if not nameExists then
                     if MDFXL_settings.isDEBUG then
-                        log.info("[Loaded " .. filepath .. " for MDF-XL Outfit Manager]")
+                        log.info("[MDF-XL] [Loaded " .. filepath .. " for MDF-XL Outfit Manager]")
                     end
                     table.insert(json_names, name)
                 end
@@ -634,14 +768,14 @@ local function cache_MDFXL_json_files(armorData)
                 end
                 if not nameExists then
                     if MDFXL_settings.isDEBUG then
-                        log.info("[Removed " .. name .. " from MDF-XL Outfit Manager]")
+                        log.info("[MDF-XL] [Removed " .. name .. " from MDF-XL Outfit Manager]")
                     end
                     table.remove(json_names, i)
                 end
             end
         else
             if MDFXL_settings.isDEBUG then
-                log.info("[No MDF-XL Outfit Manager JSON files found.]")
+                log.info("[MDF-XL] [No MDF-XL Outfit Manager JSON files found.]")
             end
         end
     end
@@ -667,7 +801,7 @@ local function cache_MDFXL_json_files(armorData)
                     
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[Loaded " .. filepath .. " for "  .. armor.MeshName .. " MDF-XL]")
+                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. armor.MeshName)
                         end
                         table.insert(json_names, name)
                     end
@@ -683,21 +817,71 @@ local function cache_MDFXL_json_files(armorData)
                     end
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[Removed " .. name .. " from " .. armor.MeshName .. "MDF-XL]")
+                            log.info("[MDF-XL] [Removed " .. name .. " from " .. armor.MeshName)
                         end
                         table.remove(json_names, i)
                     end
                 end
             else
                 if MDFXL_settings.isDEBUG then
-                    log.info("[No MDF-XL JSON files found.]")
+                    log.info("[MDF-XL] [No MDF-XL Armor JSON files found.]")
+                end
+            end
+        end
+    end
+
+    for _, weapon in pairs(weaponData) do
+        local MDFXL_presets = MDFXL.DD2.WeaponParams[weapon.Type]
+        
+        if MDFXL_presets then
+            local json_names = MDFXL.DD2.WeaponParams[weapon.Type].Presets or {}
+            local json_filepaths = fs.glob([[MDF-XL\\Weapons\\]] .. weapon.Type .. [[\\]] .. weapon.MeshName .. [[\\.*.json]])
+
+            if json_filepaths then
+                for i, filepath in ipairs(json_filepaths) do
+                    local name = filepath:match("^.+\\(.+)%.")
+                    local nameExists = false
+                    
+                    for j, existingName in ipairs(json_names) do
+                        if existingName == name then
+                            nameExists = true
+                            break
+                        end
+                    end
+                    
+                    if not nameExists then
+                        if MDFXL_settings.isDEBUG then
+                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. weapon.MeshName)
+                        end
+                        table.insert(json_names, name)
+                    end
+                end
+                for i = #json_names, 1, -1 do
+                    local nameExists = false
+                    local name = json_names[i]
+                    for _, filepath in ipairs(json_filepaths) do
+                        if filepath:match("^.+\\(.+)%.") == name then
+                            nameExists = true
+                            break
+                        end
+                    end
+                    if not nameExists then
+                        if MDFXL_settings.isDEBUG then
+                            log.info("[MDF-XL] [Removed " .. name .. " from " .. weapon.MeshName)
+                        end
+                        table.remove(json_names, i)
+                    end
+                end
+            else
+                if MDFXL_settings.isDEBUG then
+                    log.info("[MDF-XL] [No MDF-XL Weapon JSON files found.]")
                 end
             end
         end
     end
 end
 
-cache_MDFXL_json_files(MDFXL.DD2.Armor)
+cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
 
 local function update_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_table)
     for _, armor in pairs(armorData) do
@@ -763,7 +947,76 @@ local function update_PlayerEquipmentMaterialParams_Manager(armorData, MDFXL_tab
     end
 end
 
-local function get_MasterEquipmentData(armorData)
+local function update_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
+    for _, weapon in  pairs(weaponData) do
+        if MDFXL_table[weapon.Type].isUpdated or isLoadingScreenBypass then
+            local player = characterManager:get_ManualPlayer()
+            local playerTransforms = player and player:get_Valid() and player:get_GameObject():get_Transform()
+            local playerChildren = func.get_children(playerTransforms)
+            
+            for i, child in pairs(playerChildren) do
+                local childStrings = child:call("ToString()")
+                local playerArmament = childStrings:match("wp[^1].*")
+                if playerArmament then
+                    playerArmament = playerArmament:gsub("@.*", "")
+                    weapon.ID = playerArmament
+                    local playerEquipment = playerTransforms:find(playerArmament)
+
+                    if playerEquipment then
+                        local playerWeapon = playerEquipment:get_GameObject()
+
+                        if playerWeapon then
+                            local render_mesh = playerWeapon:call("getComponent(System.Type)", sdk.typeof("via.render.Mesh"))
+
+                            if render_mesh then
+                                local MatCount = render_mesh:call("get_MaterialNum")
+                                    
+                                if MatCount then
+                                    for j = 0, MatCount - 1 do
+                                        local MatName = render_mesh:call("getMaterialName", j)
+                                        local MatParam = render_mesh:call("getMaterialVariableNum", j)
+                                        local EnabledMat = render_mesh:call("getMaterialsEnableIndices", j)
+                                        
+                                        if MatName then
+                                            if MatParam then
+                                                for k = 0, MatParam - 1 do
+                                                    local MatParamNames = render_mesh:call("getMaterialVariableName", j, k)
+                                                    local MatType = render_mesh:call("getMaterialVariableType", j, k)
+                                                    if MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated or isLoadingScreenBypass then
+                                                        if MatParamNames then
+                                                            if MatType then
+                                                                if MatType == 1 then
+                                                                    render_mesh:call("setMaterialFloat", j, k, MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1])
+                                                                end
+                                                                if MatType == 4 then
+                                                                    local vec4 = MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1]
+                                                                    render_mesh:call("setMaterialFloat4", j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
+                                                                end
+                                                            end
+                                                        end
+                                                        MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated = false
+                                                    end
+                                                end
+                                            end
+                                        end
+                                        if EnabledMat then
+                                            for v = 0, EnabledMat do
+                                                render_mesh:call("setMaterialsEnable", v, MDFXL.DD2.WeaponParams[weapon.Type].Enabled[v + 1])
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            MDFXL_table[weapon.Type].isUpdated = false
+        end
+    end
+end
+
+local function get_MasterEquipmentData(armorData, weaponData)
     get_CharacterManager()
     check_if_playerIsInScene()
 
@@ -773,11 +1026,13 @@ local function get_MasterEquipmentData(armorData)
             changed = true
             isLoadingScreenBypass = true
             get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+            get_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
             if not isEquipmentDefaultsDumped then
                 dump_PlayerEquipmentMaterialParamDefaults(MDFXL.DD2.Armor)
+                dump_PlayerArmamentMaterialParamsDefaults(MDFXL.DD2.Weapon)
                 isEquipmentDefaultsDumped = true
             end
-            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+            cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
             MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
 
             if os.clock() - last_time < tick_interval then return end
@@ -805,6 +1060,30 @@ local function get_MasterEquipmentData(armorData)
                 end
             end
             update_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+
+            for _, weapon in pairs(weaponData) do
+                local total_presets = #MDFXL.DD2.WeaponParams[weapon.Type].Presets
+
+                if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx > total_presets then
+                    MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx = 1
+                end
+
+                if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx <= total_presets then
+                    if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx > 1 then
+                        local selected_preset = MDFXL.DD2.WeaponParams[weapon.Type].Presets[MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx]
+                        local json_filepath = [[MDF-XL\\Weapons\\]] .. weapon.Type .. "\\" .. weapon.MeshName .. "\\".. selected_preset .. [[.json]]
+                        local temp_parts = json.load_file(json_filepath)
+                        
+                        temp_parts.Presets = nil
+                        temp_parts.current_preset_indx = nil
+
+                        for key, value in pairs(temp_parts) do
+                            MDFXL.DD2.WeaponParams[weapon.Type][key] = value
+                        end
+                    end
+                end
+            end
+            update_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
             last_time = os.clock()
             dumped_MDFXL_defaults = true
             if MDFXL_settings.isDEBUG then
@@ -814,7 +1093,7 @@ local function get_MasterEquipmentData(armorData)
     end
 end
 
-local function update_OnLoadingScreens(armorData)
+local function update_OnLoadingScreens(armorData, weaponData)
     check_if_loadingScreen()
     
     if isPlayerInScene and dumped_MDFXL_defaults then
@@ -840,13 +1119,36 @@ local function update_OnLoadingScreens(armorData)
                 end
             end
             update_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+            for _, weapon in pairs(weaponData) do
+                local total_presets = #MDFXL.DD2.WeaponParams[weapon.Type].Presets
+
+                if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx > total_presets then
+                    MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx = 1
+                end
+
+                if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx <= total_presets then
+                    if MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx > 1 then
+                        local selected_preset = MDFXL.DD2.WeaponParams[weapon.Type].Presets[MDFXL.DD2.WeaponParams[weapon.Type].current_preset_indx]
+                        local json_filepath = [[MDF-XL\\Weapons\\]] .. weapon.Type .. "\\" .. weapon.MeshName .. "\\".. selected_preset .. [[.json]]
+                        local temp_parts = json.load_file(json_filepath)
+                        
+                        temp_parts.Presets = nil
+                        temp_parts.current_preset_indx = nil
+
+                        for key, value in pairs(temp_parts) do
+                            MDFXL.DD2.WeaponParams[weapon.Type][key] = value
+                        end
+                    end
+                end
+            end
+            update_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
             last_time = os.clock()
         elseif not isNowLoading then
             isLoadingScreenBypass = false
         end
     end
 end
-
+--MARK: Hooks
 sdk.hook(sdk.find_type_definition("app.ItemManager"):get_method("applyEquipChange()"),
     function(args)
         isEquipmentUpdated = true
@@ -890,13 +1192,15 @@ local function update_MasterEquipmentData()
     
     if isEquipmentUpdated and isPauseMenuHidden and not isPaused and isEquipmentMenuHidden and isEquipmentMenuDrawn then
         get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        get_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
         MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
         dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
+        dump_PlayerArmamentMaterialParamsCurrents(MDFXL.DD2.Weapon)
         if MDFXL_settings.allowAutoJsonCache then
-            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+            cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         if MDFXL_settings.isDEBUG then
-            log.info("[MDF-XL] Left pause menu, master data updated.]")
+            log.info("[MDF-XL] Left equipment menu, master data updated.]")
         end
         isEquipmentMenuDrawn = false
         isEquipmentMenuHidden = false
@@ -904,13 +1208,15 @@ local function update_MasterEquipmentData()
 
     if isEquipmentUpdated and isPauseMenuHidden and not isPaused and isItemMenuDrawn and isItemMenuHidden then
         get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        get_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
         MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
         dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
+        dump_PlayerArmamentMaterialParamsCurrents(MDFXL.DD2.Weapon)
         if MDFXL_settings.allowAutoJsonCache then
-            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+            cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         if MDFXL_settings.isDEBUG then
-            log.info("[MDF-XL] Left pause menu, master data updated.]")
+            log.info("[MDF-XL] Left item menu, master data updated.]")
         end
         isItemMenuDrawn = false
         isItemMenuHidden = false
@@ -918,27 +1224,29 @@ local function update_MasterEquipmentData()
 
     if not isPaused and isEquipmentMenuHidden then
         get_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+        get_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
         MDFXL_MaterialEditorDefaultsHolder = func.deepcopy(MDFXL)
         dump_PlayerEquipmentMaterialParamCurrents(MDFXL.DD2.Armor)
+        dump_PlayerArmamentMaterialParamsCurrents(MDFXL.DD2.Weapon)
         if MDFXL_settings.allowAutoJsonCache then
-            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+            cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         isEquipmentMenuHidden = false
     end
 end
 
-local function update_via_Hotkeys(armorData)
+local function update_via_Hotkeys(armorData, weaponData)
     local KM_UPL_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Update Preset Lists")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Update Preset Lists"))
     local KM_EH_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Emissive Highlighting")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Emissive Highlighting"))
     local KM_SA_controls = ((not MDFXL_settings.use_modifier or hk.check_hotkey("Modifier", false)) and hk.check_hotkey("Save Presets")) or (hk.check_hotkey("Modifier", true) and hk.check_hotkey("Save Presets"))
 
     if KM_UPL_controls then
         isHKLoadPresets = true
-        cache_MDFXL_json_files(MDFXL.DD2.Armor)
+        cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
     end
     --TODO
     -- if KM_UPL_controls and isHKLoadPresetsEditorBypass then
-    --     cache_MDFXL_json_files(MDFXL.DD2.Armor)
+    --     cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
     -- end
     if KM_EH_controls then
         isHKEmissiveToggle = true
@@ -955,15 +1263,24 @@ local function update_via_Hotkeys(armorData)
                 end
             end
         end
+        for _, weapon in pairs(weaponData) do
+            local weaponType = MDFXL.DD2.WeaponParams[weapon.Type]
+    
+            if weaponType then
+                if weapon.MeshName ~= "" then
+                    json.dump_file("MDF-XL\\Weapons\\" .. weapon.Type .. "\\" .. weapon.MeshName .. "\\Current Preset.json", weaponType)
+                end
+            end
+        end
     end
 end
-
+--MARK: On Frame
 re.on_frame( function()
     update_MasterEquipmentData()
-    get_MasterEquipmentData(MDFXL.DD2.Armor)
-    update_OnLoadingScreens(MDFXL.DD2.Armor)
+    get_MasterEquipmentData(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
+    update_OnLoadingScreens(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
     if show_MDFXL_Editor then
-        update_via_Hotkeys(MDFXL.DD2.Armor)
+        update_via_Hotkeys(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         if isHKLoadPresets then
             progressLoad = math.min(progressLoad + 0.020, 1.0)
             if loadingPresetStartTime == 0 then
@@ -1016,11 +1333,12 @@ re.on_frame( function()
             changed = false
             wc = false
             update_PlayerEquipmentMaterialParams_Manager(MDFXL.DD2.Armor, MDFXL.DD2.ArmorParams)
+            update_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
         end
     end
 end)
 
-local function draw_MDFXL_Editor_GUI(armorOrder)
+local function draw_MDFXL_Editor_GUI(armorOrder, weaponOrder)
     if imgui.begin_window("MDF-XL - Editor") then
         imgui.begin_rect()
         imgui.spacing()
@@ -1038,7 +1356,7 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                 imgui.indent(15)
                 if imgui.button("Update Preset Lists") then
                     wc = true
-                    cache_MDFXL_json_files(MDFXL.DD2.Armor)
+                    cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
                 end
 
                 if MDFXL_settings.showMeshName then
@@ -1084,7 +1402,7 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
                 imgui.same_line()
                 if imgui.button("Save Preset") then
                     json.dump_file("MDF-XL\\" .. armorData.Type .. "\\" .. armorData.ID .. "\\" .. armorData.MeshName .. "\\" .. presetName .. ".json", MDFXL.DD2.ArmorParams[armorData.ID])
-                    cache_MDFXL_json_files(MDFXL.DD2.Armor)
+                    cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
                 end
                 func.tooltip("Save the current preset to '[PresetName].json' found in [Dragons Dogma 2/reframework/data/MDF-XL/" .. armorData.Type .. "/" .. armorData.ID .. "/" .. armorData.MeshName .. "/[PresetName].json]")
                 
@@ -1285,6 +1603,267 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
             imgui.text_colored(ui.draw_line("-", 160) .. "    ", 0xFF00BBFF)
             imgui.indent(-20)
         end
+
+        for _, weapon in ipairs(weaponOrder) do
+            local weaponData = MDFXL.DD2.Weapon[weapon]
+            imgui.spacing()
+            imgui.indent(20)
+
+            imgui.push_id(_)
+            if weaponData and imgui.tree_node(weaponData.Type) then
+                imgui.spacing()
+                imgui.begin_rect()
+                imgui.text_colored("  " .. ui.draw_line("=", 85) .."  ", 0xFFFFFFFF)
+                imgui.indent(15)
+                if imgui.button("Update Preset Lists") then
+                    wc = true
+                    cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
+                end
+
+                if MDFXL_settings.showMeshName then
+                    imgui.same_line()
+                    imgui.text("[ Mesh Name:")
+                    imgui.same_line()
+                    imgui.text_colored(weaponData.MeshName, 0xFF00BBFF)
+                    imgui.same_line()
+                    imgui.text("]")
+                end
+
+                if MDFXL_settings.showMaterialCount then
+                    imgui.same_line()
+                    imgui.text("[ Material Count:")
+                    imgui.same_line()
+                    imgui.text_colored(#MDFXL.DD2.WeaponParams[weaponData.Type].Parts, 0xFFDBFF00)
+                    imgui.same_line()
+                    imgui.text("]")
+                end
+
+                changed, MDFXL.DD2.WeaponParams[weaponData.Type].current_preset_indx = imgui.combo("Preset", MDFXL.DD2.WeaponParams[weaponData.Type].current_preset_indx or 1, MDFXL.DD2.WeaponParams[weaponData.Type].Presets); wc = wc or changed
+                func.tooltip("Select a file from the dropdown menu to load the settings from that file.")
+                if changed then
+                    isLoadingScreenBypass = true
+                    local selected_preset = MDFXL.DD2.WeaponParams[weaponData.Type].Presets[MDFXL.DD2.WeaponParams[weaponData.Type].current_preset_indx]
+                    local json_filepath = [[MDF-XL\\Weapons\\]] .. weapon.Type .. [[\\]] .. weapon.MeshName .. [[\\]] .. selected_preset .. [[.json]]
+                    local temp_parts = json.load_file(json_filepath)
+                    
+                    temp_parts.Presets = nil
+                    temp_parts.current_preset_indx = nil
+
+                    for key, value in pairs(temp_parts) do
+                        MDFXL.DD2.WeaponParams[weaponData.Type][key] = value
+                    end
+                    update_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
+                    json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
+                end
+                
+                imgui.push_id(weapon)
+                changed, presetName = imgui.input_text("", presetName); wc = wc or changed
+                imgui.pop_id()
+
+                imgui.same_line()
+                if imgui.button("Save Preset") then
+                    json.dump_file("MDF-XL\\Weapons\\" .. weaponData.Type .. "\\" .. weaponData.MeshName .. "\\" .. presetName .. ".json", MDFXL.DD2.WeaponParams[weaponData.Type])
+                    cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
+                end
+                func.tooltip("Save the current preset to '[PresetName].json' found in [Dragons Dogma 2/reframework/data/MDF-XL/" .. weaponData.Type .. "/" .. weaponData.MeshName .. "/[PresetName].json]")
+                
+                imgui.spacing()
+
+                if MDFXL_settings.showPresetPath and #MDFXL.DD2.WeaponParams[weaponData.Type].Parts > 0 then
+                    imgui.input_text("Preset Path", "Dragons Dogma 2/reframework/data/MDF-XL/" .. weaponData.Type .. "/"  .. weaponData.MeshName .. "/" .. presetName .. ".json")
+                end
+
+                if MDFXL_settings.showMeshPath then
+                    imgui.push_id(weaponData.MeshPath)
+                    imgui.input_text("Mesh Path", weaponData.MeshPath)
+                    imgui.pop_id()
+                end
+
+                if MDFXL_settings.showMDFPath then
+                    imgui.push_id(weaponData.MDFPath)
+                    imgui.input_text("MDF Path", weaponData.MDFPath)
+                    imgui.pop_id()
+                end
+                
+                if imgui.tree_node("Mesh Editor") then
+                    local isArmorHovered = imgui.is_item_hovered()
+                    imgui.spacing()
+                    imgui.text_colored(ui.draw_line("=", 78), 0xFF00BBFF)
+                    imgui.indent(15)
+                    
+                    for i, partName in ipairs(MDFXL.DD2.WeaponParams[weaponData.Type].Parts) do
+                        local enabledMeshPart = MDFXL.DD2.WeaponParams[weaponData.Type].Enabled[i]
+                        local defaultEnabledMeshPart = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Enabled[i]
+            
+                        if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
+                            changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
+                            MDFXL.DD2.WeaponParams[weaponData.Type].Enabled[i] = enabledMeshPart
+            
+                            if MDFXL_settings.isEmissiveHighlightEnabled then
+                                local isHovered = imgui.is_item_hovered()
+
+                                for matName, matData in func.orderedPairs(MDFXL.DD2.WeaponParams[weaponData.Type].Materials) do
+                                    if partName == matName then
+                                        local paramValue = matData["Emissive_Enable"]
+                                        if paramValue then
+                                            paramValue[1] = (isHovered or isArmorHovered) and 1.0 or 0.0
+                                            wc = true
+                                            MDFXL_MaterialParamUpdateHolder[matName]["Emissive_Enable"].isMaterialParamUpdated = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+            
+                        if enabledMeshPart ~= defaultEnabledMeshPart then
+                            imgui.same_line()
+                            imgui.text_colored("*", 0xFF00BBFF)
+                        end
+                    end
+            
+                    imgui.indent(-15)
+                    imgui.text_colored(ui.draw_line("=", 78), 0xFF00BBFF)
+                    imgui.tree_pop()
+                end
+                
+                if imgui.tree_node("Material Editor") then
+                    imgui.spacing()
+                    imgui.text_colored(ui.draw_line("=", 78), 0xFFDBFF00)
+                    changed, searchQuery = imgui.input_text("Search", searchQuery); wc = wc or changed
+                    imgui.indent(5)
+                    
+                    for matName, matData in func.orderedPairs(MDFXL.DD2.WeaponParams[weaponData.Type].Materials) do
+                        imgui.spacing()
+                        
+                        if imgui.tree_node(matName) then
+                            imgui.push_id(matName)
+                            imgui.spacing()
+                            if imgui.begin_popup_context_item() then
+                                if imgui.menu_item("Reset") then
+                                    for paramName, _ in pairs(matData) do
+                                        MDFXL.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1] = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1]
+                                        wc = true
+                                    end
+                                    changed = true
+                                end
+                                if imgui.menu_item("Copy") then
+                                    MDFXL_MaterialEditorParamHolder = func.deepcopy(MDFXL.DD2.WeaponParams[weaponData.Type].Materials[matName])
+                                    wc = true
+                                end
+                                if imgui.menu_item("Paste") then
+                                    local copiedParams = MDFXL_MaterialEditorParamHolder
+                                    local targetParams = MDFXL.DD2.WeaponParams[weaponData.Type].Materials[matName]
+                                    
+                                    for paramName, paramValue in pairs(copiedParams) do
+                                        if targetParams[paramName] ~= nil then
+                                            targetParams[paramName] = func.deepcopy(paramValue)
+                                            wc = true
+                                        end
+                                    end
+                                end
+                                imgui.end_popup()
+                            end
+                            for paramName, paramValue in func.orderedPairs(matData) do
+                                local originalData = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName]
+
+                                if searchQuery == "" then
+                                    imgui.spacing()
+                                end
+                                
+                                if string.find(paramName, searchQuery) then
+                                    imgui.begin_rect()
+                                    if func.compareTables(paramValue, originalData) then
+                                        if imgui.button("[ " .. tostring(paramName) .. " ]") then
+                                            paramValue[1] = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1] or nil
+                                            wc = true
+                                        end
+                                        if imgui.begin_popup_context_item() then
+                                            if imgui.menu_item("Reset") then
+                                                paramValue[1] = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1]
+                                                wc = true
+                                            end
+                                            if imgui.menu_item("Copy") then
+                                                MDFXL_MaterialEditorSubParamFloat4Holder = paramValue[1]
+                                                wc = true
+                                            end
+                                            if imgui.menu_item("Paste") then
+                                                paramValue[1] = MDFXL_MaterialEditorSubParamFloat4Holder
+                                                wc = true
+                                            end
+                                            imgui.end_popup()
+                                        end
+                                    elseif not func.compareTables(paramValue, originalData) then
+                                        imgui.indent(35)
+                                        if imgui.button("[ " .. tostring(paramName) .. " ]") then
+                                            paramValue[1] = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1]
+                                            wc = true
+                                        end
+                                        if imgui.begin_popup_context_item() then
+                                            if imgui.menu_item("Reset") then
+                                                paramValue[1] = MDFXL_MaterialEditorDefaultsHolder.DD2.WeaponParams[weaponData.Type].Materials[matName][paramName][1]
+                                                wc = true
+                                            end
+                                            if imgui.menu_item("Copy") then
+                                                MDFXL_MaterialEditorSubParamFloat4Holder = paramValue[1]
+                                                wc = true
+                                            end
+                                            if imgui.menu_item("Paste") then
+                                                paramValue[1] = MDFXL_MaterialEditorSubParamFloat4Holder
+                                                wc = true
+                                            end
+                                            imgui.end_popup()
+                                        end
+                                        imgui.same_line()
+                                        imgui.text_colored("*", 0xFFDBFF00)
+                                    end
+                                
+                                    if type(paramValue) == "table" then
+                                        if type(paramValue[1]) == "table" then
+                                            for i, value in ipairs(paramValue) do
+                                                imgui.push_id(tostring(paramName))
+                                                local newcolor = Vector4f.new(value[1], value[2], value[3], value[4])
+                                                changed, newcolor = imgui.color_edit4("", newcolor, nil); wc = wc or changed
+                                                paramValue[i] = {newcolor.x, newcolor.y, newcolor.z, newcolor.w}
+                                                imgui.pop_id()
+                                            end
+                                        else
+                                            imgui.push_id(tostring(paramName))
+                                            changed, paramValue[1] = imgui.drag_float("", paramValue[1], 0.001, 0.0, 100.0); wc = wc or changed
+                                            imgui.pop_id()
+                                        end
+                                        
+                                        if changed or wc then
+                                            MDFXL_MaterialParamUpdateHolder[matName][paramName].isMaterialParamUpdated = true
+                                        end
+                                    end
+                                    imgui.end_rect(3)
+                                    imgui.spacing()
+                                end
+                            end
+                            imgui.pop_id()
+                            imgui.spacing()
+                            imgui.tree_pop()
+                        end
+                        
+                    end
+                    imgui.indent(-5)
+                    imgui.text_colored(ui.draw_line("=", 78), 0xFFDBFF00)
+                    imgui.tree_pop()
+                end
+
+                if changed or wc then
+                    MDFXL.DD2.WeaponParams[weaponData.Type].isUpdated = true
+                end
+                imgui.indent(-15)
+                imgui.text_colored("  " .. ui.draw_line("=", 85) .."  ", 0xFFFFFFFF)
+               
+                imgui.end_rect(2)
+                imgui.tree_pop()
+            end
+            imgui.pop_id()
+            imgui.text_colored(ui.draw_line("-", 160) .. "    ", 0xFF00BBFF)
+            imgui.indent(-20)
+        end
         imgui.spacing()
         imgui.spacing()
         imgui.end_rect(1)
@@ -1294,7 +1873,7 @@ local function draw_MDFXL_Editor_GUI(armorOrder)
     end
 end
 
-local function draw_MDFXL_Preset_GUI(armorOrder)
+local function draw_MDFXL_Preset_GUI(armorOrder, weaponOrder)
     local filteredOutfitPresets = {}
     for _, preset in ipairs(MDFXL.DD2.ArmorOutfitPresets) do
         if string.find(preset, presetSearchQuery) then
@@ -1373,6 +1952,43 @@ local function draw_MDFXL_Preset_GUI(armorOrder)
         end
         imgui.pop_id()
     end
+    for _, weapon in ipairs(weaponOrder) do
+        local weaponData = MDFXL.DD2.Weapon[weapon]
+        
+        imgui.spacing()
+        imgui.push_id(_)
+        if weaponData then
+            local filteredPresets = {}
+            local currentPresetIndex = MDFXL.DD2.WeaponParams[weaponData.Type].current_preset_indx or 1
+        
+            for _, preset in ipairs(MDFXL.DD2.WeaponParams[weaponData.Type].Presets) do
+                if string.find(preset, presetSearchQuery) then
+                    table.insert(filteredPresets, preset)
+                end
+            end
+        
+            changed, currentPresetIndex = imgui.combo(weaponData.Type, currentPresetIndex, filteredPresets); wc = wc or changed
+            MDFXL.DD2.WeaponParams[weaponData.Type].current_preset_indx = currentPresetIndex
+            func.tooltip("Select a file from the dropdown menu to load the settings from that file.")
+            
+            if changed then
+                isLoadingScreenBypass = true
+                local selected_preset = filteredPresets[currentPresetIndex]
+                local json_filepath = "MDF-XL/Weapons/" .. weaponData.Type .. "/" .. weaponData.MeshName .. "/".. selected_preset .. ".json"
+                local temp_parts = json.load_file(json_filepath)
+                
+                temp_parts.Presets = nil
+                temp_parts.current_preset_indx = nil
+        
+                for key, value in pairs(temp_parts) do
+                    MDFXL.DD2.WeaponParams[weaponData.Type][key] = value
+                end
+                update_PlayerArmamentMaterialParams_Manager(MDFXL.DD2.Weapon, MDFXL.DD2.WeaponParams)
+                json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
+            end
+        end
+        imgui.pop_id()
+    end
     imgui.spacing()
 end
 
@@ -1410,7 +2026,7 @@ local function draw_MDFXL_OutfitManager_GUI(armorOrder)
 
     if dump_outfit_presets then
         json.dump_file("MDF-XL//_Outfits//".. outfitPresetName .. ".json", outfit_presets)
-        cache_MDFXL_json_files(MDFXL.DD2.Armor)
+        cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
     end
 
     imgui.spacing()
@@ -1430,7 +2046,7 @@ local function draw_MDFXL_Docs_GUI()
         imgui.tree_pop()
     end
 end
-
+--MARK: On Draw UI
 re.on_draw_ui(function ()
     if imgui.tree_node("MDF-XL") then
         imgui.begin_rect()
@@ -1438,7 +2054,7 @@ re.on_draw_ui(function ()
         imgui.indent(20)
         if imgui.button("Update Preset Lists") then
             wc = true
-            cache_MDFXL_json_files(MDFXL.DD2.Armor)
+            cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         imgui.same_line()
         changed, show_MDFXL_OutfitManager = imgui.checkbox("Open MDF-XL - Outfit Manager", show_MDFXL_OutfitManager)
@@ -1485,7 +2101,7 @@ re.on_draw_ui(function ()
             imgui.spacing()
             imgui.indent()
             
-            draw_MDFXL_Editor_GUI(MDFXL.DD2.ArmorOrder)
+            draw_MDFXL_Editor_GUI(MDFXL.DD2.ArmorOrder, MDFXL.DD2.WeaponOrder)
             
             imgui.unindent()
             imgui.end_window()
@@ -1503,7 +2119,7 @@ re.on_draw_ui(function ()
             imgui.end_window()
         end
 
-        draw_MDFXL_Preset_GUI(MDFXL.DD2.ArmorOrder)
+        draw_MDFXL_Preset_GUI(MDFXL.DD2.ArmorOrder, MDFXL.DD2.WeaponOrder)
        
         imgui.text(ui.draw_line("-", 135) .. ui.draw_line(" ", 5))
 
@@ -1559,8 +2175,10 @@ re.on_draw_ui(function ()
                 changed = hk.hotkey_setter("Modifier"); wc = wc or changed
                 imgui.text(ui.draw_line("-", 60).. ui.draw_line(" ", 2))
                 changed = hk.hotkey_setter("Save Presets", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
+                func.tooltip("Saves all current mesh and material parameters to the 'Current Preset'.")
                 changed = hk.hotkey_setter("Update Preset Lists", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Emissive Highlighting", MDFXL_settings.use_modifier and "Modifier"); wc = wc or changed
+                func.tooltip("Enable/Disable Emissive Highlighting for the mesh editor.")
                 imgui.tree_pop()
             end
             
@@ -1576,7 +2194,7 @@ re.on_draw_ui(function ()
 
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.0.40 | 04/27/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.1.20 | 05/15/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
