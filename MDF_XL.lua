@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 05/15/2024
--- Version: v1.1.20
+-- Updated: 05/17/2024
+-- Version: v1.1.23
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -29,7 +29,6 @@ local isItemMenuHidden = false
 local isHKSavedPresets = false
 local isHKLoadPresets = false
 local isHKEmissiveToggle = false
-local isHKLoadPresetsEditorBypass = false
 local show_MDFXL_Editor = false
 local show_MDFXL_OutfitManager = false
 local show_MDFXL_Docs = false
@@ -59,7 +58,7 @@ local GUIManager = sdk.get_managed_singleton("app.GuiManager")
 
 local MDFXL_default_settings = {
     allowAutoJsonCache = true,
-    isDEBUG = false,
+    isDEBUG = true,
     showMDFXLConsole = true,
     showMeshName = true,
     showMaterialCount = true,
@@ -518,7 +517,7 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
         end
     end
 
-    for _, weapon in  pairs(weaponData) do
+    for _, weapon in pairs(weaponData) do
         local player = characterManager:get_ManualPlayer()
         local playerTransforms = player and player:get_Valid() and player:get_GameObject():get_Transform()
         local playerChildren = func.get_children(playerTransforms)
@@ -526,10 +525,14 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
         for i, child in pairs(playerChildren) do
             local childStrings = child:call("ToString()")
             local playerArmament = childStrings:match("wp[^1].*")
-            if playerArmament then
+            local found = false
+
+            if playerArmament and not found then
                 playerArmament = playerArmament:gsub("@.*", "")
                 weapon.ID = playerArmament
                 local playerEquipment = playerTransforms:find(playerArmament)
+
+                log.info("[MDF-XL] " .. weapon.ID .. " -- " .. i .."]")
 
                 if playerEquipment then
                     local playerWeapon = playerEquipment:get_GameObject()
@@ -548,7 +551,7 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
                                 local formattedMeshPath = string.gsub(meshPath, ".mesh%]", ".mesh")
                                 weapon.MeshPath = formattedMeshPath
                                 if MDFXL_settings.isDEBUG then
-                                   log.info("[MDF-XL] " .. formattedMeshPath .. "]")
+                                    log.info("[MDF-XL] " .. formattedMeshPath .. " -- " .. i .."]")
                                 end
                             end
                             nativesMesh = nativesMesh and nativesMesh:match("([^/]-)%.mesh]$")
@@ -560,7 +563,7 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
                                 local formattedMDFPath = string.gsub(mdfPath, ".mdf2%]", ".mdf2")
                                 weapon.MDFPath = formattedMDFPath
                                 if MDFXL_settings.isDEBUG then
-                                    log.info("[MDF-XL] " .. formattedMDFPath .. "]")
+                                    log.info("[MDF-XL] " .. formattedMDFPath .. " -- " .. i .."]")
                                 end
                             end
                             
@@ -576,7 +579,7 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
                                     MDFXL_table[weapon.Type].Materials[MatName] = nil
                                 end
                             end
-                            --TODO
+
                             local newPartNames = {}
                             for j = 0, MatCount - 1 do
                                 local MatName = render_mesh:call("getMaterialName", j)
@@ -677,6 +680,10 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
                     MDFXL.DD2.WeaponParams[weapon.Type].Parts = {}
                     MDFXL.DD2.WeaponParams[weapon.Type].Enabled = {}
                 end
+                found = true
+            end
+            if found then
+                break
             end
         end
         json.dump_file("MDF-XL/__Holders/_MaterialParamDefaultsHolder.json", MDFXL)
@@ -801,7 +808,7 @@ local function cache_MDFXL_json_files(armorData, weaponData)
                     
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. armor.MeshName)
+                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. armor.MeshName .. "]")
                         end
                         table.insert(json_names, name)
                     end
@@ -817,7 +824,7 @@ local function cache_MDFXL_json_files(armorData, weaponData)
                     end
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[MDF-XL] [Removed " .. name .. " from " .. armor.MeshName)
+                            log.info("[MDF-XL] [Removed " .. name .. " from " .. armor.MeshName .. "]")
                         end
                         table.remove(json_names, i)
                     end
@@ -851,7 +858,7 @@ local function cache_MDFXL_json_files(armorData, weaponData)
                     
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. weapon.MeshName)
+                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. weapon.MeshName .. "]")
                         end
                         table.insert(json_names, name)
                     end
@@ -867,7 +874,7 @@ local function cache_MDFXL_json_files(armorData, weaponData)
                     end
                     if not nameExists then
                         if MDFXL_settings.isDEBUG then
-                            log.info("[MDF-XL] [Removed " .. name .. " from " .. weapon.MeshName)
+                            log.info("[MDF-XL] [Removed " .. name .. " from " .. weapon.MeshName .. "]")
                         end
                         table.remove(json_names, i)
                     end
@@ -962,7 +969,7 @@ local function update_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_tab
                     weapon.ID = playerArmament
                     local playerEquipment = playerTransforms:find(playerArmament)
 
-                    if playerEquipment then
+                    if playerEquipment and weapon.ID ~= "" then
                         local playerWeapon = playerEquipment:get_GameObject()
 
                         if playerWeapon then
@@ -1200,7 +1207,7 @@ local function update_MasterEquipmentData()
             cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         if MDFXL_settings.isDEBUG then
-            log.info("[MDF-XL] Left equipment menu, master data updated.]")
+            log.info("[MDF-XL] [Left equipment menu, master data updated.]")
         end
         isEquipmentMenuDrawn = false
         isEquipmentMenuHidden = false
@@ -1216,7 +1223,7 @@ local function update_MasterEquipmentData()
             cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
         end
         if MDFXL_settings.isDEBUG then
-            log.info("[MDF-XL] Left item menu, master data updated.]")
+            log.info("[MDF-XL] [Left item menu, master data updated.]")
         end
         isItemMenuDrawn = false
         isItemMenuHidden = false
@@ -1244,10 +1251,6 @@ local function update_via_Hotkeys(armorData, weaponData)
         isHKLoadPresets = true
         cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
     end
-    --TODO
-    -- if KM_UPL_controls and isHKLoadPresetsEditorBypass then
-    --     cache_MDFXL_json_files(MDFXL.DD2.Armor, MDFXL.DD2.Weapon)
-    -- end
     if KM_EH_controls then
         isHKEmissiveToggle = true
         MDFXL_settings.isEmissiveHighlightEnabled = not MDFXL_settings.isEmissiveHighlightEnabled
@@ -2194,7 +2197,7 @@ re.on_draw_ui(function ()
 
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.1.20 | 05/15/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.1.23 | 05/17/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
