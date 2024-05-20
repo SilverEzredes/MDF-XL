@@ -1,6 +1,5 @@
 # MDF-XL
-
-MDF-XL is a runtime material editor with a robust JSON preset system utilizing [REFramework](https://github.com/praydog/REFramework)
+MDF-XL is a runtime material editor with a robust JSON preset system that allows for a high level of customization with excellent compatibility, utilizing [REFramework](https://github.com/praydog/REFramework)
 
 ### Supported Games:
 - Dragon's Dogma 2
