@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 05/17/2024
--- Version: v1.1.23
+-- Updated: 05/20/2024
+-- Version: v1.1.31
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -51,6 +51,9 @@ local progressLoad = 0.0
 local savingPresetStartTime = 0
 local elapsedSaveTime = 0
 local progressSave = 0.0
+local cachedGlobOutfitPaths = [[MDF-XL\\_Outfits\\.*.json]]
+local cachedGlobArmorPaths = {}
+local cachedGlobWeaponPaths = {}
 
 local characterManager = sdk.get_managed_singleton("app.CharacterManager")
 local itemManager = sdk.get_managed_singleton("app.ItemManager")
@@ -743,7 +746,7 @@ local function cache_MDFXL_json_files(armorData, weaponData)
     local MDFXL_outfitPresets = MDFXL.DD2.ArmorOutfitPresets
     if MDFXL_outfitPresets then
         local json_names = MDFXL.DD2.ArmorOutfitPresets or {}
-        local json_filepaths = fs.glob([[MDF-XL\\_Outfits\\.*.json]])
+        local json_filepaths = fs.glob(cachedGlobOutfitPaths)
 
         if json_filepaths then
             for i, filepath in ipairs(json_filepaths) do
@@ -791,9 +794,16 @@ local function cache_MDFXL_json_files(armorData, weaponData)
         local MDFXL_presets = MDFXL.DD2.ArmorParams[armor.ID]
         
         if MDFXL_presets then
-            local json_names = MDFXL.DD2.ArmorParams[armor.ID].Presets or {}
-            local json_filepaths = fs.glob([[MDF-XL\\]] .. armor.Type .. [[\\]] .. armor.ID .. [[\\]] .. armor.MeshName .. [[\\.*.json]])
-
+            local json_names = MDFXL_presets.Presets or {}
+            local cacheKey = "MDF-XL\\" .. armor.Type .. "\\" .. armor.ID .. "\\" .. armor.MeshName
+            
+            if not cachedGlobArmorPaths[cacheKey] then
+                local path = [[MDF-XL\\]] .. armor.Type .. [[\\]] .. armor.ID .. [[\\]] .. armor.MeshName .. [[\\.*.json]]
+                cachedGlobArmorPaths[cacheKey] = fs.glob(path)
+            end
+            
+            local json_filepaths = cachedGlobArmorPaths[cacheKey]
+            
             if json_filepaths then
                 for i, filepath in ipairs(json_filepaths) do
                     local name = filepath:match("^.+\\(.+)%.")
@@ -842,7 +852,14 @@ local function cache_MDFXL_json_files(armorData, weaponData)
         
         if MDFXL_presets then
             local json_names = MDFXL.DD2.WeaponParams[weapon.Type].Presets or {}
-            local json_filepaths = fs.glob([[MDF-XL\\Weapons\\]] .. weapon.Type .. [[\\]] .. weapon.MeshName .. [[\\.*.json]])
+            local cacheKey = "MDF-XL\\Weapons\\" .. weapon.Type .. "\\" .. weapon.MeshName
+
+            if not cachedGlobWeaponPaths[cacheKey] then
+                local path = [[MDF-XL\\Weapons\\]] .. weapon.Type .. [[\\]] .. weapon.MeshName .. [[\\.*.json]]
+                cachedGlobWeaponPaths[cacheKey] = fs.glob(path)
+            end
+
+            local json_filepaths = cachedGlobWeaponPaths[cacheKey]
 
             if json_filepaths then
                 for i, filepath in ipairs(json_filepaths) do
@@ -2197,7 +2214,7 @@ re.on_draw_ui(function ()
 
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.1.23 | 05/17/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.1.31 | 05/20/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
