@@ -2217,7 +2217,7 @@ re.on_draw_ui(function ()
 
         imgui.spacing()
 
-        ui.button_n_colored_txt("Current Version:", "v1.1.31 | 05/20/2024", 0xFF00BBFF)
+        ui.button_n_colored_txt("Current Version:", "v1.1.32 | 06/01/2024", 0xFF00BBFF)
         imgui.same_line()
         imgui.text("| by SilverEzredes")
         imgui.indent(-20)
