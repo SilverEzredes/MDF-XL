@@ -2,8 +2,8 @@
 -- MDF XL
 
 -- Author: SilverEzredes
--- Updated: 05/20/2024
--- Version: v1.1.31
+-- Updated: 06/01/2024
+-- Version: v1.1.32
 -- Special Thanks to: praydog; alphaZomega
 
 --/////////////////////////////////////--
@@ -517,6 +517,7 @@ local function get_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_table)
         if MDFXL_table[weapon.Type] then
             MDFXL_table[weapon.Type].Materials = {}
             MDFXL_table[weapon.Type].Parts = {}
+            MDFXL_table[weapon.Type].Enabled = {}
         end
     end
 
@@ -1002,23 +1003,25 @@ local function update_PlayerArmamentMaterialParams_Manager(weaponData, MDFXL_tab
                                         local EnabledMat = render_mesh:call("getMaterialsEnableIndices", j)
                                         
                                         if MatName then
-                                            if MatParam then
-                                                for k = 0, MatParam - 1 do
-                                                    local MatParamNames = render_mesh:call("getMaterialVariableName", j, k)
-                                                    local MatType = render_mesh:call("getMaterialVariableType", j, k)
-                                                    if MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated or isLoadingScreenBypass then
-                                                        if MatParamNames then
-                                                            if MatType then
-                                                                if MatType == 1 then
-                                                                    render_mesh:call("setMaterialFloat", j, k, MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1])
-                                                                end
-                                                                if MatType == 4 then
-                                                                    local vec4 = MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1]
-                                                                    render_mesh:call("setMaterialFloat4", j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
+                                            if i == 1 then
+                                                if MatParam then
+                                                    for k = 0, MatParam - 1 do
+                                                        local MatParamNames = render_mesh:call("getMaterialVariableName", j, k)
+                                                        local MatType = render_mesh:call("getMaterialVariableType", j, k)
+                                                        if MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated or isLoadingScreenBypass then
+                                                            if MatParamNames then
+                                                                if MatType then
+                                                                    if MatType == 1 then
+                                                                        render_mesh:call("setMaterialFloat", j, k, MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1])
+                                                                    end
+                                                                    if MatType == 4 then
+                                                                        local vec4 = MDFXL.DD2.WeaponParams[weapon.Type].Materials[MatName][MatParamNames][1]
+                                                                        render_mesh:call("setMaterialFloat4", j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
+                                                                    end
                                                                 end
                                                             end
+                                                            MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated = false
                                                         end
-                                                        MDFXL_MaterialParamUpdateHolder[MatName][MatParamNames].isMaterialParamUpdated = false
                                                     end
                                                 end
                                             end
