@@ -3,6 +3,7 @@ MDF-XL is a runtime material editor with a robust JSON preset system that allows
 
 ### Supported Games:
 - Dragon's Dogma 2
+- Monster Hunter Wilds
 
 ## User Manual
 [MDF-XL Wiki](https://github.com/SilverEzredes/MDF-XL/wiki/MDF%E2%80%90XL-Wiki)
