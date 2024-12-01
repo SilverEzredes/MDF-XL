@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "11/30/2024"
-local modVersion = "v1.4.00"
+local modUpdated = "12/01/2024"
+local modVersion = "v1.4.01"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -54,12 +54,6 @@ local searchQuery = ""
 local presetSearchQuery = ""
 local textureSearchQuery = ""
 local lastMatParamName = ""
-local skipIDs = {
-    ["ch02_003_0005_0"] = true,
-    ["ch02_003_0005_9"] = true,
-    ["ch02_003_0015_0"] = true,
-    ["ch02_003_0015_9"] = true,
-}
 
 local MDFXL_Cache = {
     resourceOG = "Resource%[",
@@ -321,9 +315,15 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
             if MDFXLSettings.isDebug then
                 log.info("[MDF-XL] [" .. formattedMeshPath .. "]")
             end
-            nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
-            dataTable[entry].MeshName = nativesMesh
-            table.insert(subDataTable[order], nativesMesh)
+            if order == "porterOrder" then
+                nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
+                dataTable[entry].MeshName = nativesMesh
+                table.insert(subDataTable[order], nativesMesh)
+            else
+                nativesMesh = gameObject:get_Name()
+                dataTable[entry].MeshName = nativesMesh
+                table.insert(subDataTable[order], nativesMesh)
+            end
             table.sort(subDataTable[order])
         end
         if nativesMDF then
@@ -466,9 +466,6 @@ local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         if playerEquipment then
             local currentEquipment = playerTransforms:find(playerEquipment)
             local currentEquipmentID = currentEquipment:get_GameObject()
-            if skipIDs[currentEquipmentID:get_Name()] then
-                goto continue --hack fix because for whatever reason some gameObjects are just dummies for the knife
-            end
 
             if not MDFXLData[playerEquipment] then
                 create_MDFXLTable(MDFXLData, playerEquipment)
@@ -484,7 +481,6 @@ local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[playerEquipment].isInScene = false
             end
         end
-        ::continue::
     end
 end
 local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
