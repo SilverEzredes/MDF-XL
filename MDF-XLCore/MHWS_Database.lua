@@ -1,5 +1,5 @@
 local MHWS_EquipmentData = {
-    --[Types: 1 = Male | 2 = Female | 3 = Left | 4 = Right | 5 = Both | 6 = Other]
+    --[Types: 1 = Male | 2 = Female | 3 = Left | 4 = Right | 5 = Both | 6 = Other | 7 = Palico | 8 = Palico Weapon]
     --Hope
     ch02_001_0001 =     {Name = "Hope Vambraces",           Type = "1"},
     ch02_001_0002 =     {Name = "Hope Mail",                Type = "1"},
@@ -73,6 +73,19 @@ local MHWS_EquipmentData = {
     ch02_014_0014 =     {Name = "Balahara Greaves",         Type = "2"},
     ch02_014_0015 =     {Name = "Balahara Coil",            Type = "2"},
     ch02_014_0016 =     {Name = "Balahara Slinger",         Type = "3"},
+    --Palico
+    ch05_001_0000 =     {Name = "Felyne Hope Overalls",     Type = "7"},
+    ch05_001_1000 =     {Name = "Felyne Hope Helm",         Type = "7"},
+    ch05_001_2000 =     {Name = "Felyne Hope Hammer",       Type = "8"},
+    ch05_004_0000 =     {Name = "Felyne Cabra Jumpsuit",    Type = "7"},
+    ch05_004_1000 =     {Name = "Felyne Cabra Hood",        Type = "7"},
+    ch05_004_2000 =     {Name = "Felyne Chata Clobberer",   Type = "8"},
+    ch05_005_0000 =     {Name = "Felyne Balahara Mech",     Type = "7"},
+    ch05_005_1000 =     {Name = "Felyne Balahara Helm",     Type = "7"},
+    ch05_005_2000 =     {Name = "Felyne Balahara Drill",    Type = "8"},
+    ch05_008_0000 =     {Name = "Felyne Doshaguma Mail",    Type = "7"},
+    ch05_008_1000 =     {Name = "Felyne Doshaguma Helm",    Type = "7"},
+    ch05_008_2000 =     {Name = "Felyne Doshaguma Knuckle", Type = "8"},
     --Weapons
     it0000_0004_0 =     {Name = "Hope Blade",               Type = "5"},
     it0100_0007_0 =     {Name = "Hope Sword",               Type = "3"},
