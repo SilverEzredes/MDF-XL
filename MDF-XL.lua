@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "12/02/2024"
-local modVersion = "v1.4.02"
+local modUpdated = "12/04/2024"
+local modVersion = "v1.4.03"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -290,7 +290,7 @@ if reframework.get_game_name() == "mhwilds" then
         end
     )
     --Camp GUI
-    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("onClose()"),
+    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
         function(args)
             isPlayerLeftCamp = true
         end
@@ -314,6 +314,7 @@ if reframework.get_game_name() == "mhwilds" then
         end
     )
 end
+
 --Material Param Getters
 local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry] = {}
@@ -338,7 +339,7 @@ local function setup_MDFXLTable(MDFXLData, entry)
 end
 local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, order)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
-            
+
     if renderMesh then
         local matCount = renderMesh:get_MaterialNum()
         local nativesMesh = renderMesh:getMesh():ToString()
@@ -368,31 +369,6 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
             dataTable[entry].MDFPath = formattedMDFPath
             if MDFXLSettings.isDebug then
                 log.info("[MDF-XL] [" .. formattedMDFPath .. "]")
-            end
-        end
-        for matName, _ in pairs(dataTable[entry].Materials) do
-            local found = false
-            for j = 0, matCount - 1 do
-                if matName == renderMesh:getMaterialName(j) then
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                dataTable[entry].Materials[matName] = nil
-            end
-        end
-        local newPartNames = {}
-        for j = 0, matCount - 1 do
-            local matName = renderMesh:getMaterialName(j)
-            if matName then
-                table.insert(newPartNames, matName)
-            end
-        end
-        for partIDX, partName in ipairs(dataTable[entry].Parts) do
-            if not func.table_contains(newPartNames, partName) then
-                table.remove(dataTable[entry].Parts, partIDX)
-                table.remove(dataTable[entry].Enabled, partIDX)
             end
         end
         if matCount then
@@ -440,21 +416,7 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
                                     elseif matType == 4 then
                                         local matTypeFloat4 = renderMesh:getMaterialFloat4(j, k)
                                         local matTypeFloat4New = {matTypeFloat4.x, matTypeFloat4.y, matTypeFloat4.z, matTypeFloat4.w}
-                                        local contains = false
-                                        for _, value in ipairs(dataTable[entry].Materials[matName][matParamNames]) do
-                                            if #value == 4 then
-                                                value[1] = matTypeFloat4New[1]
-                                                value[2] = matTypeFloat4New[2]
-                                                value[3] = matTypeFloat4New[3]
-                                                value[4] = matTypeFloat4New[4]
-                                                contains = true
-                                                break
-                                            end
-                                        end
-                                    
-                                        if not contains then
-                                            table.insert(dataTable[entry].Materials[matName][matParamNames], matTypeFloat4New)
-                                        end
+                                        table.insert(dataTable[entry].Materials[matName][matParamNames], matTypeFloat4New)
                                     end
                                 end
                             end
@@ -658,7 +620,7 @@ local function get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
 
     for i, child in pairs(porterChildren) do
         local childStrings = child:ToString()
-
+        
         for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
             local porterEquipment = childStrings:match(pattern)
             
@@ -1096,6 +1058,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         end
     end
 end
+
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
     check_IfPlayerIsInScene_MHWS()
@@ -2844,8 +2807,8 @@ re.on_frame(function ()
         for i, entry in pairs(MDFXL) do
             entry.isUpdated = false
         end
-        debug_RealEquipmentNames_MHWS()
-        isPlayerOpenEquipmentMenu = false
+        -- debug_RealEquipmentNames_MHWS()
+        -- isPlayerOpenEquipmentMenu = false
     end
 end)
 
