@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "12/04/2024"
-local modVersion = "v1.4.03"
+local modUpdated = "12/06/2024"
+local modVersion = "v1.4.04"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -87,7 +87,9 @@ local MDFXL_Cache = {
         "차림새 변경",
         "تغيير المظهر"
     },
+    SaveDataPaths = {},
 }
+local MDFXLSaveDataChunks = {}
 local MDFXL_DefaultSettings = {
     showMDFXLEditor = false,
     isDebug = true,
@@ -196,7 +198,24 @@ local MDFXLDatabase = {
     MHWS = {},
 }
 MDFXLDatabase.MHWS = require("MDF-XLCore/MHWS_Database")
-local MDFXL = hk.merge_tables({}, MDFXL_Master) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json") or {}, MDFXL_Master)
+
+local function cache_SaveDataChunkPaths(saveDataPathsTbl, saveDataChunksPath)
+    local saveDataJSONPaths = fs.glob(saveDataChunksPath)
+    if saveDataJSONPaths then
+        for i, filepath in ipairs(saveDataJSONPaths) do
+            local chunkName = filepath:match("^.+\\(.+)%.")
+            table.insert(saveDataPathsTbl, "MDF-XL\\_Holders\\_Chunks\\" .. chunkName .. ".json")
+        end
+    end
+end
+
+cache_SaveDataChunkPaths(MDFXL_Cache.SaveDataPaths, [[MDF-XL\\_Holders\\_Chunks\\.*.json]])
+local MDFXL = hk.merge_tables({}, MDFXL_Master)
+for _, path in ipairs(MDFXL_Cache.SaveDataPaths) do
+    local data = json.load_file(path) or {}
+    MDFXL = hk.recurse_def_settings(data, MDFXL)
+end
+
 local MDFXLSub = hk.merge_tables({}, MDFXL_Sub) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_SubData.json") or {}, MDFXL_Sub)
 local MDFXLPresetTracker = hk.merge_tables({}, MDFXL_PresetTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json") or {}, MDFXL_PresetTracker)
 local MDFXLSettings = hk.merge_tables({}, MDFXL_DefaultSettings) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_Settings.json") or {}, MDFXL_DefaultSettings)
@@ -304,7 +323,7 @@ if reframework.get_game_name() == "mhwilds" then
             if func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) then
                 isAppearanceEditorOpen = true
             end
-            if func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) and isAppearanceEditorOpen then
+            if not func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) and isAppearanceEditorOpen then
                 isAppearanceEditorUpdater = true
                 isAppearanceEditorOpen = false
             end
@@ -314,7 +333,6 @@ if reframework.get_game_name() == "mhwilds" then
         end
     )
 end
-
 --Material Param Getters
 local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry] = {}
@@ -337,7 +355,7 @@ local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry].MeshName = ""
     MDFXLData[entry].isUpdated = false
 end
-local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, order)
+local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, order, saveDataTable)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
 
     if renderMesh then
@@ -360,6 +378,13 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
                 nativesMesh = gameObject:get_Name()
                 dataTable[entry].MeshName = nativesMesh
                 table.insert(subDataTable[order], nativesMesh)
+            end
+            local chunkID = nativesMesh:sub(1, 4)
+            if (chunkID == "ch02") or (chunkID == "ch03") then
+                chunkID = nativesMesh:sub(1, 8)
+            end
+            if saveDataTable[chunkID] then
+                saveDataTable[chunkID].wasUpdated = true
             end
             table.sort(subDataTable[order])
         end
@@ -410,9 +435,7 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
                                 if matType then
                                     if matType == 1 then
                                         local matTypeFloat = renderMesh:getMaterialFloat(j, k)
-                                        if not func.table_contains(dataTable[entry].Materials[matName][matParamNames], matTypeFloat) then
-                                            table.insert(dataTable[entry].Materials[matName][matParamNames], matTypeFloat)
-                                        end
+                                        table.insert(dataTable[entry].Materials[matName][matParamNames], matTypeFloat)
                                     elseif matType == 4 then
                                         local matTypeFloat4 = renderMesh:getMaterialFloat4(j, k)
                                         local matTypeFloat4New = {matTypeFloat4.x, matTypeFloat4.y, matTypeFloat4.z, matTypeFloat4.w}
@@ -474,7 +497,7 @@ local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[playerEquipment].Parts = {}
                 MDFXLData[playerEquipment].Enabled = {}
                 MDFXLData[playerEquipment].Materials = {}
-                get_MaterialParams(currentEquipmentID, MDFXLData, playerEquipment, MDFXLSubData, "order")
+                get_MaterialParams(currentEquipmentID, MDFXLData, playerEquipment, MDFXLSubData, "order", MDFXLSaveDataChunks)
             else
                 MDFXLData[playerEquipment].isInScene = false
             end
@@ -518,7 +541,7 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                                 MDFXLData[playerWeapon].Enabled = {}
                                 MDFXLData[playerWeapon].Materials = {}
                                 
-                                get_MaterialParams(currentWeaponID, MDFXLData, playerWeapon, MDFXLSubData, "weaponOrder")
+                                get_MaterialParams(currentWeaponID, MDFXLData, playerWeapon, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
                             elseif (not currentWeaponID) or (not currentWeaponID:get_Valid()) then
                                 MDFXLData[playerWeapon].isInScene = false
                             end
@@ -547,7 +570,7 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[weaponInsectName].Enabled = {}
                 MDFXLData[weaponInsectName].Materials = {}
                 
-                get_MaterialParams(weaponInsect, MDFXLData, weaponInsectName, MDFXLSubData, "weaponOrder")
+                get_MaterialParams(weaponInsect, MDFXLData, weaponInsectName, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
             elseif (not weaponInsect) or (not weaponInsect:get_Valid()) then
                 MDFXLData[weaponInsectName].isInScene = false
             end
@@ -578,7 +601,7 @@ local function get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[otomoEquipment].Enabled = {}
                 MDFXLData[otomoEquipment].Materials = {}
                 
-                get_MaterialParams(currentEquipmentID, MDFXLData, otomoEquipment, MDFXLSubData, "otomoOrder")
+                get_MaterialParams(currentEquipmentID, MDFXLData, otomoEquipment, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
             elseif (not currentEquipmentID) or (not currentEquipmentID:get_Valid()) then
                 MDFXLData[otomoEquipment].isInScene = false
             end
@@ -604,7 +627,7 @@ local function get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[otomoWeaponID].Parts = {}
                 MDFXLData[otomoWeaponID].Enabled = {}
                 MDFXLData[otomoWeaponID].Materials = {}
-                get_MaterialParams(otomoWeapon, MDFXLData, otomoWeaponID, MDFXLSubData, "otomoWeaponOrder")
+                get_MaterialParams(otomoWeapon, MDFXLData, otomoWeaponID, MDFXLSubData, "otomoWeaponOrder", MDFXLSaveDataChunks)
             elseif (not otomoWeapon) or (not otomoWeapon:get_Valid()) then
                 MDFXLData[otomoWeaponID].isInScene = false
             end
@@ -643,7 +666,7 @@ local function get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                         MDFXLData[nativesMesh].Enabled = {}
                         MDFXLData[nativesMesh].Materials = {}
 
-                        get_MaterialParams(currentEquipmentID, MDFXLData, nativesMesh, MDFXLSubData, "porterOrder")
+                        get_MaterialParams(currentEquipmentID, MDFXLData, nativesMesh, MDFXLSubData, "porterOrder", MDFXLSaveDataChunks)
                     elseif (not currentEquipmentID) or (not currentEquipmentID:get_Valid()) then
                         MDFXLData[nativesMesh].isInScene = false
                     end
@@ -655,7 +678,7 @@ end
 --Preset Managers 
 local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
     for _, equipment in pairs(MDFXLData) do
-        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) then
+        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
             if MDFXLSettings.isDebug then
@@ -845,7 +868,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
     end
 end
 --Material Param Setters
-local function set_MaterialParams(gameObject, dataTable, entry)
+local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
                                 
     if renderMesh then
@@ -888,26 +911,17 @@ local function set_MaterialParams(gameObject, dataTable, entry)
                 renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
             end
         end
-    end
-end
-local function setup_OutfitChanger()
-    if #MDFXLOutfits.Presets > 0 then
-        local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
-        local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
-        local temp_parts = json.load_file(json_filepath)
-        wc = true
-        if temp_parts ~= nil then
-            for key, value in pairs(temp_parts) do
-                MDFXLPresetTracker[key].lastPresetName = value.lastPresetName
-            end
-            isOutfitManagerBypass = true
-            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+        local chunkID = entry.MeshName:sub(1, 4)
+        if (chunkID == "ch02") or (chunkID == "ch03") then
+            chunkID = entry.MeshName:sub(1, 8)
+        end
+        if saveDataTable[chunkID] then
+            saveDataTable[chunkID].wasUpdated = true
         end
     end
 end
 local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
     if not isPlayerInScene then return end
-
     for _, equipment in pairs(MDFXLData) do
         if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
             local playerTransforms = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform()
@@ -922,7 +936,7 @@ local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
                     local currentEquipmentID = currentEquipment:get_GameObject()
 
                     if not (currentEquipmentID and currentEquipmentID:get_Valid()) then return end
-                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment)
+                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
                 end
             end
         end
@@ -930,7 +944,6 @@ local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
 end
 local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
     if not isPlayerInScene then return end
-    
     for _, weapon in pairs(MDFXLData) do
         if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
             local playerTransforms = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform()
@@ -958,7 +971,7 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
                                     local currentWeaponID = currentWeapon:get_GameObject()
                             
                                     if not (currentWeaponID and currentWeaponID:get_Valid()) then return end
-                                    set_MaterialParams(currentWeaponID, MDFXLData, weapon)
+                                    set_MaterialParams(currentWeaponID, MDFXLData, weapon, MDFXLSaveDataChunks)
                                 end
                             end
                         end
@@ -976,7 +989,7 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
                     local weaponInsectName = weaponInsect:get_Name()
                     if weaponInsectName == weapon.MeshName then
                         if not weaponInsect and weaponInsect:get_Valid() then return end
-                        set_MaterialParams(weaponInsect, MDFXLData, weapon)
+                        set_MaterialParams(weaponInsect, MDFXLData, weapon, MDFXLSaveDataChunks)
                     end
                 end
             end
@@ -999,7 +1012,7 @@ local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
                     local currentEquipmentID = currentEquipment:get_GameObject()
                 
                     if not (currentEquipmentID and currentEquipmentID:get_Valid()) then return end
-                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment)
+                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
                 end
             end
         end
@@ -1018,7 +1031,7 @@ local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
                     local otomoWeapon = otomoCharacter:get_WeaponGameObject()
                     local otomoWeaponID = otomoWeapon:get_Name()
                     if otomoWeaponID == weapon.MeshName then
-                        set_MaterialParams(otomoWeapon, MDFXLData, weapon)
+                        set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
                     end
                 end
             end
@@ -1049,7 +1062,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
                             nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
 
                             if nativesMesh == equipment.MeshName then
-                                set_MaterialParams(currentEquipmentID, MDFXLData, equipment)
+                                set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
                             end
                         end
                     end
@@ -1058,9 +1071,40 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         end
     end
 end
-
+--Helper Functions
+local function setup_OutfitChanger()
+    if #MDFXLOutfits.Presets > 0 then
+        local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
+        local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
+        local temp_parts = json.load_file(json_filepath)
+        wc = true
+        if temp_parts ~= nil then
+            for key, value in pairs(temp_parts) do
+                MDFXLPresetTracker[key].lastPresetName = value.lastPresetName
+            end
+            isOutfitManagerBypass = true
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+        end
+    end
+end
+local function manage_SaveDataChunks(MDFXLData, saveDataTable)
+    for key, value in pairs(MDFXLData) do
+        local chunkID = key:sub(1, 4)
+        if (chunkID == "ch02") or (chunkID == "ch03") then
+            chunkID = key:sub(1, 8)
+        end
+        if not saveDataTable[chunkID] then
+            saveDataTable[chunkID] = {
+                data = {},
+                fileName = "MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json",
+                wasUpdated = true,
+            }
+        end
+        saveDataTable[chunkID].data[key] = value
+    end
+end
 --Master Functions
-local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
+local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
     check_IfPlayerIsInScene_MHWS()
     check_IfOtomoIsInScene_MHWS()
     check_IfPorterIsInScene_MHWS()
@@ -1071,11 +1115,17 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
         MDFXL_MaterialParamDefaultsHolder = func.deepcopy(MDFXLData)
 
@@ -1143,6 +1193,12 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
         end
+        
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Master Data defaults dumped.]")
@@ -1156,10 +1212,16 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
@@ -1226,6 +1288,12 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
         end
+        
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Loading Screen detected, MDF-XL data updated.]")
@@ -1237,10 +1305,17 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
@@ -1304,6 +1379,12 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
                 end
             elseif selected_preset == nil or {} then
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
+            end
+        end
+        
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
             end
         end
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
@@ -1317,9 +1398,15 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
@@ -1385,6 +1472,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
         end
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Player left the Appearance Menu, MDF-XL data updated.]")
         isAppearanceEditorUpdater = false
@@ -1392,10 +1484,16 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
     --Camp Menu Updater
     if isPlayerLeftCamp and isDefaultsDumped and isPlayerInScene then
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
@@ -1458,12 +1556,18 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
         end
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Player left the Camp Menu, MDF-XL data updated.]")
         isPlayerLeftCamp = false
     end
     --Outfit Preset Updater
     if isOutfitManagerBypass then
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         
@@ -1525,9 +1629,13 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData)
             elseif selected_preset == nil or {} then
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
-            
         end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
+            end
+        end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
         log.info("[MDF-XL] [Outfit Preset loaded, MDF-XL data updated.]")
         isOutfitManagerBypass = false
@@ -1681,7 +1789,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
                     isUpdaterBypass = true
                     updateFunc(MDFXLData)
-                    json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+                    local chunkID = entry.MeshName:sub(1, 4)
+                    if (chunkID == "ch02") or (chunkID == "ch03") then
+                        chunkID = entry.MeshName:sub(1, 8)
+                    end
+                    json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
                     json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
                 end
 
@@ -2210,7 +2322,11 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
                 isUpdaterBypass = true
                 updateFunc(MDFXLData)
-                json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXLData)
+                local chunkID = entry.MeshName:sub(1, 4)
+                if (chunkID == "ch02") or (chunkID == "ch03") then
+                    chunkID = entry.MeshName:sub(1, 8)
+                end
+                json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
                 json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
             end
         end
@@ -2541,7 +2657,10 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
         MDFXLSettings.showMDFXLEditor = false
         lastMatParamName = ""
         if isAutoSaved then
-            json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXL)
+            for i, chunk in pairs(MDFXLSaveDataChunks) do
+                json.dump_file(chunk.fileName, chunk.data)
+            end
+
             json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
             json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
             isAutoSaved = false
@@ -2755,7 +2874,9 @@ local function draw_MDFXLGUI_MHWS()
                 autoSaveProgress = elapsedTime / tickInterval
 
                 if os.clock() - lastTime > tickInterval then
-                    json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXL)
+                    for i, chunk in pairs(MDFXLSaveDataChunks) do
+                        json.dump_file(chunk.fileName, chunk.data)
+                    end
                     lastTime = os.clock()
                     autoSaveProgress = 0
                     if MDFXLPalettes.showMDFXLPaletteEditor then
@@ -2767,7 +2888,9 @@ local function draw_MDFXLGUI_MHWS()
                 end
             elseif not MDFXLSettings.isAutoSave then
                 if changed or wc then
-                    json.dump_file("MDF-XL/_Holders/MDF-XL_EquipmentData.json", MDFXL)
+                    for i, chunk in pairs(MDFXLSaveDataChunks) do
+                        json.dump_file(chunk.fileName, chunk.data)
+                    end
                     json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
                 end
             end
@@ -2793,6 +2916,7 @@ local function debug_RealEquipmentNames_MHWS()
             end
         end
         json.dump_file("MDF-XL/_Debug/names.json", debugTable)
+        isPlayerOpenEquipmentMenu = false
     end
 end
 --////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
@@ -2800,15 +2924,13 @@ end
 re.on_frame(function ()
     if reframework.get_game_name() == "mhwilds" then
         update_MDFXLViaHotkeys_MHWS()
-        manage_MasterMaterialData_MHWS(MDFXL, MDFXLSub)
+        manage_MasterMaterialData_MHWS(MDFXL, MDFXLSub, MDFXLSaveDataChunks)
         isUpdaterBypass = false
         changed = false
         wc = false
         for i, entry in pairs(MDFXL) do
             entry.isUpdated = false
         end
-        -- debug_RealEquipmentNames_MHWS()
-        -- isPlayerOpenEquipmentMenu = false
     end
 end)
 

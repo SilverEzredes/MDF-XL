@@ -1,5 +1,5 @@
 local MHWS_EquipmentData = {
-    --[Types: 1A = Male A | 1B = Male B | 3 = Left | 4 = Right | 5 = Both | 6 = Other | 7 = Palico | 8 = Palico Weapon]
+    --[Types: 1A = Male A | 1B = Male B | 2A = Female A | 2B = Female B | 3 = Left | 4 = Right | 5 = Both | 6 = Other | 7 = Palico | 8 = Palico Weapon]
     --Hope
     ch02_001_0001 =     {Name = "Hope Vambraces",           Type = "1A"},
     ch02_001_0002 =     {Name = "Hope Mail",                Type = "1A"},
@@ -13,7 +13,20 @@ local MHWS_EquipmentData = {
     ch02_001_0013 =     {Name = "Hope Mask",                Type = "1B"},
     ch02_001_0014 =     {Name = "Hope Greaves",             Type = "1B"},
     ch02_001_0015 =     {Name = "Hope Coil",                Type = "1B"},
-    --Innerwear
+
+    ch03_001_0001 =     {Name = "Hope Vambraces",           Type = "2A"},
+    ch03_001_0002 =     {Name = "Hope Mail",                Type = "2A"},
+    ch03_001_0003 =     {Name = "Hope Mask",                Type = "2A"},
+    ch03_001_0004 =     {Name = "Hope Greaves",             Type = "2A"},
+    ch03_001_0005 =     {Name = "Hope Coil",                Type = "2A"},
+    ch03_001_0005_1 =   {Name = "Hope Coil B",              Type = "2A"},
+    ch03_001_0006 =     {Name = "Hope Slinger",             Type = "3"},
+    ch03_001_0011 =     {Name = "Hope Vambraces",           Type = "2B"},
+    ch03_001_0012 =     {Name = "Hope Mail",                Type = "2B"},
+    ch03_001_0013 =     {Name = "Hope Mask",                Type = "2B"},
+    ch03_001_0014 =     {Name = "Hope Greaves",             Type = "2B"},
+    ch03_001_0015 =     {Name = "Hope Coil",                Type = "2B"},
+    ----------------------------------------------------------------------Innerwear
     ch02_002_0001 =     {Name = "Innerwear a Vambraces",    Type = "1A"},
     ch02_002_0002 =     {Name = "Innerwear a Mail",         Type = "1A"},
     ch02_002_0004 =     {Name = "Innerwear a Greaves",      Type = "1A"},
@@ -34,7 +47,28 @@ local MHWS_EquipmentData = {
     ch02_002_1014 =     {Name = "Innerwear b Greaves",      Type = "1B"},
     ch02_002_1015 =     {Name = "Innerwear b Coil",         Type = "1B"},
     ch02_002_1016 =     {Name = "Innerwear b Slinger",      Type = "3"},
-    --Doshaguma
+
+    ch03_002_0001 =     {Name = "Innerwear a Vambraces",    Type = "2A"},
+    ch03_002_0002 =     {Name = "Innerwear a Mail",         Type = "2A"},
+    ch03_002_0004 =     {Name = "Innerwear a Greaves",      Type = "2A"},
+    ch03_002_0005 =     {Name = "Innerwear a Coil",         Type = "2A"},
+    ch03_002_0006 =     {Name = "Innerwear a Slinger",      Type = "3"},
+    ch03_002_0011 =     {Name = "Innerwear a Vambraces",    Type = "2B"},
+    ch03_002_0012 =     {Name = "Innerwear a Mail",         Type = "2B"},
+    ch03_002_0014 =     {Name = "Innerwear a Greaves",      Type = "2B"},
+    ch03_002_0015 =     {Name = "Innerwear a Coil",         Type = "2B"},
+    ch03_002_0016 =     {Name = "Innerwear a Slinger",      Type = "3"},
+    ch03_002_1001 =     {Name = "Innerwear b Vambraces",    Type = "2A"},
+    ch03_002_1002 =     {Name = "Innerwear b Mail",         Type = "2A"},
+    ch03_002_1004 =     {Name = "Innerwear b Greaves",      Type = "2A"},
+    ch03_002_1005 =     {Name = "Innerwear b Coil",         Type = "2A"},
+    ch03_002_1006 =     {Name = "Innerwear b Slinger",      Type = "3"},
+    ch03_002_1011 =     {Name = "Innerwear b Vambraces",    Type = "2B"},
+    ch03_002_1012 =     {Name = "Innerwear b Mail",         Type = "2B"},
+    ch03_002_1014 =     {Name = "Innerwear b Greaves",      Type = "2B"},
+    ch03_002_1015 =     {Name = "Innerwear b Coil",         Type = "2B"},
+    ch03_002_1016 =     {Name = "Innerwear b Slinger",      Type = "3"},
+    ----------------------------------------------------------------------Doshaguma
     ch02_003_0001 =     {Name = "Doshaguma Vambraces",      Type = "1A"},
     ch02_003_0002 =     {Name = "Doshaguma Mail",           Type = "1A"},
     ch02_003_0003 =     {Name = "Doshaguma Helm",           Type = "1A"},
@@ -47,7 +81,20 @@ local MHWS_EquipmentData = {
     ch02_003_0014 =     {Name = "Doshaguma Greaves",        Type = "1B"},
     ch02_003_0015 =     {Name = "Doshaguma Coil",           Type = "1B"},
     ch02_003_0016 =     {Name = "Doshaguma Slinger",        Type = "3"},
-    --Chatacabra
+
+    ch03_003_0001 =     {Name = "Doshaguma Vambraces",      Type = "2A"},
+    ch03_003_0002 =     {Name = "Doshaguma Mail",           Type = "2A"},
+    ch03_003_0003 =     {Name = "Doshaguma Helm",           Type = "2A"},
+    ch03_003_0004 =     {Name = "Doshaguma Greaves",        Type = "2A"},
+    ch03_003_0005 =     {Name = "Doshaguma Coil",           Type = "2A"},
+    ch03_003_0006 =     {Name = "Doshaguma Slinger",        Type = "3"},
+    ch03_003_0011 =     {Name = "Doshaguma Vambraces",      Type = "2B"},
+    ch03_003_0012 =     {Name = "Doshaguma Mail",           Type = "2B"},
+    ch03_003_0013 =     {Name = "Doshaguma Helm",           Type = "2B"},
+    ch03_003_0014 =     {Name = "Doshaguma Greaves",        Type = "2B"},
+    ch03_003_0015 =     {Name = "Doshaguma Coil",           Type = "2B"},
+    ch03_003_0016 =     {Name = "Doshaguma Slinger",        Type = "3"},
+    ----------------------------------------------------------------------Chatacabra
     ch02_008_0001 =     {Name = "Chatacabra Vambraces",     Type = "1A"},
     ch02_008_0002 =     {Name = "Chatacabra Mail",          Type = "1A"},
     ch02_008_0003 =     {Name = "Chatacabra Helm",          Type = "1A"},
@@ -60,7 +107,20 @@ local MHWS_EquipmentData = {
     ch02_008_0014 =     {Name = "Chatacabra Greaves",       Type = "1B"},
     ch02_008_0015 =     {Name = "Chatacabra Coil",          Type = "1B"},
     ch02_008_0016 =     {Name = "Chatacabra Slinger",       Type = "3"},
-    --Balahara
+
+    ch03_008_0001 =     {Name = "Chatacabra Vambraces",     Type = "2A"},
+    ch03_008_0002 =     {Name = "Chatacabra Mail",          Type = "2A"},
+    ch03_008_0003 =     {Name = "Chatacabra Helm",          Type = "2A"},
+    ch03_008_0004 =     {Name = "Chatacabra Greaves",       Type = "2A"},
+    ch03_008_0005 =     {Name = "Chatacabra Coil",          Type = "2A"},
+    ch03_008_0006 =     {Name = "Chatacabra Slinger",       Type = "3"},
+    ch03_008_0011 =     {Name = "Chatacabra Vambraces",     Type = "2B"},
+    ch03_008_0012 =     {Name = "Chatacabra Mail",          Type = "2B"},
+    ch03_008_0013 =     {Name = "Chatacabra Helm",          Type = "2B"},
+    ch03_008_0014 =     {Name = "Chatacabra Greaves",       Type = "2B"},
+    ch03_008_0015 =     {Name = "Chatacabra Coil",          Type = "2B"},
+    ch03_008_0016 =     {Name = "Chatacabra Slinger",       Type = "3"},
+    ----------------------------------------------------------------------Balahara
     ch02_014_0001 =     {Name = "Balahara Vambraces",       Type = "1A"},
     ch02_014_0002 =     {Name = "Balahara Mail",            Type = "1A"},
     ch02_014_0003 =     {Name = "Balahara Helm",            Type = "1A"},
@@ -73,7 +133,20 @@ local MHWS_EquipmentData = {
     ch02_014_0014 =     {Name = "Balahara Greaves",         Type = "1B"},
     ch02_014_0015 =     {Name = "Balahara Coil",            Type = "1B"},
     ch02_014_0016 =     {Name = "Balahara Slinger",         Type = "3"},
-    --Palico
+
+    ch03_014_0001 =     {Name = "Balahara Vambraces",       Type = "2A"},
+    ch03_014_0002 =     {Name = "Balahara Mail",            Type = "2A"},
+    ch03_014_0003 =     {Name = "Balahara Helm",            Type = "2A"},
+    ch03_014_0004 =     {Name = "Balahara Greaves",         Type = "2A"},
+    ch03_014_0005 =     {Name = "Balahara Coil",            Type = "2A"},
+    ch03_014_0006 =     {Name = "Balahara Slinger",         Type = "3"},
+    ch03_014_0011 =     {Name = "Balahara Vambraces",       Type = "2B"},
+    ch03_014_0012 =     {Name = "Balahara Mail",            Type = "2B"},
+    ch03_014_0013 =     {Name = "Balahara Helm",            Type = "2B"},
+    ch03_014_0014 =     {Name = "Balahara Greaves",         Type = "2B"},
+    ch03_014_0015 =     {Name = "Balahara Coil",            Type = "2B"},
+    ch03_014_0016 =     {Name = "Balahara Slinger",         Type = "3"},
+    ----------------------------------------------------------------------Palico
     ch05_001_0000 =     {Name = "Felyne Hope Overalls",     Type = "7"},
     ch05_001_1000 =     {Name = "Felyne Hope Helm",         Type = "7"},
     ch05_001_2000 =     {Name = "Felyne Hope Hammer",       Type = "8"},
@@ -86,7 +159,7 @@ local MHWS_EquipmentData = {
     ch05_008_0000 =     {Name = "Felyne Doshaguma Mail",    Type = "7"},
     ch05_008_1000 =     {Name = "Felyne Doshaguma Helm",    Type = "7"},
     ch05_008_2000 =     {Name = "Felyne Doshaguma Knuckle", Type = "8"},
-    --Weapons
+    ----------------------------------------------------------------------Weapons
     it0000_0004_0 =     {Name = "Hope Blade",               Type = "5"},
     it0100_0007_0 =     {Name = "Hope Sword",               Type = "3"},
     it0100_0007_1 =     {Name = "Hope Sword Shield",        Type = "4"},
