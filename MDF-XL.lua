@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "12/06/2024"
-local modVersion = "v1.4.04"
+local modUpdated = "12/15/2024"
+local modVersion = "v1.4.10"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -45,6 +45,7 @@ local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
 local isOutfitManagerBypass = false
 local isMDFXL = false
+local isUserManual = false
 local MDFXL_MaterialParamDefaultsHolder = {}
 local MDFXL_MaterialEditorParamHolder = {}
 local MDFXL_MaterialEditorSubParamFloatHolder = nil
@@ -107,7 +108,7 @@ local MDFXL_DefaultSettings = {
     showConsole = false,
     isAutoSave = true,
     showAutoSaveProgressBar = true,
-    autoSaveInterval = 5.0,
+    autoSaveInterval = 30.0,
     isSearchMatchCase = false,
     isFilterFavorites = false,
     isInheritPresetName = true,
@@ -199,6 +200,9 @@ local MDFXLDatabase = {
 }
 MDFXLDatabase.MHWS = require("MDF-XLCore/MHWS_Database")
 
+local MDFXLUserManual = {}
+MDFXLUserManual = require("MDF-XLCore/UserManual")
+
 local function cache_SaveDataChunkPaths(saveDataPathsTbl, saveDataChunksPath)
     local saveDataJSONPaths = fs.glob(saveDataChunksPath)
     if saveDataJSONPaths then
@@ -208,7 +212,6 @@ local function cache_SaveDataChunkPaths(saveDataPathsTbl, saveDataChunksPath)
         end
     end
 end
-
 cache_SaveDataChunkPaths(MDFXL_Cache.SaveDataPaths, [[MDF-XL\\_Holders\\_Chunks\\.*.json]])
 local MDFXL = hk.merge_tables({}, MDFXL_Master)
 for _, path in ipairs(MDFXL_Cache.SaveDataPaths) do
@@ -2705,6 +2708,144 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
 
     draw_MDFXLPresetGUI_MHWS()
 end
+local function draw_MDFXLUserManual()
+    if not isUserManual then return end
+
+    if imgui.begin_window("MDF-XL: Wiki") then
+        imgui.begin_rect()
+        imgui.spacing()
+        imgui.text("   " .. ui.draw_line("=", 5) .. " [ USER MANUAL ] " .. MDFXLUserManual.Generic.updated .. ui.draw_line("=", 100) .. "   ")
+        imgui.spacing()
+        imgui.indent(20)
+        if imgui.tree_node(MDFXLUserManual.About.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.About[000])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.About[001])
+            imgui.indent(15)
+            imgui.text(MDFXLUserManual.About[002])
+            imgui.text(MDFXLUserManual.About[003])
+            imgui.indent(-15)
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.About[099])
+            imgui.push_id(0)
+            imgui.push_item_width(500)
+            imgui.input_text("", MDFXLUserManual.Links[199])
+            imgui.pop_id()
+            imgui.pop_item_width()
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        imgui.indent(15)
+        if imgui.tree_node(MDFXLUserManual.Install.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.Install[010])
+            imgui.spacing()
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.Install[011])
+            imgui.push_id(0)
+            imgui.push_item_width(500)
+            imgui.input_text("", MDFXLUserManual.Links[200])
+            imgui.pop_id()
+            imgui.text(MDFXLUserManual.Install[012])
+
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+
+            imgui.text(MDFXLUserManual.Install[013])
+            imgui.text(MDFXLUserManual.About[2])
+            imgui.push_id(1)
+            imgui.input_text("", MDFXLUserManual.Links[201])
+            imgui.pop_id()
+            imgui.text(MDFXLUserManual.About[3])
+            imgui.push_id(2)
+            imgui.input_text("", MDFXLUserManual.Links[202])
+            imgui.pop_id()
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Install[014])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Install[015])
+            imgui.pop_item_width()
+            
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.Troubleshooting.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.Troubleshooting[020])
+            imgui.indent(30)
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Troubleshooting[021])
+            imgui.indent(-30)
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.Troubleshooting[022])
+            imgui.indent(30)
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Troubleshooting[023])
+            imgui.indent(-30)
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.Troubleshooting[024])
+            imgui.indent(30)
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Troubleshooting[025])
+            imgui.indent(-30)
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Troubleshooting[099])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.ReportingABug.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.ReportingABug[030])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.ReportingABug[031])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.UpdateLoop.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.UpdateLoop[040])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.UpdateLoop[041])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.UpdateLoop[042])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.Credits.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.Credits[050])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_AGBR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        imgui.indent(-15)
+        imgui.indent(-20)
+        
+        imgui.spacing()
+        imgui.end_rect()
+        imgui.end_window()
+    end
+end
 local function draw_MDFXLGUI_MHWS()
     if imgui.tree_node(modName) then
         isMDFXL = true
@@ -2716,7 +2857,7 @@ local function draw_MDFXLGUI_MHWS()
         if isDefaultsDumped then
             load_MDFXLEditorAndPresetGUI_MHWS()
         end
-
+        
         if imgui.tree_node("MDF-XL: Settings") then
             imgui.begin_rect()
             imgui.spacing()
@@ -2727,25 +2868,30 @@ local function draw_MDFXLGUI_MHWS()
                 MDFXLSettings = hk.recurse_def_settings({}, MDFXL_DefaultSettings)
                 hk.reset_from_defaults_tbl(MDFXL_DefaultSettings.hotkeys)
             end
-            
+            imgui.same_line()
+            changed, isUserManual = imgui.checkbox("Open MDF-XL: User Manual", isUserManual); wc = wc or changed
+
             imgui.spacing()
 
             changed, MDFXLSettings.isDebug = imgui.checkbox("Debug Mode", MDFXLSettings.isDebug); wc = wc or changed
             func.tooltip("Toggle Debug Mode. When enabled, MDF-XL will log significantly more information in the 're2_framework_log.txt' file, located in the game's root folder.\n It is recommended to leave this on.")
             changed, MDFXLSettings.showConsole = imgui.checkbox("Show Console", MDFXLSettings.showConsole); wc = wc or changed
+            func.tooltip("When enabled, a small console window will show up above the Preset Manager.")
             changed, MDFXLSettings.isAutoSave = imgui.checkbox("Auto-Save", MDFXLSettings.isAutoSave); wc = wc or changed
             func.tooltip("Toggle the Auto-Save feature. When enabled, MDF-XL will automatically save your current material parameters based on the Auto-Save Interval setting.\n It is recommended to leave this on.")
             if MDFXLSettings.isAutoSave then
                 imgui.same_line()
                 changed, MDFXLSettings.showAutoSaveProgressBar = imgui.checkbox("Show Auto-Save UI", MDFXLSettings.showAutoSaveProgressBar); wc = wc or changed
+                func.tooltip("When enabled, a progress bar will show up below the MDF-XL Editor checkbox.")
                 imgui.push_item_width(250)
                 changed, MDFXLSettings.autoSaveInterval = imgui.drag_float("Auto-Save Interval ", MDFXLSettings.autoSaveInterval, 0.1, 1.0, 120.0, "%.1f sec"); wc = wc or changed
+                func.tooltip("Sets how often MDF-XL auto-saves when the Editor is open.")
                 imgui.pop_item_width()
             end
             if imgui.tree_node("Editor Settings") then
                 changed, MDFXLSettings.isInheritPresetName = imgui.checkbox("Inherit Preset Name", MDFXLSettings.isInheritPresetName); wc = wc or changed
-                func.tooltip("If enabled the '[Enter Preset Name Here]' text in the MDF-XL: Editor will be replaced by the name of the last loaded preset.")
-                changed, MDFXLSettings.showEquipmentName = imgui.checkbox("Show Equipment Name", MDFXLSettings.showEquipmentName); wc = wc or changed
+                func.tooltip("When enabled, the '[Enter Preset Name Here]' text in the Editor will be replaced by the name of the last loaded preset.")
+                changed, MDFXLSettings.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.showEquipmentName); wc = wc or changed
                 changed, MDFXLSettings.showMaterialCount = imgui.checkbox("Show Material Count", MDFXLSettings.showMaterialCount); wc = wc or changed
                 changed, MDFXLSettings.showMaterialFavoritesCount = imgui.checkbox("Show Material Favorites Count", MDFXLSettings.showMaterialFavoritesCount); wc = wc or changed
                 changed, MDFXLSettings.showMaterialParamCount = imgui.checkbox("Show Material Parameter Count", MDFXLSettings.showMaterialParamCount); wc = wc or changed
@@ -2764,11 +2910,11 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.presetManager.showOtomoEquipment = imgui.checkbox("Show Palico Armor Presets", MDFXLSettings.presetManager.showOtomoEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoArmament = imgui.checkbox("Show Palico Weapon Presets", MDFXLSettings.presetManager.showOtomoArmament); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showPorter = imgui.checkbox("Show Seikret Presets", MDFXLSettings.presetManager.showPorter); wc = wc or changed
-                changed, MDFXLSettings.presetManager.showEquipmentName = imgui.checkbox("Show Equipment Name", MDFXLSettings.presetManager.showEquipmentName); wc = wc or changed
+                changed, MDFXLSettings.presetManager.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.presetManager.showEquipmentName); wc = wc or changed
                 imgui.tree_pop()
             end
             if imgui.tree_node("Hotkeys") then
-                imgui.text(ui.draw_line("-", 50))
+                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
                 
                 imgui.push_id(1)
                 changed, MDFXLSettings.useModifier = imgui.checkbox("", MDFXLSettings.useModifier); wc = wc or changed
@@ -2793,7 +2939,7 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.pop_id()
                 changed = hk.hotkey_setter("Toggle Case Sensitive Search", MDFXLSettings.useModifier2 and "Secondary Modifier"); wc = wc or changed
                 
-                imgui.text(ui.draw_line("-", 50))
+                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
                 imgui.push_id(3)
                 changed, MDFXLSettings.useOutfitModifier = imgui.checkbox("", MDFXLSettings.useOutfitModifier); wc = wc or changed
                 func.tooltip("Require that you hold down this button")
@@ -2813,7 +2959,7 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.pop_id()
                 changed = hk.hotkey_setter("Outfit Pad Previous", MDFXLSettings.useOutfitPadModifier and "Outfit Change Pad Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Outfit Pad Next", MDFXLSettings.useOutfitPadModifier and "Outfit Change Pad Modifier"); wc = wc or changed
-                imgui.text(ui.draw_line("-", 50))
+                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_AGBR(ui.colors.white50))
                 imgui.tree_pop()
             end
 
@@ -2834,12 +2980,6 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.indent(-5)
                 imgui.tree_pop()
             end
-            if imgui.tree_node("Credits") then
-                imgui.indent(5)
-                imgui.text(modCredits .. " ")
-                imgui.unindent()
-                imgui.tree_pop()
-            end
 
             if changed or wc then
                 json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
@@ -2850,6 +2990,9 @@ local function draw_MDFXLGUI_MHWS()
             imgui.end_rect(2)
             imgui.tree_pop()
         end
+        
+        draw_MDFXLUserManual()
+
         if MDFXLSettings.showMDFXLEditor and (changed or wc) then
             update_PlayerEquipmentMaterialParams_MHWS(MDFXL)
             update_PlayerArmamentMaterialParams_MHWS(MDFXL)

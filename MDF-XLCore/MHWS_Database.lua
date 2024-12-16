@@ -1,6 +1,6 @@
 local MHWS_EquipmentData = {
     --[Types: 1A = Male A | 1B = Male B | 2A = Female A | 2B = Female B | 3 = Left | 4 = Right | 5 = Both | 6 = Other | 7 = Palico | 8 = Palico Weapon]
-    --Hope
+    ----------------------------------------------------------------------Hope
     ch02_001_0001 =     {Name = "Hope Vambraces",           Type = "1A"},
     ch02_001_0002 =     {Name = "Hope Mail",                Type = "1A"},
     ch02_001_0003 =     {Name = "Hope Mask",                Type = "1A"},
