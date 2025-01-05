@@ -1,5 +1,5 @@
 local MHWS_EquipmentData = {
-    --[Types: 1A = Male A | 1B = Male B | 2A = Female A | 2B = Female B | 3 = Left | 4 = Right | 5 = Both | 6 = Other | 7 = Palico | 8 = Palico Weapon]
+    --[Types: 1A = Male A | 1B = Male B | 2A = Female A | 2B = Female B | 3 = Left-Handed Weapon | 4 = Right-Handed Weapon | 5 = Two-Handed Weapon | 6 = Weapon Accessory | 7 = Palico | 8 = Palico Weapon]
     ----------------------------------------------------------------------Hope
     ch02_001_0001 =     {Name = "Hope Vambraces",           Type = "1A"},
     ch02_001_0002 =     {Name = "Hope Mail",                Type = "1A"},
@@ -13,6 +13,7 @@ local MHWS_EquipmentData = {
     ch02_001_0013 =     {Name = "Hope Mask",                Type = "1B"},
     ch02_001_0014 =     {Name = "Hope Greaves",             Type = "1B"},
     ch02_001_0015 =     {Name = "Hope Coil",                Type = "1B"},
+    ch02_001_0016 =     {Name = "Hope Slinger",             Type = "3"},
 
     ch03_001_0001 =     {Name = "Hope Vambraces",           Type = "2A"},
     ch03_001_0002 =     {Name = "Hope Mail",                Type = "2A"},
@@ -26,6 +27,7 @@ local MHWS_EquipmentData = {
     ch03_001_0013 =     {Name = "Hope Mask",                Type = "2B"},
     ch03_001_0014 =     {Name = "Hope Greaves",             Type = "2B"},
     ch03_001_0015 =     {Name = "Hope Coil",                Type = "2B"},
+    ch03_001_0016 =     {Name = "Hope Slinger",             Type = "3"},
     ----------------------------------------------------------------------Innerwear
     ch02_002_0001 =     {Name = "Innerwear a Vambraces",    Type = "1A"},
     ch02_002_0002 =     {Name = "Innerwear a Mail",         Type = "1A"},

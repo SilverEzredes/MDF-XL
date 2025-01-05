@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "12/23/2024"
-local modVersion = "v1.4.11"
+local modUpdated = "01/05/2025"
+local modVersion = "v1.4.13"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -18,31 +18,15 @@ local tickInterval = 0.0
 local autoSaveProgress = 0
 local wasEditorShown = false
 
-local playerManager = sdk.get_managed_singleton("app.PlayerManager")
-local otomoManager = sdk.get_managed_singleton("app.OtomoManager")
-local porterManager = sdk.get_managed_singleton("app.PorterManager")
 local renderComp = "via.render.Mesh"
-local texResource = "via.render.TextureResource"
-local entityComp = "app.PlayerEntityManager"
-local GUI010000 = nil
-local GUI080001 = nil
-local GUI090000 = nil
+local texResourceComp = "via.render.TextureResource"
 local masterPlayer = nil
-local masterOtomo = nil
-local masterPorter = nil
 local isPlayerInScene = false
-local isOtomoInScene = false
-local isPorterInScene = false
 local isDefaultsDumped = false
 local isUpdaterBypass = false
 local isNowLoading = false
 local isLoadingScreenUpdater = false
 local isAutoSaved = false
-local isPlayerLeftEquipmentMenu = false
-local isPlayerOpenEquipmentMenu = false
-local isPlayerLeftCamp = false
-local isAppearanceEditorOpen = false
-local isAppearanceEditorUpdater = false
 local isOutfitManagerBypass = false
 local isMDFXL = false
 local isUserManual = false
@@ -187,14 +171,6 @@ local MDFXL_ColorPalettes = {
     newColorIDX = 1,
 }
 local MDFXL_PresetTracker = {}
-local MDFXLConsole = {
-    errors = {
-        [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment. ",
-    },
-    warnings = {
-        [100] = "[WARNING-100]\nPreset Version is outdated.",
-    },
-}
 local MDFXLDatabase = {
     MHWS = {},
 }
@@ -202,6 +178,13 @@ MDFXLDatabase.MHWS = require("MDF-XLCore/MHWS_Database")
 
 local MDFXLUserManual = {}
 MDFXLUserManual = require("MDF-XLCore/UserManual")
+
+local MDFXLSub = hk.merge_tables({}, MDFXL_Sub) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_SubData.json") or {}, MDFXL_Sub)
+local MDFXLPresetTracker = hk.merge_tables({}, MDFXL_PresetTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json") or {}, MDFXL_PresetTracker)
+local MDFXLSettings = hk.merge_tables({}, MDFXL_DefaultSettings) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_Settings.json") or {}, MDFXL_DefaultSettings)
+local MDFXLPalettes = hk.merge_tables({}, MDFXL_ColorPalettes) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json") or {}, MDFXL_ColorPalettes)
+local MDFXLOutfits = hk.merge_tables({}, MDFXL_OutfitManager) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json") or {}, MDFXL_OutfitManager)
+hk.setup_hotkeys(MDFXLSettings.hotkeys)
 
 local function cache_SaveDataChunkPaths(saveDataPathsTbl, saveDataChunksPath)
     local saveDataJSONPaths = fs.glob(saveDataChunksPath)
@@ -218,125 +201,8 @@ for _, path in ipairs(MDFXL_Cache.SaveDataPaths) do
     local data = json.load_file(path) or {}
     MDFXL = hk.recurse_def_settings(data, MDFXL)
 end
-
-local MDFXLSub = hk.merge_tables({}, MDFXL_Sub) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_SubData.json") or {}, MDFXL_Sub)
-local MDFXLPresetTracker = hk.merge_tables({}, MDFXL_PresetTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json") or {}, MDFXL_PresetTracker)
-local MDFXLSettings = hk.merge_tables({}, MDFXL_DefaultSettings) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_Settings.json") or {}, MDFXL_DefaultSettings)
-local MDFXLPalettes = hk.merge_tables({}, MDFXL_ColorPalettes) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json") or {}, MDFXL_ColorPalettes)
-local MDFXLOutfits = hk.merge_tables({}, MDFXL_OutfitManager) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json") or {}, MDFXL_OutfitManager)
-hk.setup_hotkeys(MDFXLSettings.hotkeys)
 --////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
---MARK: MHWilds
---Generic getters and checks
-local function get_PlayerManager_MHWS()
-    if playerManager == nil then playerManager = sdk.get_managed_singleton("app.PlayerManager") end
-	return playerManager
-end
-local function get_OtomoManager_MHWS()
-    if otomoManager == nil then otomoManager = sdk.get_managed_singleton("app.OtomoManager") end
-	return otomoManager
-end
-local function get_PorterManager_MHWS()
-    if porterManager == nil then porterManager = sdk.get_managed_singleton("app.PorterManager") end
-	return porterManager
-end
-local function check_IfPlayerIsInScene_MHWS()
-    get_PlayerManager_MHWS()
-    
-    if playerManager then
-        masterPlayer = playerManager:getMasterPlayer()
-        local player = masterPlayer and masterPlayer:get_Valid()
-
-        if player then
-            isPlayerInScene = true
-        else
-            isPlayerInScene = false
-        end
-    end
-end
-local function check_IfOtomoIsInScene_MHWS()
-    get_OtomoManager_MHWS()
-    
-    if otomoManager then
-        masterOtomo = otomoManager:getMasterOtomoInfo()
-        local otomo = masterOtomo and masterOtomo:get_Valid()
-
-        if otomo then
-            isOtomoInScene = true
-        else
-            isOtomoInScene = false
-        end
-    end
-end
-local function check_IfPorterIsInScene_MHWS()
-    get_PorterManager_MHWS()
-    
-    if porterManager then
-        masterPorter = porterManager:getMasterPlayerPorter()
-        local porter = masterPorter and masterPorter:get_Valid()
-
-        if porter then
-            isPorterInScene = true
-        else
-            isPorterInScene = false
-        end
-    end
-end
---Hooks
-if reframework.get_game_name() == "mhwilds" then
-    --Loading Screen
-    sdk.hook(sdk.find_type_definition("app.GUI010000"):get_method("guiLateUpdate()"),
-        function(args)
-            GUI010000 = sdk.to_managed_object(args[2])
-            if GUI010000._Param:getValue() == 90.0 then
-                isNowLoading = true
-            else
-                isNowLoading = false
-                isLoadingScreenUpdater = false
-            end
-        end,
-        function(retval)
-            return retval
-        end
-    )
-    --Equipment Menu GUI
-    sdk.hook(sdk.find_type_definition("app.GUI080001"):get_method("onClose()"),
-        function(args)
-            isPlayerLeftEquipmentMenu = true
-        end
-    )
-    sdk.hook(sdk.find_type_definition("app.GUI080001"):get_method("onOpen()"),
-        function(args)
-            isPlayerOpenEquipmentMenu = true
-            GUI080001 = sdk.to_managed_object(args[2])
-        end
-    )
-    --Camp GUI
-    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
-        function(args)
-            isPlayerLeftCamp = true
-        end
-    )
-    --Appearance Editor GUI
-    sdk.hook(sdk.find_type_definition("app.GUI090000"):get_method("guiUpdate()"),
-        function(args)
-            if not isPlayerInScene then return end
-            GUI090000 = sdk.to_managed_object(args[2])
-            local currentMenu = GUI090000:get__MainText():get_Message()
-            if func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) then
-                isAppearanceEditorOpen = true
-            end
-            if not func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) and isAppearanceEditorOpen then
-                isAppearanceEditorUpdater = true
-                isAppearanceEditorOpen = false
-            end
-        end,
-        function(retval)
-            return retval
-        end
-    )
-end
---Material Param Getters
+--MARK:Shared Functions
 local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry] = {}
     MDFXLData[entry].Presets = {}
@@ -476,6 +342,218 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
         table.sort(subDataTable.texturePaths)
     end
 end
+local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
+    local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
+                                
+    if renderMesh then
+        local matCount = renderMesh:get_MaterialNum()
+        if matCount then
+            for j = 0, matCount - 1 do
+                local matName = renderMesh:getMaterialName(j)
+                local matParam = renderMesh:getMaterialVariableNum(j)
+                
+                if matName then
+                    local textureCount = renderMesh:getMaterialTextureNum(j)
+
+                    if matParam then
+                        for k = 0, matParam - 1 do
+                            local matParamNames = renderMesh:getMaterialVariableName(j, k)
+                            local matType = renderMesh:getMaterialVariableType(j, k)
+                            
+                            if (matParamNames == lastMatParamName and matType) or isUpdaterBypass then
+                                if matType == 1 then
+                                    renderMesh:setMaterialFloat(j, k, dataTable[entry.MeshName].Materials[matName][matParamNames][1])
+                                end
+                                if matType == 4 then
+                                    local vec4 = dataTable[entry.MeshName].Materials[matName][matParamNames][1]
+                                    renderMesh:setMaterialFloat4(j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
+                                end
+                            end
+                        end
+                    end
+                    for t = 0, textureCount - 1 do
+                        local textureName = renderMesh:getMaterialTextureName(j, t)
+                        local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
+                        renderMesh:setMaterialTexture(j, t, textureResource)
+                    end
+                end
+                for v = 0, #dataTable[entry.MeshName].Enabled do
+                    renderMesh:setMaterialsEnable(v, dataTable[entry.MeshName].Enabled[v + 1])
+                end
+                renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
+                renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
+                renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
+            end
+        end
+        local chunkID = entry.MeshName:sub(1, 4)
+        if (chunkID == "ch02") or (chunkID == "ch03") then
+            chunkID = entry.MeshName:sub(1, 8)
+        end
+        if saveDataTable[chunkID] then
+            saveDataTable[chunkID].wasUpdated = true
+        end
+    end
+end
+local function manage_SaveDataChunks(MDFXLData, saveDataTable)
+    for key, value in pairs(MDFXLData) do
+        local chunkID = key:sub(1, 4)
+        if (chunkID == "ch02") or (chunkID == "ch03") then
+            chunkID = key:sub(1, 8)
+        end
+        if not saveDataTable[chunkID] then
+            saveDataTable[chunkID] = {
+                data = {},
+                fileName = "MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json",
+                wasUpdated = true,
+            }
+        end
+        saveDataTable[chunkID].data[key] = value
+    end
+end
+local function setup_OutfitChanger()
+    if #MDFXLOutfits.Presets > 0 then
+        local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
+        local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
+        local temp_parts = json.load_file(json_filepath)
+        wc = true
+        if temp_parts ~= nil then
+            for key, value in pairs(temp_parts) do
+                MDFXLPresetTracker[key].lastPresetName = value.lastPresetName
+            end
+            isOutfitManagerBypass = true
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+        end
+    end
+end
+--////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+--MARK: MHWilds
+local playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager")
+local otomoManager = sdk.get_managed_singleton("app.OtomoManager")
+local porterManager = sdk.get_managed_singleton("app.PorterManager")
+
+local entityComp = "app.PlayerEntityManager"
+local masterOtomo = nil
+local masterPorter = nil
+local GUI010000 = nil
+local GUI080001 = nil
+local GUI090000 = nil
+local isOtomoInScene = false
+local isPorterInScene = false
+local isPlayerLeftEquipmentMenu = false
+local isPlayerOpenEquipmentMenu = false
+local isPlayerLeftCamp = false
+local isAppearanceEditorOpen = false
+local isAppearanceEditorUpdater = false
+--Generic getters and checks
+local function get_PlayerManager_MHWS()
+    if playerManager_MHWS == nil then playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager") end
+	return playerManager_MHWS
+end
+local function get_OtomoManager_MHWS()
+    if otomoManager == nil then otomoManager = sdk.get_managed_singleton("app.OtomoManager") end
+	return otomoManager
+end
+local function get_PorterManager_MHWS()
+    if porterManager == nil then porterManager = sdk.get_managed_singleton("app.PorterManager") end
+	return porterManager
+end
+local function check_IfPlayerIsInScene_MHWS()
+    get_PlayerManager_MHWS()
+    
+    if playerManager_MHWS then
+        masterPlayer = playerManager_MHWS:getMasterPlayer()
+        local player = masterPlayer and masterPlayer:get_Valid()
+
+        if player then
+            isPlayerInScene = true
+        else
+            isPlayerInScene = false
+        end
+    end
+end
+local function check_IfOtomoIsInScene_MHWS()
+    get_OtomoManager_MHWS()
+    
+    if otomoManager then
+        masterOtomo = otomoManager:getMasterOtomoInfo()
+        local otomo = masterOtomo and masterOtomo:get_Valid()
+
+        if otomo then
+            isOtomoInScene = true
+        else
+            isOtomoInScene = false
+        end
+    end
+end
+local function check_IfPorterIsInScene_MHWS()
+    get_PorterManager_MHWS()
+    
+    if porterManager then
+        masterPorter = porterManager:getMasterPlayerPorter()
+        local porter = masterPorter and masterPorter:get_Valid()
+
+        if porter then
+            isPorterInScene = true
+        else
+            isPorterInScene = false
+        end
+    end
+end
+--Hooks
+if reframework.get_game_name() == "mhwilds" then
+    --Loading Screen
+    sdk.hook(sdk.find_type_definition("app.GUI010000"):get_method("guiLateUpdate()"),
+        function(args)
+            GUI010000 = sdk.to_managed_object(args[2])
+            if GUI010000._Param:getValue() == 90.0 then
+                isNowLoading = true
+            else
+                isNowLoading = false
+                isLoadingScreenUpdater = false
+            end
+        end,
+        function(retval)
+            return retval
+        end
+    )
+    --Equipment Menu GUI
+    sdk.hook(sdk.find_type_definition("app.GUI080001"):get_method("onClose()"),
+        function(args)
+            isPlayerLeftEquipmentMenu = true
+        end
+    )
+    sdk.hook(sdk.find_type_definition("app.GUI080001"):get_method("onOpen()"),
+        function(args)
+            isPlayerOpenEquipmentMenu = true
+            GUI080001 = sdk.to_managed_object(args[2])
+        end
+    )
+    --Camp GUI
+    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
+        function(args)
+            isPlayerLeftCamp = true
+        end
+    )
+    --Appearance Editor GUI
+    sdk.hook(sdk.find_type_definition("app.GUI090000"):get_method("guiUpdate()"),
+        function(args)
+            if not isPlayerInScene then return end
+            GUI090000 = sdk.to_managed_object(args[2])
+            local currentMenu = GUI090000:get__MainText():get_Message()
+            if func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) then
+                isAppearanceEditorOpen = true
+            end
+            if not func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) and isAppearanceEditorOpen then
+                isAppearanceEditorUpdater = true
+                isAppearanceEditorOpen = false
+            end
+        end,
+        function(retval)
+            return retval
+        end
+    )
+end
+--Material Param Getters
 local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isPlayerInScene then return end
 
@@ -871,58 +949,6 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
     end
 end
 --Material Param Setters
-local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
-    local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
-                                
-    if renderMesh then
-        local matCount = renderMesh:get_MaterialNum()
-        if matCount then
-            for j = 0, matCount - 1 do
-                local matName = renderMesh:getMaterialName(j)
-                local matParam = renderMesh:getMaterialVariableNum(j)
-                
-                if matName then
-                    local textureCount = renderMesh:getMaterialTextureNum(j)
-
-                    if matParam then
-                        for k = 0, matParam - 1 do
-                            local matParamNames = renderMesh:getMaterialVariableName(j, k)
-                            local matType = renderMesh:getMaterialVariableType(j, k)
-                            
-                            if (matParamNames == lastMatParamName and matType) or isUpdaterBypass then
-                                if matType == 1 then
-                                    renderMesh:setMaterialFloat(j, k, dataTable[entry.MeshName].Materials[matName][matParamNames][1])
-                                end
-                                if matType == 4 then
-                                    local vec4 = dataTable[entry.MeshName].Materials[matName][matParamNames][1]
-                                    renderMesh:setMaterialFloat4(j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
-                                end
-                            end
-                        end
-                    end
-                    for t = 0, textureCount - 1 do
-                        local textureName = renderMesh:getMaterialTextureName(j, t)
-                        local textureResource = func.create_resource(texResource, dataTable[entry.MeshName].Textures[matName][textureName])
-                        renderMesh:setMaterialTexture(j, t, textureResource)
-                    end
-                end
-                for v = 0, #dataTable[entry.MeshName].Enabled do
-                    renderMesh:setMaterialsEnable(v, dataTable[entry.MeshName].Enabled[v + 1])
-                end
-                renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
-                renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
-                renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
-            end
-        end
-        local chunkID = entry.MeshName:sub(1, 4)
-        if (chunkID == "ch02") or (chunkID == "ch03") then
-            chunkID = entry.MeshName:sub(1, 8)
-        end
-        if saveDataTable[chunkID] then
-            saveDataTable[chunkID].wasUpdated = true
-        end
-    end
-end
 local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
     if not isPlayerInScene then return end
     for _, equipment in pairs(MDFXLData) do
@@ -1050,9 +1076,8 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
 
             for i, child in pairs(porterChildren) do
                 local childStrings = child:ToString()
-                local patterns = {"Saddle[^@]+", "Body[^@]+"}
         
-                for j, pattern in ipairs(patterns) do
+                for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
                     local porterEquipment = childStrings:match(pattern)
                     
                     if porterEquipment then
@@ -1072,38 +1097,6 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
                 end
             end
         end
-    end
-end
---Helper Functions
-local function setup_OutfitChanger()
-    if #MDFXLOutfits.Presets > 0 then
-        local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
-        local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
-        local temp_parts = json.load_file(json_filepath)
-        wc = true
-        if temp_parts ~= nil then
-            for key, value in pairs(temp_parts) do
-                MDFXLPresetTracker[key].lastPresetName = value.lastPresetName
-            end
-            isOutfitManagerBypass = true
-            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        end
-    end
-end
-local function manage_SaveDataChunks(MDFXLData, saveDataTable)
-    for key, value in pairs(MDFXLData) do
-        local chunkID = key:sub(1, 4)
-        if (chunkID == "ch02") or (chunkID == "ch03") then
-            chunkID = key:sub(1, 8)
-        end
-        if not saveDataTable[chunkID] then
-            saveDataTable[chunkID] = {
-                data = {},
-                fileName = "MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json",
-                wasUpdated = true,
-            }
-        end
-        saveDataTable[chunkID].data[key] = value
     end
 end
 --Master Functions
@@ -1184,7 +1177,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                            MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -1279,7 +1272,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                            MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -1377,7 +1370,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1468,7 +1461,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1552,7 +1545,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1626,7 +1619,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
+                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1778,11 +1771,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         else
                             log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                             MDFXLData[entry.MeshName].currentPresetIDX = 1
-                            MDFXLSettingsData.consoleErrorText = MDFXLConsole.errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
+                            MDFXLSettingsData.consoleErrorText = MDFXLUserManual.Errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                         end
                         if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettingsData.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
+                            MDFXLSettingsData.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                         end
                     end
 
@@ -2308,11 +2301,11 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     else
                         log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                         MDFXLData[entry.MeshName].currentPresetIDX = 1
-                        MDFXLSettingsData.consoleErrorText = MDFXLConsole.errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
+                        MDFXLSettingsData.consoleErrorText = MDFXLUserManual.Errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                     end
                     if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettingsData.consoleWarningText = MDFXLConsole.warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
+                        MDFXLSettingsData.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                     end
                 end
 
@@ -2523,7 +2516,7 @@ local function draw_MDFXLEditorGUI_MHWS()
     if imgui.begin_window("MDF-XL: Editor") then
         imgui.begin_rect()
         
-        imgui.text_colored("  [ " .. ui.draw_line("=", 150)  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.text_colored("[ " .. ui.draw_line("=", 150)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
         
         imgui.indent(25)
 
@@ -2559,24 +2552,25 @@ local function draw_MDFXLEditorGUI_MHWS()
             ui.textButton_ColoredValue("Preset Version :", MDFXLSettings.presetVersion, func.convert_rgba_to_ABGR(ui.colors.gold))
         end
 
-        imgui.indent(-25)
+        imgui.indent(-15)
         
-        imgui.text_colored("  [ " .. ui.draw_line("=", 90) ..  " // Hunter: Armor // " .. ui.draw_line("=", 10) .. " ] ", func.convert_rgba_to_ABGR(ui.colors.gold))
+        imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Armor // ", func.convert_rgba_to_ABGR(ui.colors.gold))
         setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, ui.colors.gold)
 
-        imgui.text_colored("  [ " .. ui.draw_line("=", 90) ..  " // Hunter: Weapon // " .. ui.draw_line("=", 10) .. " ] ", func.convert_rgba_to_ABGR(ui.colors.orange))
+        imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.orange))
         setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, ui.colors.orange)
 
-        imgui.text_colored("  [ " .. ui.draw_line("=", 90) ..  " // Palico: Armor // " .. ui.draw_line("=", 10) .. " ] ", func.convert_rgba_to_ABGR(ui.colors.cyan))
+        imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Armor // ", func.convert_rgba_to_ABGR(ui.colors.cyan))
         setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, ui.colors.cyan)
 
-        imgui.text_colored("  [ " .. ui.draw_line("=", 90) ..  " // Palico: Weapon // " .. ui.draw_line("=", 10) .. " ] ", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+        imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.cerulean))
         setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, ui.colors.cerulean)
 
-        imgui.text_colored("  [ " .. ui.draw_line("=", 90) ..  " // Seikret // " .. ui.draw_line("=", 10) .. " ] ", func.convert_rgba_to_ABGR(ui.colors.lime))
+        imgui.text_colored(ui.draw_line("=", 95) ..  " // Seikret // ", func.convert_rgba_to_ABGR(ui.colors.lime))
         setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, ui.colors.lime)
 
-        imgui.text_colored("  [ " .. ui.draw_line("=", 150)  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.indent(-10)
+        imgui.text_colored("[ " .. ui.draw_line("=", 150)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.end_rect()
         imgui.end_window()
     end
@@ -2709,8 +2703,6 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
     draw_MDFXLPresetGUI_MHWS()
 end
 local function draw_MDFXLUserManual()
-    if not isUserManual then return end
-
     if imgui.begin_window("MDF-XL: Wiki") then
         imgui.begin_rect()
         imgui.spacing()
@@ -2726,13 +2718,13 @@ local function draw_MDFXLUserManual()
             imgui.text(MDFXLUserManual.About[001])
             imgui.indent(15)
             imgui.text(MDFXLUserManual.About[002])
-            imgui.text(MDFXLUserManual.About[003])
+            --imgui.text(MDFXLUserManual.About[003])
             imgui.indent(-15)
             imgui.spacing()
             imgui.text(MDFXLUserManual.About[099])
             imgui.push_id(0)
             imgui.push_item_width(500)
-            imgui.input_text("", MDFXLUserManual.Links[199])
+            imgui.input_text("", MDFXLUserManual.Links[299])
             imgui.pop_id()
             imgui.pop_item_width()
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -2853,7 +2845,7 @@ local function draw_MDFXLGUI_MHWS()
         imgui.spacing()
         imgui.spacing()
         imgui.indent(5)
-
+        
         if isDefaultsDumped then
             load_MDFXLEditorAndPresetGUI_MHWS()
         end
@@ -2870,7 +2862,12 @@ local function draw_MDFXLGUI_MHWS()
             end
             imgui.same_line()
             changed, isUserManual = imgui.checkbox("Open MDF-XL: User Manual", isUserManual); wc = wc or changed
-
+            if not isUserManual or imgui.begin_window("MDF-XL: Wiki", true, 0) == false  then
+                isUserManual = false
+            else
+                draw_MDFXLUserManual()
+                imgui.end_window()
+            end
             imgui.spacing()
 
             changed, MDFXLSettings.isDebug = imgui.checkbox("Debug Mode", MDFXLSettings.isDebug); wc = wc or changed
@@ -2990,8 +2987,6 @@ local function draw_MDFXLGUI_MHWS()
             imgui.end_rect(2)
             imgui.tree_pop()
         end
-        
-        draw_MDFXLUserManual()
 
         if MDFXLSettings.showMDFXLEditor and (changed or wc) then
             update_PlayerEquipmentMaterialParams_MHWS(MDFXL)

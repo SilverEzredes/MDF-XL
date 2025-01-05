@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        updated = "12/14/2024 |"
+        updated = "12/27/2024 |"
     },
     About = {
         header = "1. ABOUT",
@@ -12,7 +12,7 @@ local MDFXLUserManual = {
     },
     Install = {
         header = "1.1 Install",
-        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.1.8 or newer)",
+        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.1.8+)",
         [011] = "Download the latest REF nightly build from here:",
         [012] = "If you are not using VR, only copy the 'dinput8.dll' into your game's root folder.",
         [013] = "Download the latest version of _ScriptCore from here:",
@@ -22,7 +22,7 @@ local MDFXLUserManual = {
     Troubleshooting = {
         header = "1.2 Troubleshooting",
         [020] = "I'm getting a ScriptRunner Error Message when I boot up the game. It mentions something about hotkeys.",
-        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.1.8 or newer.",
+        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.1.8+.",
         [022] = "MDF-XL used to work, but now I'm getting 1 FPS and ScriptRunner mentions something about a nil value.",
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL and delete the '_Holders' folder.",
         [024] = "I've clicked on a preset but it loaded the default preset instead.",
@@ -32,7 +32,7 @@ local MDFXLUserManual = {
     ReportingABug = {
         header = "1.3 Reporting a Bug",
         [030] = "If you are experiencing crashes or bugs, upload a screenshot of the error under 'REFramework Window > ScriptRunner'\nalong with your 're2_framework_log.txt' from the game's root folder.",
-        [031] = "By default Debug Mode is enabled, this will ensure that any errors are logged.",
+        [031] = "By default Debug Mode is enabled, this will ensure that any errors are logged.\nHowever, the log is cleared on every game startup so make sure to upload the log right after encountering an error.",
     },
     UpdateLoop = {
         header = "1.4 Update Loop",
@@ -45,10 +45,16 @@ local MDFXLUserManual = {
         [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nMembers of the Modding Haven Discord Server for testing and feedback.",
     },
     Links = {
-        [199] = "https://discord.gg/modding-haven-718224210270617702",
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
         [201] = "[Place Holder for MHWS _ScriptCore link]",
         [202] = "https://www.nexusmods.com/dragonsdogma2/mods/30",
+        [299] = "https://discord.gg/modding-haven-718224210270617702"
+    },
+    Errors = {
+        [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment. ",
+    },
+    Warnings = {
+        [100] = "[WARNING-100]\nPreset Version is outdated.",
     },
 }
 
