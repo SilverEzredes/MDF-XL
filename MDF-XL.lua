@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/05/2025"
-local modVersion = "v1.4.13"
+local modUpdated = "01/13/2025"
+local modVersion = "v1.4.50"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -30,6 +30,7 @@ local isAutoSaved = false
 local isOutfitManagerBypass = false
 local isMDFXL = false
 local isUserManual = false
+local isAdvancedSearch = false
 local MDFXL_MaterialParamDefaultsHolder = {}
 local MDFXL_MaterialEditorParamHolder = {}
 local MDFXL_MaterialEditorSubParamFloatHolder = nil
@@ -39,6 +40,7 @@ local presetName = "[Enter Preset Name Here]"
 local paletteName = "[Enter Palette Name Here]"
 local outfitName = "[Enter Outfit Name Here]"
 local searchQuery = ""
+local outfitPresetSearchQuery = ""
 local presetSearchQuery = ""
 local textureSearchQuery = ""
 local lastMatParamName = ""
@@ -74,7 +76,6 @@ local MDFXL_Cache = {
     },
     SaveDataPaths = {},
 }
-local MDFXLSaveDataChunks = {}
 local MDFXL_DefaultSettings = {
     showMDFXLEditor = false,
     isDebug = true,
@@ -85,6 +86,7 @@ local MDFXL_DefaultSettings = {
     showMaterialParamCount = true,
     showTextureCount = true,
     showMaterialFavoritesCount = true,
+    showFinalizedPresetName = true,
     showPresetPath = false,
     showPresetVersion = true,
     showMeshPath = true,
@@ -99,8 +101,9 @@ local MDFXL_DefaultSettings = {
     consoleErrorText = "",
     consoleWarningText = "",
     version = modVersion,
-    presetVersion = "v1.00-Demo",
+    presetVersion = "v1.00",
     presetManager = {
+        isTrimPresetNames = true,
         showOutfitPreset = true,
         showHunterEquipment = true,
         showHunterArmament = true,
@@ -109,6 +112,8 @@ local MDFXL_DefaultSettings = {
         showPorter = true,
         showEquipmentName = true,
         showEquipmentType = true,
+        authorButtonsPerLine = 4,
+        tagButtonsPerLine = 5,
     },
     useModifier = true,
     useModifier2 = true,
@@ -171,6 +176,13 @@ local MDFXL_ColorPalettes = {
     newColorIDX = 1,
 }
 local MDFXL_PresetTracker = {}
+local MDFXLSaveDataChunks = {}
+local MDFXLTags = {
+    _AuthorList = {},
+    _AuthorSearchList = {},
+    _TagList = {},
+    _TagSearchList = {},
+}
 local MDFXLDatabase = {
     MHWS = {},
 }
@@ -222,6 +234,10 @@ local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry].MeshPath = ""
     MDFXLData[entry].MDFPath = ""
     MDFXLData[entry].MeshName = ""
+    MDFXLData[entry].AuthorName = ""
+    MDFXLData[entry].Tags = {
+        "noTag"
+    }
     MDFXLData[entry].isUpdated = false
 end
 local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, order, saveDataTable)
@@ -787,10 +803,10 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         if equipmentParams then
             local json_names = equipmentParams.Presets or {}
             local cacheKey = "MDF-XL/Equipment/" .. equipment.MeshName
-
+            
             if not MDFXLSubData.jsonPaths[cacheKey] then
                 local path = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\.*.json]]
-                MDFXLSubData.jsonPaths[cacheKey] =  fs.glob(path)
+                MDFXLSubData.jsonPaths[cacheKey] = fs.glob(path)
             end
 
             local json_filepaths = MDFXLSubData.jsonPaths[cacheKey]
@@ -809,7 +825,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                             break
                         end
                     end
-                    
+
                     if not nameExists then
                         if name == defaultName then
                             table.insert(json_names, 1, name)
@@ -819,7 +835,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                         end
 
                         if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Loaded " .. filepath .. " for "  .. equipment.MeshName .. "]")
+                            log.info("[MDF-XL-JSON] [Loaded " .. filepath .. " for "  .. equipment.MeshName .. "]")
                         end
                     end
                 end
@@ -845,14 +861,14 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     end
                     if not nameExists then
                         if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Removed " .. name .. " from " ..equipment.MeshName .. "]")
+                            log.info("[MDF-XL-JSON] [Removed " .. name .. " from " ..equipment.MeshName .. "]")
                         end
                         table.remove(json_names, i)
                     end
                 end
             else
                 if MDFXLSettings.isDebug then
-                    log.info("[MDF-XL] [No MDF-XL JSON files found.]")
+                    log.info("[MDF-XL-JSON] [No MDF-XL JSON files found.]")
                 end
             end
         end
@@ -874,7 +890,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                 end
                 
                 if not nameExists then
-                    if MDFXLSettings.isDEBUG then
+                    if MDFXLSettings.isDebug then
                         log.info("[MDF-XL-JSON] [Loaded " .. filepath .. " for MDF-XL Color Palettes]")
                     end
                     table.insert(json_names, name)
@@ -890,14 +906,14 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     end
                 end
                 if not nameExists then
-                    if MDFXLSettings.isDEBUG then
+                    if MDFXLSettings.isDebug then
                         log.info("[MDF-XL-JSON] [Removed " .. name .. " from MDF-XL Color Palettes]")
                     end
                     table.remove(json_names, i)
                 end
             end
         else
-            if MDFXLSettings.isDEBUG then
+            if MDFXLSettings.isDebug then
                 log.info("[MDF-XL-JSON] [No MDF-XL Color Palettes JSON files found.]")
             end
         end
@@ -919,7 +935,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                 end
                 
                 if not nameExists then
-                    if MDFXLSettings.isDEBUG then
+                    if MDFXLSettings.isDebug then
                         log.info("[MDF-XL-JSON] [Loaded " .. filepath .. " for MDF-XL Outfit Manager]")
                     end
                     table.insert(json_names, name)
@@ -935,18 +951,72 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     end
                 end
                 if not nameExists then
-                    if MDFXLSettings.isDEBUG then
+                    if MDFXLSettings.isDebug then
                         log.info("[MDF-XL-JSON] [Removed " .. name .. " from MDF-XL Outfit Manager]")
                     end
                     table.remove(json_names, i)
                 end
             end
         else
-            if MDFXLSettings.isDEBUG then
+            if MDFXLSettings.isDebug then
                 log.info("[MDF-XL-JSON] [No MDF-XL Outfit Manager JSON files found]")
             end
         end
     end
+end
+local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
+    for _, equipment in pairs(MDFXLData) do
+        local presetTable = MDFXLData[equipment.MeshName].Presets
+        
+        for i, presetName in pairs(presetTable) do
+            if presetName ~= MDFXLData[equipment.MeshName].MeshName .. " Default" then
+                local name = MDFXLData[equipment.MeshName].MeshName
+                local tagString = presetName:match("__TAG%-([^_]+)")
+                local authorString = presetName:match("__BY%-(.+)")
+
+                if not tagTable[name] then
+                    tagTable[name] = {}
+                end
+
+                if not tagTable[name][presetName] then
+                    tagTable[name][presetName] = {}
+                    tagTable[name][presetName].tags = {}
+                    tagTable[name][presetName].author = ""
+                end
+
+                if tagString then
+                    for tag in tagString:gmatch("[^-]+") do
+                        tag = tag:lower()
+                        local tagSearchKey = "isSearchFor" .. tag
+                        if not func.table_contains(tagTable._TagList, tag) then
+                            table.insert(tagTable._TagList, tag)
+                        end
+                        if not func.table_contains(tagTable._TagSearchList, tagSearchKey) then
+                            tagTable._TagSearchList[tagSearchKey] = false
+                        end
+                        if not func.table_contains(tagTable[name][presetName].tags, tag) then
+                            table.insert(tagTable[name][presetName].tags, tag)
+                        end
+                    end
+                end
+
+                if authorString then
+                    local authorSearchKey = "isSearchFor" .. authorString
+                    if not func.table_contains(tagTable._AuthorList, authorString) then
+                        table.insert(tagTable._AuthorList, authorString)
+                    end
+                    if not func.table_contains(tagTable._AuthorSearchList, authorSearchKey) then
+                        tagTable._AuthorSearchList[authorSearchKey] = false
+                    end
+                    tagTable[name][presetName].author = authorString
+                end
+            end
+        end
+    end
+    table.sort(tagTable._AuthorList)
+    table.sort(tagTable._AuthorSearchList)
+    table.sort(tagTable._TagList)
+    table.sort(tagTable._TagSearchList)
 end
 --Material Param Setters
 local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
@@ -1195,6 +1265,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 chunk.wasUpdated = false
             end
         end
+        cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
         json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Master Data defaults dumped.]")
@@ -1290,6 +1361,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 chunk.wasUpdated = false
             end
         end
+        cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
         json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Loading Screen detected, MDF-XL data updated.]")
@@ -1657,7 +1729,7 @@ local function update_MDFXLViaHotkeys_MHWS()
         MDFXLSettings.showMDFXLEditor = not MDFXLSettings.showMDFXLEditor
     end
     if KBM_controls and hk.check_hotkey("Clear Outfit Search") and isMDFXL then
-        presetSearchQuery = ""
+        outfitPresetSearchQuery = ""
     end
     if KBM_controls2 and hk.check_hotkey("Toggle Case Sensitive Search") and isMDFXL then
         MDFXLSettings.isSearchMatchCase = not MDFXLSettings.isSearchMatchCase
@@ -1780,7 +1852,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     end
 
                     if MDFXLSettingsData.isInheritPresetName then
-                        presetName = selected_preset
+                        local trimmedName = selected_preset:match("^(.-)__TAG") or selected_preset:match("^(.-)__BY") or selected_preset
+                        presetName = trimmedName
                     end
                     MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
                     isUpdaterBypass = true
@@ -1792,25 +1865,85 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
                     json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
                 end
+                
+                imgui.spacing()
 
                 imgui.push_id(_)
-                changed, presetName = imgui.input_text("", presetName); wc = wc or changed
+                changed, presetName = imgui.input_text("Name", presetName); wc = wc or changed
                 imgui.pop_id()
+                local tags = table.concat(MDFXLData[entry.MeshName].Tags, ", ") .. ","
+                local tagCount = 0
+                changed, tags = imgui.input_text("Tags", tags); wc = wc or changed
+                if changed then
+                    MDFXLData[entry.MeshName].Tags = {}
+                    if tags == "" or tags == "," then
+                        tags = "noTag"
+                    end
+                    for tag in tags:gmatch("[^,]+") do
+                        if tagCount >= 5 then
+                            break
+                        end
+
+                        tag = tag:match("^%s*(.-)%s*$")
+                        if tag ~= "" then
+                            table.insert(MDFXLData[entry.MeshName].Tags, tag)
+                            tagCount = tagCount + 1
+                        end
+                    end
+                end
                 imgui.same_line()
-                if imgui.button("Save Preset") then
-                    json.dump_file("MDF-XL/Equipment/".. entry.MeshName .. "/" .. presetName .. ".json", MDFXLData[entry.MeshName])
-                    log.info("[MDF-XL] [Preset with the name: " .. presetName .. " saved for " ..  entry.MeshName .. ".]")
+                imgui.text("[ " .. #MDFXLData[entry.MeshName].Tags .. " / 5 ]")
+                
+                changed, MDFXLData[entry.MeshName].AuthorName = imgui.input_text("Author", MDFXLData[entry.MeshName].AuthorName); wc = wc or changed
+                local finalPresetName = presetName
+                if #MDFXLData[entry.MeshName].Tags > 0 then
+                    finalPresetName = finalPresetName .. "__TAG-" .. table.concat(MDFXLData[entry.MeshName].Tags, "-")
+                    if #MDFXLData[entry.MeshName].Tags == 1 and MDFXLData[entry.MeshName].Tags[1] == "noTag" then
+                        finalPresetName = presetName
+                    end
+                end
+                if MDFXLData[entry.MeshName].AuthorName ~= "" then
+                    finalPresetName = finalPresetName .. "__BY-" .. MDFXLData[entry.MeshName].AuthorName
+                end
+                local presetNameLen = string.len(finalPresetName)
+                
+                if imgui.button("Save Preset") and presetNameLen < 200 and presetName ~= "" then
+                    json.dump_file("MDF-XL/Equipment/".. entry.MeshName .. "/" .. finalPresetName .. ".json", MDFXLData[entry.MeshName])
+                    log.info("[MDF-XL] [Preset with the name: " .. finalPresetName .. " saved for " ..  entry.MeshName .. ".]")
                     MDFXLData[entry.MeshName].isUpdated = true
                     clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
                     cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                 end
-                func.tooltip("Save the current parameters of the " ..  entry.MeshName .. " to " .. presetName .. ".json found in [MonsterHunterWilds/reframework/data/MDF-XL/Equipment/"..  entry.MeshName .. "]")
-
+                if presetNameLen < 200 and presetName ~= "" then
+                    func.tooltip("Save the current parameters of the " ..  entry.MeshName .. " to " .. finalPresetName .. ".json found in [MonsterHunterWilds/reframework/data/MDF-XL/Equipment/"..  entry.MeshName .. "]")
+                elseif presetName == "" then
+                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
+                    func.tooltip(MDFXLUserManual.Errors[001])
+                    imgui.pop_style_color()
+                elseif presetNameLen > 200 then
+                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
+                    func.tooltip(MDFXLUserManual.Errors[002])
+                    imgui.pop_style_color()
+                elseif presetNameLen > 200 and presetName == "" then
+                    mgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
+                    func.tooltip(MDFXLUserManual.Errors[099])
+                    imgui.pop_style_color()
+                end
+                imgui.same_line()
+                if MDFXLSettingsData.showFinalizedPresetName then
+                    ui.textButton_ColoredValue("Finalized Preset Name: ", finalPresetName, func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                    imgui.same_line()
+                    if presetNameLen < 200 then
+                        imgui.text("[ " .. presetNameLen .. " / 200 ]")
+                    else
+                        imgui.text_colored("[ " .. presetNameLen .. " / 200 ]", func.convert_rgba_to_ABGR(ui.colors.red))
+                    end
+                end
                 imgui.spacing()
 
                 if MDFXLSettingsData.showPresetPath and #MDFXLData[entry.MeshName].Parts > 0 then
-                    imgui.input_text("Preset Path", "MonsterHunterWilds/reframework/data/MDF-XL/Equipment/".. entry.MeshName .. "/" .. presetName .. ".json")
+                    imgui.input_text("Preset Path", "MonsterHunterWilds/reframework/data/MDF-XL/Equipment/".. entry.MeshName .. "/")
                 end
 
                 if MDFXLSettingsData.showMeshPath then
@@ -2228,34 +2361,142 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
 end
 local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubData, order, updateFunc, displayText, color01, isDraw)
     if not isDraw then return end
+
     imgui.text_colored(ui.draw_line("=", 60) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
     for _, entryName in pairs(MDFXLSubData[order]) do
         local entry = MDFXLData[entryName]
         local displayName = nil
-            if MDFXLSettings.presetManager.showEquipmentName and MDFXLDatabase.MHWS[entry.MeshName] then
-                displayName = MDFXLDatabase.MHWS[entry.MeshName].Name
-                if MDFXLSettings.presetManager.showEquipmentType then
-                    displayName = MDFXLDatabase.MHWS[entry.MeshName].Name .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
+        local filteredPresets = {}
+        local presetIndexMap = {}
+        local activeAuthors = {}
+        local activeTags = {}
+        if isAdvancedSearch then
+            for authorKey, isActive in pairs(MDFXLTags._AuthorSearchList) do
+                if isActive then
+                    local authorName = authorKey:match("isSearchFor(.+)")
+                    if authorName then
+                        activeAuthors[authorName] = true
+                    end
                 end
-            else
-                displayName = entry.MeshName
             end
+            for tagKey, isActive in pairs(MDFXLTags._TagSearchList) do
+                if isActive then
+                    local tagName = tagKey:match("isSearchFor(.+)")
+                    if tagName then
+                        activeTags[tagName] = true
+                    end
+                end
+            end
+        end
 
+        if MDFXLSettings.presetManager.showEquipmentName and MDFXLDatabase.MHWS[entry.MeshName] then
+            displayName = MDFXLDatabase.MHWS[entry.MeshName].Name
+            if MDFXLSettings.presetManager.showEquipmentType then
+                displayName = MDFXLDatabase.MHWS[entry.MeshName].Name .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
+            end
+        else
+            displayName = entry.MeshName
+        end
+        
         if entry then
             imgui.spacing()
+            local currentFilteredIDX = nil
+            local displayPresets = {}
+            local advancedFilteredPresets = {}
+            local advancedPresetIndexMap = {}
+            local authorCount = func.get_table_size(activeAuthors)
+            local tagCount = func.get_table_size(activeTags)
+
+            if isAdvancedSearch then
+                if func.table_contains(MDFXLTags, MDFXLData[entry.MeshName].MeshName, true) then
+                    for i, preset in pairs(MDFXLData[entry.MeshName].Presets) do
+                        if func.table_contains(MDFXLTags[MDFXLData[entry.MeshName].MeshName], preset, true) then
+                            if tagCount == 0 and authorCount > 0 and func.table_contains(activeAuthors, MDFXLTags[MDFXLData[entry.MeshName].MeshName][preset].author, true) then
+                                table.insert(advancedFilteredPresets, preset)
+                                advancedPresetIndexMap[#advancedFilteredPresets] = i
+                            elseif tagCount > 0 and authorCount > 0 and func.table_contains(activeAuthors, MDFXLTags[MDFXLData[entry.MeshName].MeshName][preset].author, true) then
+                                for tag in pairs(activeTags) do
+                                    if func.table_contains(MDFXLTags[MDFXLData[entry.MeshName].MeshName][preset].tags, tag) then
+                                        if not func.table_contains(advancedFilteredPresets, preset) then
+                                            table.insert(advancedFilteredPresets, preset)
+                                            advancedPresetIndexMap[#advancedFilteredPresets] = i
+                                        end
+                                    end
+                                end
+                            elseif tagCount > 0 and authorCount == 0 then
+                                for tag in pairs(activeTags) do
+                                    if func.table_contains(MDFXLTags[MDFXLData[entry.MeshName].MeshName][preset].tags, tag) then
+                                        if not func.table_contains(advancedFilteredPresets, preset) then
+                                            table.insert(advancedFilteredPresets, preset)
+                                            advancedPresetIndexMap[#advancedFilteredPresets] = i
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            
+            local searchSource = #advancedFilteredPresets > 0 and advancedFilteredPresets or MDFXLData[entry.MeshName].Presets
+            if authorCount > 0 and tagCount > 0 and #advancedFilteredPresets == 0 or authorCount == 0 and tagCount > 0 and #advancedFilteredPresets == 0 or authorCount > 0 and tagCount == 0 and #advancedFilteredPresets == 0 then
+                searchSource = {}
+            end
+            local indexMapSource = #advancedFilteredPresets > 0 and advancedPresetIndexMap or nil
+
+            if presetSearchQuery ~= "" then
+                for i, preset in ipairs(searchSource) do
+                    if (MDFXLSettings.isSearchMatchCase and preset:find(presetSearchQuery, 1, true)) or (not MDFXLSettings.isSearchMatchCase and preset:lower():find(presetSearchQuery:lower(), 1, true)) then
+                        table.insert(filteredPresets, preset)
+                        presetIndexMap[#filteredPresets] = indexMapSource and indexMapSource[i] or i
+                    end
+                end
+            else
+                filteredPresets = searchSource
+                for i, _ in ipairs(filteredPresets) do
+                    presetIndexMap[i] = indexMapSource and indexMapSource[i] or i
+                end
+            end
+            
+            if MDFXLSettings.presetManager.isTrimPresetNames then
+                local nameCounts = {}
+                for i, presetName in ipairs(filteredPresets) do
+                    local trimmedName = presetName:match("^(.-)__TAG") or presetName:match("^(.-)__BY") or presetName
+            
+                    if nameCounts[trimmedName] then
+                        nameCounts[trimmedName] = nameCounts[trimmedName] + 1
+                        trimmedName = trimmedName .. " (" .. nameCounts[trimmedName] .. ")"
+                    else
+                        nameCounts[trimmedName] = 1
+                    end
+            
+                    table.insert(displayPresets, trimmedName)
+                end
+            else
+                displayPresets = filteredPresets
+            end
+
+            for filteredIdx, originalIdx in pairs(presetIndexMap) do
+                if MDFXLData[entry.MeshName].currentPresetIDX == originalIdx then
+                    currentFilteredIDX = filteredIdx
+                    break
+                end
+            end
+            imgui.push_item_width(450)
             if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
                 imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
-                imgui.begin_rect(); imgui.push_item_width(450)
-                changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo(displayName .. " ", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
-                imgui.end_rect(); imgui.pop_item_width()
+                imgui.begin_rect()
+                changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets);wc = wc or changed
+                imgui.end_rect()
                 imgui.pop_style_color(1)
             else
-                imgui.push_item_width(450)
-                changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo(displayName .. " ", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
-                imgui.pop_item_width()
+                changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
             end
+            imgui.pop_item_width()
             if changed then
+                MDFXLData[entry.MeshName].currentPresetIDX = presetIndexMap[currentFilteredIDX]
+                
                 local selected_preset = MDFXLData[entry.MeshName].Presets[MDFXLData[entry.MeshName].currentPresetIDX]
                 local json_filepath = [[MDF-XL\\Equipment\\]] ..entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
                 local temp_parts = json.load_file(json_filepath)
@@ -2263,13 +2504,6 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 if temp_parts.Parts ~= nil then
                     if MDFXLSettingsData.isDebug then
                         log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
-
-                        for _, part in ipairs(temp_parts.Parts) do
-                            log.info("[MDF-XL] [Preset Part Name: " .. part .. " ]")
-                        end
-                        for _, part in ipairs(MDFXLData[entry.MeshName].Parts) do
-                            log.info("[MDF-XL] [Original Part Name: " .. part .. " ]")
-                        end
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
@@ -2310,7 +2544,8 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 end
 
                 if MDFXLSettingsData.isInheritPresetName then
-                    presetName = selected_preset
+                    local trimmedName = selected_preset:match("^(.-)__TAG") or selected_preset:match("^(.-)__BY") or selected_preset
+                    presetName = trimmedName
                 end
                 if changed or wc then
                     MDFXLData[entry.MeshName].isUpdated = true
@@ -2581,7 +2816,7 @@ local function draw_MDFXLPresetGUI_MHWS()
     if MDFXLSettings.presetManager.showOutfitPreset then
         imgui.indent(10)
         imgui.push_item_width(400); imgui.push_id(10)
-        changed, presetSearchQuery = imgui.input_text("", presetSearchQuery); wc = wc or changed
+        changed, outfitPresetSearchQuery = imgui.input_text("", outfitPresetSearchQuery); wc = wc or changed
         imgui.pop_id(); imgui.pop_item_width(); imgui.same_line()
         ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
         func.tooltip("Match Case")
@@ -2593,14 +2828,14 @@ local function draw_MDFXLPresetGUI_MHWS()
         local filteredIDX = nil
 
         for _, preset in ipairs(MDFXLOutfits.Presets) do
-            if presetSearchQuery == "" then
+            if outfitPresetSearchQuery == "" then
                 table.insert(filteredPresets, preset)
             else
                 local match
                 if MDFXLSettings.isSearchMatchCase then
-                    match = preset:find(presetSearchQuery, 1, true)
+                    match = preset:find(outfitPresetSearchQuery, 1, true)
                 else
-                    match = preset:lower():find(presetSearchQuery:lower(), 1, true)
+                    match = preset:lower():find(outfitPresetSearchQuery:lower(), 1, true)
                 end
                 
                 if match then
@@ -2639,6 +2874,51 @@ local function draw_MDFXLPresetGUI_MHWS()
         end
         imgui.pop_item_width()
         imgui.indent(-10)
+    end
+    if imgui.tree_node("Advanced Search") then
+        isAdvancedSearch = true
+        imgui.push_item_width(390)
+        imgui.push_id(15)
+        changed, presetSearchQuery = imgui.input_text("", presetSearchQuery); wc = wc or changed
+        imgui.pop_id()
+        imgui.pop_item_width()
+        imgui.same_line()
+        ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
+        func.tooltip("Match Case")
+        imgui.same_line()
+        imgui.text("Preset Search")
+
+        if imgui.tree_node("Author List") then
+            local counter = 0
+            for i, author in pairs(MDFXLTags._AuthorList) do
+                ui.button_CheckboxStyle(author, MDFXLTags._AuthorSearchList, string.format("isSearchFor" .. author), func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.cerulean), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                counter = counter + 1
+                if counter == MDFXLSettings.presetManager.authorButtonsPerLine then
+                    imgui.spacing()
+                else
+                    imgui.same_line()
+                end
+            end
+            imgui.new_line()
+            imgui.tree_pop()
+        end
+        if imgui.tree_node("Tags") then
+            local counter = 0
+            for i, tag in pairs(MDFXLTags._TagList) do
+                ui.button_CheckboxStyle(tag, MDFXLTags._TagSearchList, string.format("isSearchFor" .. tag), func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
+                counter = counter + 1
+                if counter == MDFXLSettings.presetManager.tagButtonsPerLine then
+                    imgui.spacing()
+                else
+                    imgui.same_line()
+                end
+            end
+            imgui.new_line()
+            imgui.tree_pop()
+        end
+        imgui.tree_pop()
+    else
+        isAdvancedSearch = false
     end
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, "Hunter: Armor", ui.colors.gold, MDFXLSettings.presetManager.showHunterEquipment)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, "Hunter: Weapon", ui.colors.orange, MDFXLSettings.presetManager.showHunterArmament)
@@ -2753,10 +3033,10 @@ local function draw_MDFXLUserManual()
             imgui.push_id(1)
             imgui.input_text("", MDFXLUserManual.Links[201])
             imgui.pop_id()
-            imgui.text(MDFXLUserManual.About[3])
-            imgui.push_id(2)
-            imgui.input_text("", MDFXLUserManual.Links[202])
-            imgui.pop_id()
+            -- imgui.text(MDFXLUserManual.About[3])
+            -- imgui.push_id(2)
+            -- imgui.input_text("", MDFXLUserManual.Links[202])
+            -- imgui.pop_id()
             imgui.spacing()
             imgui.text(MDFXLUserManual.Install[014])
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
@@ -2817,6 +3097,8 @@ local function draw_MDFXLUserManual()
             imgui.text(MDFXLUserManual.UpdateLoop[041])
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text(MDFXLUserManual.UpdateLoop[042])
+            imgui.spacing()
+            imgui.text_colored(MDFXLUserManual.Warnings[101], func.convert_rgba_to_ABGR(ui.colors.safetyYellow))
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()
@@ -2889,6 +3171,7 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.isInheritPresetName = imgui.checkbox("Inherit Preset Name", MDFXLSettings.isInheritPresetName); wc = wc or changed
                 func.tooltip("When enabled, the '[Enter Preset Name Here]' text in the Editor will be replaced by the name of the last loaded preset.")
                 changed, MDFXLSettings.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.showEquipmentName); wc = wc or changed
+                func.tooltip("When enabled, the equipment ID will be replaced by the equipment's name (if available).")
                 changed, MDFXLSettings.showMaterialCount = imgui.checkbox("Show Material Count", MDFXLSettings.showMaterialCount); wc = wc or changed
                 changed, MDFXLSettings.showMaterialFavoritesCount = imgui.checkbox("Show Material Favorites Count", MDFXLSettings.showMaterialFavoritesCount); wc = wc or changed
                 changed, MDFXLSettings.showMaterialParamCount = imgui.checkbox("Show Material Parameter Count", MDFXLSettings.showMaterialParamCount); wc = wc or changed
@@ -2896,6 +3179,7 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.showMeshName = imgui.checkbox("Show Mesh Name", MDFXLSettings.showMeshName); wc = wc or changed
                 changed, MDFXLSettings.showMeshPath = imgui.checkbox("Show Mesh Path", MDFXLSettings.showMeshPath); wc = wc or changed
                 changed, MDFXLSettings.showMDFPath = imgui.checkbox("Show MDF Path", MDFXLSettings.showMDFPath); wc = wc or changed
+                changed, MDFXLSettings.showFinalizedPresetName = imgui.checkbox("Show Finalized Preset Name", MDFXLSettings.showFinalizedPresetName); wc = wc or changed
                 changed, MDFXLSettings.showPresetPath = imgui.checkbox("Show Preset Path", MDFXLSettings.showPresetPath); wc = wc or changed
                 changed, MDFXLSettings.showPresetVersion = imgui.checkbox("Show Preset Version", MDFXLSettings.showPresetVersion); wc = wc or changed
                 imgui.tree_pop()
@@ -2907,7 +3191,14 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.presetManager.showOtomoEquipment = imgui.checkbox("Show Palico Armor Presets", MDFXLSettings.presetManager.showOtomoEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoArmament = imgui.checkbox("Show Palico Weapon Presets", MDFXLSettings.presetManager.showOtomoArmament); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showPorter = imgui.checkbox("Show Seikret Presets", MDFXLSettings.presetManager.showPorter); wc = wc or changed
+                changed, MDFXLSettings.presetManager.isTrimPresetNames = imgui.checkbox("Use Short Preset Names", MDFXLSettings.presetManager.isTrimPresetNames); wc = wc or changed
+                func.tooltip("When enabled, Tags and the Author Name will be hidden from preset names.")
                 changed, MDFXLSettings.presetManager.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.presetManager.showEquipmentName); wc = wc or changed
+                func.tooltip("When enabled, the equipment ID will be replaced by the equipment's name (if available).")
+                imgui.push_item_width(200)
+                changed, MDFXLSettings.presetManager.authorButtonsPerLine = imgui.drag_int("Author Names Per Line", MDFXLSettings.presetManager.authorButtonsPerLine, 1, 1, 100); wc = wc or changed
+                changed, MDFXLSettings.presetManager.tagButtonsPerLine = imgui.drag_int("Tags Per Line", MDFXLSettings.presetManager.tagButtonsPerLine, 1, 1, 100); wc = wc or changed
+                imgui.pop_item_width()
                 imgui.tree_pop()
             end
             if imgui.tree_node("Hotkeys") then
