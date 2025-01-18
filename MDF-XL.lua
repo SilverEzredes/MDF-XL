@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/13/2025"
-local modVersion = "v1.4.50"
+local modUpdated = "01/18/2025"
+local modVersion = "v1.4.52"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -13,14 +13,11 @@ local hk = require("Hotkeys/Hotkeys")
 
 local changed = false
 local wc = false
-local lastTime = 0.0
-local tickInterval = 0.0
-local autoSaveProgress = 0
-local wasEditorShown = false
 
 local renderComp = "via.render.Mesh"
 local texResourceComp = "via.render.TextureResource"
 local masterPlayer = nil
+
 local isPlayerInScene = false
 local isDefaultsDumped = false
 local isUpdaterBypass = false
@@ -31,11 +28,11 @@ local isOutfitManagerBypass = false
 local isMDFXL = false
 local isUserManual = false
 local isAdvancedSearch = false
-local MDFXL_MaterialParamDefaultsHolder = {}
-local MDFXL_MaterialEditorParamHolder = {}
-local MDFXL_MaterialEditorSubParamFloatHolder = nil
-local MDFXL_MaterialEditorSubParamFloat4Holder = nil
-local MDFXL_TextureEditorStringHolder = nil
+local materialParamDefaultsHolder = {}
+local materialEditorParamHolder = {}
+local materialEditorSubParamFloatHolder = nil
+local materialEditorSubParamFloat4Holder = nil
+local textureEditorStringHolder = nil
 local presetName = "[Enter Preset Name Here]"
 local paletteName = "[Enter Palette Name Here]"
 local outfitName = "[Enter Outfit Name Here]"
@@ -44,6 +41,10 @@ local outfitPresetSearchQuery = ""
 local presetSearchQuery = ""
 local textureSearchQuery = ""
 local lastMatParamName = ""
+local lastTime = 0.0
+local tickInterval = 0.0
+local autoSaveProgress = 0
+local wasEditorShown = false
 
 local MDFXL_Cache = {
     resourceOG = "Resource%[",
@@ -91,15 +92,12 @@ local MDFXL_DefaultSettings = {
     showPresetVersion = true,
     showMeshPath = true,
     showMDFPath = true,
-    showConsole = false,
     isAutoSave = true,
     showAutoSaveProgressBar = true,
     autoSaveInterval = 30.0,
     isSearchMatchCase = false,
     isFilterFavorites = false,
     isInheritPresetName = true,
-    consoleErrorText = "",
-    consoleWarningText = "",
     version = modVersion,
     presetVersion = "v1.00",
     presetManager = {
@@ -1193,7 +1191,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             end
         end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-        MDFXL_MaterialParamDefaultsHolder = func.deepcopy(MDFXLData)
+        materialParamDefaultsHolder = func.deepcopy(MDFXLData)
 
         for _, equipment in pairs(MDFXLData) do
             if MDFXLData[equipment.MeshName].Presets ~= nil then
@@ -1247,7 +1245,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -1343,7 +1340,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -1387,8 +1383,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
-            if not func.table_contains(MDFXL_MaterialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                MDFXL_MaterialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
@@ -1442,7 +1438,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1478,8 +1473,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
-            if not func.table_contains(MDFXL_MaterialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                MDFXL_MaterialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
@@ -1533,7 +1528,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1565,8 +1559,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
-            if not func.table_contains(MDFXL_MaterialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                MDFXL_MaterialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
@@ -1617,7 +1611,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1691,7 +1684,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
                     if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettings.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. equipment.MeshName .. " | " .. selected_preset
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -1805,13 +1797,6 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     if temp_parts.Parts ~= nil then
                         if MDFXLSettingsData.isDebug then
                             log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
-    
-                            for _, part in ipairs(temp_parts.Parts) do
-                                log.info("[MDF-XL] [Preset Part Name: " .. part .. " ]")
-                            end
-                            for _, part in ipairs(MDFXLData[entry.MeshName].Parts) do
-                                log.info("[MDF-XL] [Original Part Name: " .. part .. " ]")
-                            end
                         end
                         
                         local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
@@ -1843,11 +1828,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         else
                             log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                             MDFXLData[entry.MeshName].currentPresetIDX = 1
-                            MDFXLSettingsData.consoleErrorText = MDFXLUserManual.Errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                         end
                         if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                            MDFXLSettingsData.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                         end
                     end
 
@@ -2046,11 +2029,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                     changed = true
                                 end
                                 if imgui.menu_item("Copy") then
-                                    MDFXL_MaterialEditorParamHolder = func.deepcopy(MDFXLData[entry.MeshName].Materials[matName])
+                                    materialEditorParamHolder = func.deepcopy(MDFXLData[entry.MeshName].Materials[matName])
                                     wc = true
                                 end
                                 if imgui.menu_item("Paste") then
-                                    local copiedParams = MDFXL_MaterialEditorParamHolder
+                                    local copiedParams = materialEditorParamHolder
                                     local targetParams = MDFXLData[entry.MeshName].Materials[matName]
                                     
                                     for paramName, paramValue in pairs(copiedParams) do
@@ -2137,12 +2120,12 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                     wc = true
                                                 end
                                                 if imgui.menu_item("Copy") then
-                                                MDFXL_TextureEditorStringHolder = MDFXLData[entry.MeshName].Textures[matName][texName]
+                                                textureEditorStringHolder = MDFXLData[entry.MeshName].Textures[matName][texName]
                                                     wc = true
                                                 end
-                                                if MDFXL_TextureEditorStringHolder ~= nil then
+                                                if textureEditorStringHolder ~= nil then
                                                     if imgui.menu_item("Paste") then
-                                                        MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXL_TextureEditorStringHolder
+                                                        MDFXLData[entry.MeshName].Textures[matName][texName] = textureEditorStringHolder
                                                         wc = true
                                                     end
                                                 end
@@ -2210,23 +2193,23 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             end
                                             if imgui.menu_item("Copy") then
                                                 if type(paramValue[1]) == "table" then
-                                                    MDFXL_MaterialEditorSubParamFloat4Holder = paramValue[1]
-                                                    MDFXL_MaterialEditorSubParamFloatHolder = nil
+                                                    materialEditorSubParamFloat4Holder = paramValue[1]
+                                                    materialEditorSubParamFloatHolder = nil
                                                 else
-                                                    MDFXL_MaterialEditorSubParamFloat4Holder = nil
-                                                    MDFXL_MaterialEditorSubParamFloatHolder = paramValue[1]
+                                                    materialEditorSubParamFloat4Holder = nil
+                                                    materialEditorSubParamFloatHolder = paramValue[1]
                                                 end
                                                 wc = true
                                             end
                                             if imgui.menu_item("Paste") then
                                                 wc = true
                                                 if type(paramValue[1]) == "table" then
-                                                    if MDFXL_MaterialEditorSubParamFloat4Holder ~= nil then
-                                                        paramValue[1] = MDFXL_MaterialEditorSubParamFloat4Holder
+                                                    if materialEditorSubParamFloat4Holder ~= nil then
+                                                        paramValue[1] = materialEditorSubParamFloat4Holder
                                                     end
                                                 else
-                                                    if MDFXL_MaterialEditorSubParamFloatHolder ~= nil then
-                                                        paramValue[1] = MDFXL_MaterialEditorSubParamFloatHolder
+                                                    if materialEditorSubParamFloatHolder ~= nil then
+                                                        paramValue[1] = materialEditorSubParamFloatHolder
                                                     end
                                                 end
                                             end
@@ -2268,23 +2251,23 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             end
                                             if imgui.menu_item("Copy") then
                                                 if type(paramValue[1]) == "table" then
-                                                    MDFXL_MaterialEditorSubParamFloat4Holder = paramValue[1]
-                                                    MDFXL_MaterialEditorSubParamFloatHolder = nil
+                                                    materialEditorSubParamFloat4Holder = paramValue[1]
+                                                    materialEditorSubParamFloatHolder = nil
                                                 else
-                                                    MDFXL_MaterialEditorSubParamFloat4Holder = nil
-                                                    MDFXL_MaterialEditorSubParamFloatHolder = paramValue[1]
+                                                    materialEditorSubParamFloat4Holder = nil
+                                                    materialEditorSubParamFloatHolder = paramValue[1]
                                                 end
                                                 wc = true
                                             end
                                             if imgui.menu_item("Paste") then
                                                 wc = true
                                                 if type(paramValue[1]) == "table" then
-                                                    if MDFXL_MaterialEditorSubParamFloat4Holder ~= nil then
-                                                        paramValue[1] = MDFXL_MaterialEditorSubParamFloat4Holder
+                                                    if materialEditorSubParamFloat4Holder ~= nil then
+                                                        paramValue[1] = materialEditorSubParamFloat4Holder
                                                     end
                                                 else
-                                                    if MDFXL_MaterialEditorSubParamFloatHolder ~= nil then
-                                                        paramValue[1] = MDFXL_MaterialEditorSubParamFloatHolder
+                                                    if materialEditorSubParamFloatHolder ~= nil then
+                                                        paramValue[1] = materialEditorSubParamFloatHolder
                                                     end
                                                 end
                                             end
@@ -2535,11 +2518,9 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     else
                         log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                         MDFXLData[entry.MeshName].currentPresetIDX = 1
-                        MDFXLSettingsData.consoleErrorText = MDFXLUserManual.Errors[000] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                     end
                     if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                        MDFXLSettingsData.consoleWarningText = MDFXLUserManual.Warnings[100] .. "\n" .. entry.MeshName .. " | " .. selected_preset
                     end
                 end
 
@@ -2685,9 +2666,9 @@ local function draw_MDFXLPaletteGUI_MHWS()
             MDFXLPalettes.newColorIDX = MDFXLPalettes.newColorIDX + 1
         end
         imgui.same_line()
-        if MDFXL_MaterialEditorSubParamFloat4Holder ~= nil then
+        if materialEditorSubParamFloat4Holder ~= nil then
             if imgui.button("Add New Color from Clipboard") then
-                table.insert(MDFXLPalettes.colors, {name = "Color " .. MDFXLPalettes.newColorIDX, value = {MDFXL_MaterialEditorSubParamFloat4Holder[1], MDFXL_MaterialEditorSubParamFloat4Holder[2], MDFXL_MaterialEditorSubParamFloat4Holder[3], MDFXL_MaterialEditorSubParamFloat4Holder[4]}})
+                table.insert(MDFXLPalettes.colors, {name = "Color " .. MDFXLPalettes.newColorIDX, value = {materialEditorSubParamFloat4Holder[1], materialEditorSubParamFloat4Holder[2], materialEditorSubParamFloat4Holder[3], materialEditorSubParamFloat4Holder[4]}})
                 MDFXLPalettes.newColorIDX = MDFXLPalettes.newColorIDX + 1
             end
         end
@@ -2708,15 +2689,15 @@ local function draw_MDFXLPaletteGUI_MHWS()
                 end
                 if imgui.menu_item("Copy") then
                     if type(color.value) == "table" then
-                        MDFXL_MaterialEditorSubParamFloat4Holder = color.value
-                        MDFXL_MaterialEditorSubParamFloatHolder = nil
+                        materialEditorSubParamFloat4Holder = color.value
+                        materialEditorSubParamFloatHolder = nil
                     end
                     wc = true
                 end
-                if MDFXL_MaterialEditorSubParamFloat4Holder ~= nil then
+                if materialEditorSubParamFloat4Holder ~= nil then
                     if imgui.menu_item("Paste") then
                         if type(color.value) == "table" then
-                            color.value = MDFXL_MaterialEditorSubParamFloat4Holder
+                            color.value = materialEditorSubParamFloat4Holder
                         end
                         wc = true
                     end
@@ -2790,19 +2771,19 @@ local function draw_MDFXLEditorGUI_MHWS()
         imgui.indent(-15)
         
         imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Armor // ", func.convert_rgba_to_ABGR(ui.colors.gold))
-        setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, ui.colors.gold)
+        setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, ui.colors.gold)
 
         imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.orange))
-        setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, ui.colors.orange)
+        setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, ui.colors.orange)
 
         imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Armor // ", func.convert_rgba_to_ABGR(ui.colors.cyan))
-        setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, ui.colors.cyan)
+        setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, ui.colors.cyan)
 
         imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.cerulean))
-        setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, ui.colors.cerulean)
+        setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, ui.colors.cerulean)
 
         imgui.text_colored(ui.draw_line("=", 95) ..  " // Seikret // ", func.convert_rgba_to_ABGR(ui.colors.lime))
-        setup_MDFXLEditorGUI_MHWS(MDFXL, MDFXL_MaterialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, ui.colors.lime)
+        setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, ui.colors.lime)
 
         imgui.indent(-10)
         imgui.text_colored("[ " .. ui.draw_line("=", 150)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
@@ -2961,32 +2942,13 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
         imgui.pop_style_color()
     end
 
-    if MDFXLSettings.showConsole then
-        imgui.begin_rect()
-        imgui.text("[ MDF-XL: Console ] " .. ui.draw_line("-", 40))
-        if imgui.button("Clear Log") then
-            MDFXLSettings.consoleErrorText = ""
-            MDFXLSettings.consoleWarningText = ""
-        end
-        imgui.indent(5)
-        imgui.spacing()
-
-        imgui.text_colored(MDFXLSettings.consoleErrorText, func.convert_rgba_to_ABGR(ui.colors.deepRed))
-        imgui.text_colored(MDFXLSettings.consoleWarningText, func.convert_rgba_to_ABGR(ui.colors.safetyYellow))
-
-        imgui.spacing()
-        imgui.indent(-5)
-        imgui.text(ui.draw_line("-", 68))
-        imgui.end_rect(1)
-    end
-
     draw_MDFXLPresetGUI_MHWS()
 end
 local function draw_MDFXLUserManual()
     if imgui.begin_window("MDF-XL: Wiki") then
         imgui.begin_rect()
         imgui.spacing()
-        imgui.text("   " .. ui.draw_line("=", 5) .. " [ USER MANUAL ] " .. MDFXLUserManual.Generic.updated .. ui.draw_line("=", 100) .. "   ")
+        imgui.text("   " .. ui.draw_line("=", 5) .. MDFXLUserManual.Generic.header .. ui.draw_line("=", 100) .. "   ")
         imgui.spacing()
         imgui.indent(20)
         if imgui.tree_node(MDFXLUserManual.About.header) then
@@ -3039,9 +3001,14 @@ local function draw_MDFXLUserManual()
             -- imgui.pop_id()
             imgui.spacing()
             imgui.text(MDFXLUserManual.Install[014])
-            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.push_id(3)
+            imgui.input_text("", MDFXLUserManual.Links[298])
+            imgui.pop_id()
             imgui.spacing()
             imgui.text(MDFXLUserManual.Install[015])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Install[016])
             imgui.pop_item_width()
             
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -3113,6 +3080,15 @@ local function draw_MDFXLUserManual()
             imgui.tree_pop()
         end
         imgui.indent(-15)
+        imgui.spacing()
+        if imgui.tree_node(MDFXLUserManual.Usage.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
         imgui.indent(-20)
         
         imgui.spacing()
@@ -3154,8 +3130,6 @@ local function draw_MDFXLGUI_MHWS()
 
             changed, MDFXLSettings.isDebug = imgui.checkbox("Debug Mode", MDFXLSettings.isDebug); wc = wc or changed
             func.tooltip("Toggle Debug Mode. When enabled, MDF-XL will log significantly more information in the 're2_framework_log.txt' file, located in the game's root folder.\n It is recommended to leave this on.")
-            changed, MDFXLSettings.showConsole = imgui.checkbox("Show Console", MDFXLSettings.showConsole); wc = wc or changed
-            func.tooltip("When enabled, a small console window will show up above the Preset Manager.")
             changed, MDFXLSettings.isAutoSave = imgui.checkbox("Auto-Save", MDFXLSettings.isAutoSave); wc = wc or changed
             func.tooltip("Toggle the Auto-Save feature. When enabled, MDF-XL will automatically save your current material parameters based on the Auto-Save Interval setting.\n It is recommended to leave this on.")
             if MDFXLSettings.isAutoSave then

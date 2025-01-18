@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        updated = "01/12/2025 |"
+        header = " [ USER MANUAL ] 01/18/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -17,7 +17,8 @@ local MDFXLUserManual = {
         [012] = "If you are not using VR, only copy the 'dinput8.dll' into your game's root folder.",
         [013] = "Download the latest version of _ScriptCore from here:",
         [014] = "You can install the mod manually by copying the 'reframework' folder into your game's root folder or\ninstall the mod with Fluffy Mod Manager like any other mod.",
-        [015] = "If you are reading this, chances are you've successfully installed the mod.",
+        [015] = "Install Order:\n\n 1. REFramework\n 2. _ScriptCore\n 3. MDF-XL\n 4. Any mod utilizing MDF-XL",
+        [016] = "If you are reading this, chances are you've successfully installed the mod.",
     },
     Troubleshooting = {
         header = "1.2 Troubleshooting",
@@ -26,7 +27,7 @@ local MDFXLUserManual = {
         [022] = "MDF-XL used to work, but now I'm getting 1 FPS and ScriptRunner mentions something about a nil value.",
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n'[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL' and delete the '_Holders' folder.",
         [024] = "I've selected a preset but it loaded the default preset instead.",
-        [025] = "This happens when the preset that you are trying to load doesn't match the material count or material names of the selected equipment.\nAn error message should popup in the MDF-XL Console (Disabled by default but you can enable it in the MDF-XL Settings.)",
+        [025] = "This happens when the preset that you are trying to load doesn't match the material count or material names of the selected equipment.",
         [099] = "If none of the above, then contact me on the Modding Haven Discord Server, or submit a bug report."
     },
     ReportingABug = {
@@ -38,27 +39,33 @@ local MDFXLUserManual = {
         header = "1.4 Update Loop",
         [040] = "Depending on the game MDF-XL updates during different game events. The first update is always passed on the initial loading screen.",
         [041] = "Update Events",
-        [042] = "Monster Hunter Wilds:\n - Loading Screens\n - Leaving the Equipment Menu\n - Exiting a Pop-Up Camp\n - Leaving the Appearance Menu",
+        [042] = "Monster Hunter Wilds:\n - Loading Screens\n - Closing the Equipment Menu\n - Exiting a Pop-Up Camp\n - Leaving the Appearance Menu",
     },
     Credits = {
         header = "1.5 Credits",
         [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nMembers of the Modding Haven Discord Server for testing and feedback.",
     },
+    Usage = {
+        header = "2. USAGE",
+        [060] = "MDF-XL has two main components the Editor and the Preset Manager.\nTo access either of these open 'REFramework > Script Generated UI > MDF-XL'.",
+        [061] = "",
+    },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
         [201] = "[Placeholder text for MHWS _ScriptCore link]",
         [202] = "https://www.nexusmods.com/dragonsdogma2/mods/30",
+        [298] = "https://www.fluffyquack.com",
         [299] = "https://discord.gg/modding-haven-718224210270617702"
     },
     Errors = {
-        [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment. ",
+        [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment.",
         [001] = "[ERROR-001] Name cannot be empty.",
         [002] = "[ERROR-002] Finalized Preset Name is too long.",
         [099] = "[ERROR-099] How?",
     },
     Warnings = {
         [100] = "[WARNING-100]\nPreset Version is outdated.",
-        [101] = "[WARNING-101]\nIf you use the 'Reset Scripts' option under 'REFramework > ScriptRunner' MDF-XL's logic will be reset as well.\nTo remedy this, you must go thru a loading screen.",
+        [101] = "[WARNING-101]\nIf you use the 'Reset Scripts' option under 'REFramework > ScriptRunner,' MDF-XL's logic will also be reset.\nThis means you won't be able to access the Editor or Preset Manager. To resolve this, you must go through a loading screen.",
     },
 }
 
