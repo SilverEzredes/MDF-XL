@@ -1,10 +1,10 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 01/18/2025 |",
+        header = " [ USER MANUAL ] 01/19/2025 |",
     },
     About = {
         header = "1. ABOUT",
-        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nBuilt with a robust preset system, allowing a high level of compatibility and customization without requiring file editing.",
+        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nBuilt with a robust preset system, allowing a high level of compatibility and customization without any file editing.",
         [001] = "Supported Games:",
         [002] = "- Monster Hunter Wilds",
         [003] = "- Dragon's Dogma 2",
@@ -47,8 +47,16 @@ local MDFXLUserManual = {
     },
     Usage = {
         header = "2. USAGE",
-        [060] = "MDF-XL has two main components the Editor and the Preset Manager.\nTo access either of these open 'REFramework > Script Generated UI > MDF-XL'.",
-        [061] = "",
+        [060] = "MDF-XL has two main components the Editor and the Preset Manager.\nThe settings menu under 'REFramework > Script Generated UI > MDF-XL' provides multiple customization options for both tools,\nsuch as changing hotkeys or hiding certain UI elements.",
+        [061] = "Most options in the settings menu have a tooltip explaining their purpose, unless they are self-explanatory.\nHotkeys won't work unless the MDF-XL tab is open. (Excluding the hotkeys used for Outfit Preset switching.)\nThis is by design to avoid interfering with other mods.",
+    },
+    PresetManager = {
+        header = "2.1 Preset Manager",
+        [070] = "This is what takes up most of the MDF-XL tab, starting with the Outfit Preset search bar.\nOutfit Presets function as 'Master' Presets, they allow you to apply multiple presets simultaneously and can be switched between using hotkeys.\nNormal Presets affect only a single piece of equipment and are grouped by equipment type and name.",
+        [071] = "Keyboard and Mouse:\n\nRight Shift + Page Up\nRight Shift + Page Down",
+        [072] = "Gamepad:\n\nLT (L2) + DPad Up\nLT (L2) + DPad Down",
+        [073] = "Hotkeys can be customized under 'MDF-XL > MDF-XL: Settings > Hotkeys'",
+        [074] = "Advanced Search allows you to filter presets by tags or the author's name.",
     },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
@@ -59,13 +67,13 @@ local MDFXLUserManual = {
     },
     Errors = {
         [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment.",
-        [001] = "[ERROR-001] Name cannot be empty.",
-        [002] = "[ERROR-002] Finalized Preset Name is too long.",
-        [099] = "[ERROR-099] How?",
+        [001] = "[ERROR-001]\nName cannot be empty.",
+        [002] = "[ERROR-002]\nFinalized Preset Name is too long.",
+        [099] = "[ERROR-099]\nHow?",
     },
     Warnings = {
         [100] = "[WARNING-100]\nPreset Version is outdated.",
-        [101] = "[WARNING-101]\nIf you use the 'Reset Scripts' option under 'REFramework > ScriptRunner,' MDF-XL's logic will also be reset.\nThis means you won't be able to access the Editor or Preset Manager. To resolve this, you must go through a loading screen.",
+        [101] = "[WARNING-101]\n\nIf you use the 'Reset Scripts' option under 'REFramework > ScriptRunner,' MDF-XL's logic will also be reset.\nThis means you won't be able to access the Editor or Preset Manager. To resolve this, you must go through a loading screen.",
     },
 }
 

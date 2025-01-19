@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/18/2025"
-local modVersion = "v1.4.52"
+local modUpdated = "01/19/2025"
+local modVersion = "v1.4.53"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -2945,7 +2945,7 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
     draw_MDFXLPresetGUI_MHWS()
 end
 local function draw_MDFXLUserManual()
-    if imgui.begin_window("MDF-XL: Wiki") then
+    if imgui.begin_window("MDF-XL: User Manual") then
         imgui.begin_rect()
         imgui.spacing()
         imgui.text("   " .. ui.draw_line("=", 5) .. MDFXLUserManual.Generic.header .. ui.draw_line("=", 100) .. "   ")
@@ -3085,10 +3085,32 @@ local function draw_MDFXLUserManual()
             imgui.spacing()
             imgui.indent(10)
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.Usage[060])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Usage[061])
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()
         end
+        imgui.indent(15)
+        if imgui.tree_node(MDFXLUserManual.PresetManager.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.PresetManager[070])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.PresetManager[071])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.PresetManager[072])
+            imgui.spacing()
+            imgui.text_colored(MDFXLUserManual.PresetManager[073], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.PresetManager[074])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        imgui.indent(-15)
         imgui.indent(-20)
         
         imgui.spacing()
@@ -3120,7 +3142,7 @@ local function draw_MDFXLGUI_MHWS()
             end
             imgui.same_line()
             changed, isUserManual = imgui.checkbox("Open MDF-XL: User Manual", isUserManual); wc = wc or changed
-            if not isUserManual or imgui.begin_window("MDF-XL: Wiki", true, 0) == false  then
+            if not isUserManual or imgui.begin_window("MDF-XL: User Manual", true, 0) == false  then
                 isUserManual = false
             else
                 draw_MDFXLUserManual()
