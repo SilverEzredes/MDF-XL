@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 01/19/2025 |",
+        header = " [ USER MANUAL ] 01/20/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -52,11 +52,15 @@ local MDFXLUserManual = {
     },
     PresetManager = {
         header = "2.1 Preset Manager",
-        [070] = "This is what takes up most of the MDF-XL tab, starting with the Outfit Preset search bar.\nOutfit Presets function as 'Master' Presets, they allow you to apply multiple presets simultaneously and can be switched between using hotkeys.\nNormal Presets affect only a single piece of equipment and are grouped by equipment type and name.",
+        [070] = "This is what takes up most of the MDF-XL tab, starting with the Outfit Preset search bar.\nOutfit Presets function as 'Master' Presets, they allow you to apply multiple Presets simultaneously and can be switched between using hotkeys.\n(Presets affect only a single piece of equipment and are grouped by equipment type and name.)",
         [071] = "Keyboard and Mouse:\n\nRight Shift + Page Up\nRight Shift + Page Down",
         [072] = "Gamepad:\n\nLT (L2) + DPad Up\nLT (L2) + DPad Down",
         [073] = "Hotkeys can be customized under 'MDF-XL > MDF-XL: Settings > Hotkeys'",
-        [074] = "Advanced Search allows you to filter presets by tags or the author's name.",
+        [074] = "Advanced Search allows you to filter presets by tags or the author's name.\nYou can also use the search bar to filter presets in the same way as you would for Outfit Presets. Tags are optional, and some presets might not have any.",
+        [075] = "Every piece of gear or equipment has a 'Default Preset.' These are auto-generated, and their purpose is to allow you to reset the appearance of the gear.\nThe Default Preset is always listed first and is named something like 'ch_03_001_002 Default' essentially the equipment ID followed by Default.",
+        [076] = "Equipment ID is also used in place of the Equipment Name for the drop-down menus if the Equipment Name is not available.\nThe Equipment Name is followed by the Equipment Type, such as '1A' or '2B.'",
+        [077] = "Equipment Types",
+        [078] = "Monster Hunter Wilds:\n\n1A = Male A\n1B = Male B\n\n2A = Female A\n2B = Female B\n\n3 = Left-Handed Weapon\n4 = Right-Handed Weapon\n5 = Two-Handed Weapon\n6 = Weapon Accessory\n\n7 = Palico\n8 = Palico Weapon",
     },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",

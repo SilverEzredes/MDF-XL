@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/19/2025"
-local modVersion = "v1.4.53"
+local modUpdated = "01/20/2025"
+local modVersion = "v1.4.54"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -1901,17 +1901,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 if presetNameLen < 200 and presetName ~= "" then
                     func.tooltip("Save the current parameters of the " ..  entry.MeshName .. " to " .. finalPresetName .. ".json found in [MonsterHunterWilds/reframework/data/MDF-XL/Equipment/"..  entry.MeshName .. "]")
                 elseif presetName == "" then
-                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
-                    func.tooltip(MDFXLUserManual.Errors[001])
-                    imgui.pop_style_color()
+                    ui.tooltip_colored(MDFXLUserManual.Errors[001], func.convert_rgba_to_ABGR(ui.colors.red))
                 elseif presetNameLen > 200 then
-                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
-                    func.tooltip(MDFXLUserManual.Errors[002])
-                    imgui.pop_style_color()
+                    ui.tooltip_colored(MDFXLUserManual.Errors[002], func.convert_rgba_to_ABGR(ui.colors.red))
                 elseif presetNameLen > 200 and presetName == "" then
-                    mgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.red))
-                    func.tooltip(MDFXLUserManual.Errors[099])
-                    imgui.pop_style_color()
+                    ui.tooltip_colored(MDFXLUserManual.Errors[099], func.convert_rgba_to_ABGR(ui.colors.red))
                 end
                 imgui.same_line()
                 if MDFXLSettingsData.showFinalizedPresetName then
@@ -3061,7 +3055,7 @@ local function draw_MDFXLUserManual()
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.text(MDFXLUserManual.UpdateLoop[040])
             imgui.spacing()
-            imgui.text(MDFXLUserManual.UpdateLoop[041])
+            imgui.text_colored(MDFXLUserManual.UpdateLoop[041], func.convert_rgba_to_ABGR(ui.colors.orange))
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text(MDFXLUserManual.UpdateLoop[042])
             imgui.spacing()
@@ -3100,12 +3094,19 @@ local function draw_MDFXLUserManual()
             imgui.text(MDFXLUserManual.PresetManager[070])
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text(MDFXLUserManual.PresetManager[071])
-            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.spacing()
             imgui.text(MDFXLUserManual.PresetManager[072])
             imgui.spacing()
             imgui.text_colored(MDFXLUserManual.PresetManager[073], func.convert_rgba_to_ABGR(ui.colors.orange))
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text(MDFXLUserManual.PresetManager[074])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.PresetManager[075])
+            imgui.text(MDFXLUserManual.PresetManager[076])
+            imgui.spacing()
+            imgui.text_colored(MDFXLUserManual.PresetManager[077], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.PresetManager[078])
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()
