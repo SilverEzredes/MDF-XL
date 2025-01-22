@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/20/2025"
-local modVersion = "v1.4.54"
+local modUpdated = "01/22/2025"
+local modVersion = "v1.4.55"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -1970,7 +1970,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                         end
                         if MDFXLData[entry.MeshName].Flags.isReceiveSSSSS == MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS or MDFXLData[entry.MeshName].Flags.isReceiveSSSSS ~= MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS then
-                            changed, MDFXLData[entry.MeshName].Flags.isReceiveSSSSS = imgui.checkbox("Receive SSSSS Flag", MDFXLData[entry.MeshName].Flags.isReceiveSSSSS); wc = wc or changed
+                            changed, MDFXLData[entry.MeshName].Flags.isReceiveSSSSS = imgui.checkbox("Receive SSS Flag", MDFXLData[entry.MeshName].Flags.isReceiveSSSSS); wc = wc or changed
                             if MDFXLData[entry.MeshName].Flags.isReceiveSSSSS ~= MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS then
                                 imgui.same_line()
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
@@ -3107,6 +3107,35 @@ local function draw_MDFXLUserManual()
             imgui.text_colored(MDFXLUserManual.PresetManager[077], func.convert_rgba_to_ABGR(ui.colors.orange))
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text(MDFXLUserManual.PresetManager[078])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.Editor.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.Editor[100])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[101])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text(MDFXLUserManual.Editor[102])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[103])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[104])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[105])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[106])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text_colored(MDFXLUserManual.Editor[107], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text(MDFXLUserManual.Editor[108])
+            imgui.spacing()
+            imgui.text_colored(MDFXLUserManual.Editor[109], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text(MDFXLUserManual.Editor[110])
+            imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+            imgui.text_colored(MDFXLUserManual.Editor[111], func.convert_rgba_to_ABGR(ui.colors.orange))
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()
