@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/22/2025"
-local modVersion = "v1.4.55"
+local modUpdated = "01/31/2025"
+local modVersion = "v1.4.57"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -411,8 +411,10 @@ end
 local function manage_SaveDataChunks(MDFXLData, saveDataTable)
     for key, value in pairs(MDFXLData) do
         local chunkID = key:sub(1, 4)
-        if (chunkID == "ch02") or (chunkID == "ch03") then
-            chunkID = key:sub(1, 8)
+        if reframework.get_game_name() == "mhwilds" then
+            if (chunkID == "ch02") or (chunkID == "ch03") then
+                chunkID = key:sub(1, 8)
+            end
         end
         if not saveDataTable[chunkID] then
             saveDataTable[chunkID] = {
@@ -3115,6 +3117,7 @@ local function draw_MDFXLUserManual()
             imgui.spacing()
             imgui.indent(10)
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            
             imgui.text(MDFXLUserManual.Editor[100])
             imgui.spacing()
             imgui.text(MDFXLUserManual.Editor[101])
@@ -3136,6 +3139,8 @@ local function draw_MDFXLUserManual()
             imgui.text(MDFXLUserManual.Editor[110])
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text_colored(MDFXLUserManual.Editor[111], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text(MDFXLUserManual.Editor[112])
+
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()

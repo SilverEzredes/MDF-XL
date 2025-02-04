@@ -1,10 +1,10 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 01/22/2025 |",
+        header = " [ USER MANUAL ] 02/02/2025 |",
     },
     About = {
         header = "1. ABOUT",
-        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nBuilt with a robust preset system, allowing a high level of compatibility and customization without any file editing.",
+        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nThis tool aims to extend equipment and weapon customization without the need to reboot the game.\nBuilt with a robust preset system, allowing a high level of compatibility without any file editing.",
         [001] = "Supported Games:",
         [002] = "- Monster Hunter Wilds",
         [003] = "- Dragon's Dogma 2",
@@ -28,7 +28,7 @@ local MDFXLUserManual = {
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n'[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL' and delete the '_Holders' folder.",
         [024] = "I've selected a preset but it loaded the default preset instead.",
         [025] = "This happens when the preset that you are trying to load doesn't match the material count or material names of the selected equipment.",
-        [099] = "If none of the above, then contact me on the Modding Haven Discord Server, or submit a bug report."
+        [099] = "If none of the above, then contact SilverEzredes on the Modding Haven Discord Server, or submit a bug report."
     },
     ReportingABug = {
         header = "1.3 Reporting a Bug",
@@ -66,16 +66,17 @@ local MDFXLUserManual = {
         header = "2.2 Editor",
         [100] = "This is where you can customize the currently equipped gear. It is also where you can save Presets and make Outfit Presets.\nThe layout is the same as the Preset Manager's, and there are several display settings available under 'MDF-XL > MDF-XL: Settings > Editor Settings'.",
         [101] = "You have the option to change Presets here as well however, there's no Preset search function and presets are displayed using their full names.",
-        [102] = "Name:\nThis is the field where you input the Preset's name.",
-        [103] = "Tags:\nThis is the field where you input tags for your Preset. Tags must be separated by commas, and you're limited to five tags per preset.\nLeaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
-        [104] = "Author:\nThis is the field where you input your name.",
-        [105] = "Save Preset:\nClicking this button saves your preset to its proper location. Hovering over the 'Save Preset' button will display this location.\nAlternatively, you can enable 'Show Preset Path' in the settings. Saving a preset will also update the preset list for the given equipment.\nNext to it, you can see the Finalized Preset Name, which is limited to 200 characters.",
-        [106] = "MESH/MDF Path:\nDisplays the location of the MESH and MDF files for the given equipment in the game files.",
+        [102] = "- Name:\nThis is the field where you input the Preset's name.",
+        [103] = "- Tags:\nThis is the field where you input tags for your Preset. Tags must be separated by commas, and you're limited to five tags per preset.\nLeaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
+        [104] = "- Author:\nThis is the field where you input your username.",
+        [105] = "- Save Preset:\nClicking this button saves your preset to its proper location. Hovering over the 'Save Preset' button will display this location.\nAlternatively, you can enable 'Show Preset Path' in the settings. Saving a preset will also update the preset list for the given equipment.\nNext to it, you can see the Finalized Preset Name, which is limited to 200 characters.",
+        [106] = "- MESH/MDF Path:\nDisplays the location of the MESH and MDF files for the given equipment in the game files.",
         [107] = "Mesh Editor:",
         [108] = "Allows you to hide or unhide parts of the equipment based on the materials. If a part has been changed, a blue asterisk will appear after the part name.",
         [109] = "Flags:",
         [110] = "Allows you to toggle different flags for the mesh, these affect all parts of the mesh.",
         [111] = "Material Editor:",
+        [112] = "Allows you to change the material parameters and textures of the currently equipped gear.\nIf a parameter has been changed, a blue asterisk will appear next to the parameter name and the parameter will be offset to the side.",
     },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
