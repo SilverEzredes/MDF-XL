@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "01/31/2025"
-local modVersion = "v1.4.57"
+local modUpdated = "02/05/2025"
+local modVersion = "v1.4.60"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -26,6 +26,9 @@ local isLoadingScreenUpdater = false
 local isAutoSaved = false
 local isOutfitManagerBypass = false
 local isMDFXL = false
+local isMeshEditor = false
+local isFlagEditor = false
+local isTextureEditor = false
 local isUserManual = false
 local isAdvancedSearch = false
 local materialParamDefaultsHolder = {}
@@ -385,19 +388,25 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                             end
                         end
                     end
-                    for t = 0, textureCount - 1 do
-                        local textureName = renderMesh:getMaterialTextureName(j, t)
-                        local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
-                        renderMesh:setMaterialTexture(j, t, textureResource)
+                    if isUpdaterBypass or isTextureEditor then
+                        for t = 0, textureCount - 1 do
+                            local textureName = renderMesh:getMaterialTextureName(j, t)
+                            local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
+                            renderMesh:setMaterialTexture(j, t, textureResource)
+                        end
                     end
                 end
-                for v = 0, #dataTable[entry.MeshName].Enabled do
-                    renderMesh:setMaterialsEnable(v, dataTable[entry.MeshName].Enabled[v + 1])
+                if isUpdaterBypass or isMeshEditor then
+                    for v = 0, #dataTable[entry.MeshName].Enabled do
+                        renderMesh:setMaterialsEnable(v, dataTable[entry.MeshName].Enabled[v + 1])
+                    end
                 end
-                renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
-                renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
-                renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
             end
+        end
+        if isUpdaterBypass or isFlagEditor then
+            renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
+            renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
+            renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
         end
         local chunkID = entry.MeshName:sub(1, 4)
         if (chunkID == "ch02") or (chunkID == "ch03") then
@@ -1938,6 +1947,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 end
 
                 if imgui.tree_node("Mesh Editor") then
+                    isMeshEditor = true
                     imgui.spacing()
                     imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.indent(15)
@@ -1957,6 +1967,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     end
                     imgui.text_colored(ui.draw_line("-", 75), func.convert_rgba_to_ABGR(ui.colors.gold))
                     if imgui.tree_node("Flags") then
+                        isFlagEditor = true
                         if MDFXLData[entry.MeshName].Flags.isForceTwoSide == MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide or MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
                             changed, MDFXLData[entry.MeshName].Flags.isForceTwoSide = imgui.checkbox("Force Two Side", MDFXLData[entry.MeshName].Flags.isForceTwoSide); wc = wc or changed
                             if MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
@@ -1972,17 +1983,21 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                         end
                         if MDFXLData[entry.MeshName].Flags.isReceiveSSSSS == MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS or MDFXLData[entry.MeshName].Flags.isReceiveSSSSS ~= MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS then
-                            changed, MDFXLData[entry.MeshName].Flags.isReceiveSSSSS = imgui.checkbox("Receive SSS Flag", MDFXLData[entry.MeshName].Flags.isReceiveSSSSS); wc = wc or changed
+                            changed, MDFXLData[entry.MeshName].Flags.isReceiveSSSSS = imgui.checkbox("Receive SSSSS Flag", MDFXLData[entry.MeshName].Flags.isReceiveSSSSS); wc = wc or changed
                             if MDFXLData[entry.MeshName].Flags.isReceiveSSSSS ~= MDFXLDefaultsData[entry.MeshName].Flags.isReceiveSSSSS then
                                 imgui.same_line()
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
                             end
                         end
                         imgui.tree_pop()
+                    else
+                        isFlagEditor = false
                     end
                     imgui.indent(-15)
                     imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.tree_pop()
+                else
+                    isMeshEditor = false
                 end
                 
                 if imgui.tree_node("Material Editor") then
@@ -2052,6 +2067,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             
                             if entry.TextureCount[matName] ~= 0 then
                                 if imgui.tree_node("Textures") then
+                                    isTextureEditor = true
                                     imgui.text_colored(ui.draw_line("=", 115), func.convert_rgba_to_ABGR(ui.colors.cerulean))
 
                                     changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
@@ -2152,6 +2168,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                     end
                                     imgui.text_colored(ui.draw_line("=", 115), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                     imgui.tree_pop()
+                                else
+                                    isTextureEditor = false
                                 end
                                 imgui.text_colored(ui.draw_line("-", 75), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                             end
