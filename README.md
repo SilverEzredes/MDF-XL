@@ -7,6 +7,6 @@ MDF-XL is a runtime material and texture editor with a robust JSON preset system
 ## Credits
 [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
 
-[alphaZomega](https://github.com/alphazolam) for his work on [EMV](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
+[alphaZomega](https://github.com/alphazolam) for his work on [EMV Engine](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
 
 Members of the Modding Haven discord server for testing.
