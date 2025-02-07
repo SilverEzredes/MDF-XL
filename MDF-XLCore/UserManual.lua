@@ -4,7 +4,7 @@ local MDFXLUserManual = {
     },
     About = {
         header = "1. ABOUT",
-        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nThis tool aims to extend equipment and weapon customization without the need to reboot the game.\nBuilt with a robust preset system, allowing a high level of compatibility without any file editing.",
+        [000] = "MDF-XL is a runtime material editor inspired by alphaZomega's EMV Engine.\nThis tool aims to extend equipment and weapon customization without the need to leave the game.\nBuilt with a robust preset system, allowing a high level of compatibility without any file editing.",
         [001] = "Supported Games:",
         [002] = "- Monster Hunter Wilds",
         [003] = "- Dragon's Dogma 2",

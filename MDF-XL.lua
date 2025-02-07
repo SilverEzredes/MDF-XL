@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/05/2025"
-local modVersion = "v1.4.60"
+local modUpdated = "02/07/2025"
+local modVersion = "v1.4.61-OBT2"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -195,6 +195,7 @@ MDFXLUserManual = require("MDF-XLCore/UserManual")
 local MDFXLSub = hk.merge_tables({}, MDFXL_Sub) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_SubData.json") or {}, MDFXL_Sub)
 local MDFXLPresetTracker = hk.merge_tables({}, MDFXL_PresetTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json") or {}, MDFXL_PresetTracker)
 local MDFXLSettings = hk.merge_tables({}, MDFXL_DefaultSettings) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_Settings.json") or {}, MDFXL_DefaultSettings)
+MDFXLSettings.presetVersion = MDFXL_DefaultSettings.presetVersion
 local MDFXLPalettes = hk.merge_tables({}, MDFXL_ColorPalettes) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json") or {}, MDFXL_ColorPalettes)
 local MDFXLOutfits = hk.merge_tables({}, MDFXL_OutfitManager) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json") or {}, MDFXL_OutfitManager)
 hk.setup_hotkeys(MDFXLSettings.hotkeys)
@@ -462,6 +463,7 @@ local masterPorter = nil
 local GUI010000 = nil
 local GUI080001 = nil
 local GUI090000 = nil
+local GUI090001MenuIDX = 0
 local isOtomoInScene = false
 local isPorterInScene = false
 local isPlayerLeftEquipmentMenu = false
@@ -554,9 +556,16 @@ if reframework.get_game_name() == "mhwilds" then
         end
     )
     --Camp GUI
+    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("guiUpdate()"),
+        function (args)
+            GUI090001MenuIDX = sdk.to_int64(args[3])
+        end
+    )
     sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
         function(args)
-            isPlayerLeftCamp = true
+            if (GUI090001MenuIDX == 6) or (GUI090001MenuIDX == 7) then
+                isPlayerLeftCamp = true
+            end
         end
     )
     --Appearance Editor GUI
