@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/07/2025"
-local modVersion = "v1.4.61-OBT2"
+local modUpdated = "02/08/2025"
+local modVersion = "v1.4.62-OBT2"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -464,6 +464,7 @@ local GUI010000 = nil
 local GUI080001 = nil
 local GUI090000 = nil
 local GUI090001MenuIDX = 0
+local GUI090001DecideIDX = 0
 local isOtomoInScene = false
 local isPorterInScene = false
 local isPlayerLeftEquipmentMenu = false
@@ -558,7 +559,9 @@ if reframework.get_game_name() == "mhwilds" then
     --Camp GUI
     sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("guiUpdate()"),
         function (args)
+            local GUI090001 = sdk.to_managed_object(args[2])
             GUI090001MenuIDX = sdk.to_int64(args[3])
+            GUI090001DecideIDX = GUI090001._DecideCategory
         end
     )
     sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
@@ -1448,10 +1451,13 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         MDFXLData[equipment.MeshName].isUpdated = true
                         isUpdaterBypass = true
-                        update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
-                        update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                        update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-                        update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                        if GUI090001DecideIDX == 1 then
+                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                        elseif GUI090001DecideIDX == 2 then
+                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                        end
                     else
                         log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                         MDFXLData[equipment.MeshName].currentPresetIDX = 1
@@ -1471,7 +1477,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             end
         end
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        log.info("[MDF-XL] [Player left the Equipment Menu, MDF-XL data updated.]")
+        if GUI090001DecideIDX == 1 then
+            log.info("[MDF-XL] [Player left the Equipment Menu, MDF-XL data updated.]")
+        elseif GUI090001DecideIDX == 2 then
+            log.info("[MDF-XL] [Player left the Palico Equipment Menu, MDF-XL data updated.]")
+        end
         isPlayerLeftEquipmentMenu = false
     end
     --Appearance Menu Updater
