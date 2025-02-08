@@ -18,6 +18,10 @@ https://github.com/user-attachments/assets/111fc225-2868-4aaf-9b3d-9187265dc2af
 
 https://github.com/user-attachments/assets/11bbdf7e-f013-45c5-bac8-f5dea86f38f6
 
+- Changes can be saved to a preset that can be switched to at any time when that piece of gear is equipped. The last selected preset will also persist between game sessions and auto-load either after a loading screen (if the gear is still in use) or after equipping the gear through the equipment menu.
+
+https://github.com/user-attachments/assets/47193fbb-dd93-4155-913b-2ca4651a606b
+
 ### Credits:
 - [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
 - [alphaZomega](https://github.com/alphazolam) for his work on [EMV Engine](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
