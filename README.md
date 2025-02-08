@@ -3,9 +3,9 @@ MDF-XL is a runtime material editor. This tool aims to extend equipment and weap
 ### Supported Games:
 - Monster Hunter Wilds
 
-## Credits
-[praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
+## Brief Overview
 
-[alphaZomega](https://github.com/alphazolam) for his work on [EMV Engine](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
-
-Members of the Modding Haven discord server for testing.
+### Credits:
+- [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
+- [alphaZomega](https://github.com/alphazolam) for his work on [EMV Engine](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
+- Members of the Modding Haven discord server for testing.
