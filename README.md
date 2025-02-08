@@ -8,7 +8,7 @@ MDF-XL is a runtime material editor. This tool aims to extend equipment and weap
 
 https://github.com/user-attachments/assets/62168d08-e6f2-4bba-a941-167a5146fa3e
 
-- Material Parameter Editor, with a search bar and options for copy, paste, reset and mark as faviorte.
+- Material Parameter Editor, with a search bar and options for copy, paste, reset and mark as favorite.
 
 https://github.com/user-attachments/assets/1275ecc6-a414-4617-9bf5-c49476e880df 
 
