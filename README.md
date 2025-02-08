@@ -4,6 +4,9 @@ MDF-XL is a runtime material editor. This tool aims to extend equipment and weap
 - Monster Hunter Wilds
 
 ## Brief Overview
+- Toggle submeshes based on materials and change mesh flags.
+
+https://github.com/user-attachments/assets/62168d08-e6f2-4bba-a941-167a5146fa3e
 
 ### Credits:
 - [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
