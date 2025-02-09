@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/08/2025"
-local modVersion = "v1.4.62-OBT2"
+local modUpdated = "02/09/2025"
+local modVersion = "v1.4.64-OBT2"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -101,6 +101,9 @@ local MDFXL_DefaultSettings = {
     isSearchMatchCase = false,
     isFilterFavorites = false,
     isInheritPresetName = true,
+    isAutoLoadPresetAfterSave = true,
+    isHideMainWeapon = false,
+    isHideSubWeapon = false,
     version = modVersion,
     presetVersion = "v1.00",
     presetManager = {
@@ -127,14 +130,16 @@ local MDFXL_DefaultSettings = {
         ["Toggle Filter Favorites"] = "F",
         ["Toggle Color Palettes"] = "P",
         ["Toggle Outfit Manager"] = "O",
+        ["Toggle Back Weapons"] = "B",
         ["Toggle Case Sensitive Search"] = "C",
         ["Clear Outfit Search"] = "X",
         ["Outfit Change Modifier"] = "RShift",
         ["Outfit Next"] = "Next",
         ["Outfit Previous"] = "Prior",
-        ["Outfit Change Pad Modifier"] = "LT (L2)",
-        ["Outfit Pad Next"] = "LUp",
-        ["Outfit Pad Previous"] = "LDown",
+        ["GamePad Modifier"] = "LT (L2)",
+        ["GamePad Outfit Next"] = "RB (R1)",
+        ["GamePad Outfit Previous"] = "LB (L1)",
+        ["GamePad Toggle Back Weapons"] = "LStickPush",
     },
     stats = {
         equipmentDataVarCount = 0,
@@ -472,6 +477,7 @@ local isPlayerOpenEquipmentMenu = false
 local isPlayerLeftCamp = false
 local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
+local isWeaponDrawn = false
 --Generic getters and checks
 local function get_PlayerManager_MHWS()
     if playerManager_MHWS == nil then playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager") end
@@ -583,6 +589,19 @@ if reframework.get_game_name() == "mhwilds" then
             if not func.table_contains(MDFXL_Cache.AppearanceMenu, currentMenu) and isAppearanceEditorOpen then
                 isAppearanceEditorUpdater = true
                 isAppearanceEditorOpen = false
+            end
+        end,
+        function(retval)
+            return retval
+        end
+    )
+    --Check if the currently equipped weapon is drawn or not
+    sdk.hook(sdk.find_type_definition("app.HunterCharacter"):get_method("checkWeaponOn()"),
+        function (args)
+            local hunterChar = sdk.to_managed_object(args[2])
+            local hunterCharString = hunterChar:ToString()
+            if hunterCharString:match("MasterPlayer") then
+                isWeaponDrawn = hunterChar._IsWeaponOn
             end
         end,
         function(retval)
@@ -1730,44 +1749,80 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         log.info("[MDF-XL] [Outfit Preset loaded, MDF-XL data updated.]")
         isOutfitManagerBypass = false
     end
+    --Sheathed Weapon Visibility Updater
+    if isPlayerInScene and isDefaultsDumped then
+        local playerCharacter = masterPlayer:get_Character()
+        if not playerCharacter then return end
+
+        local mainWeapon = playerCharacter:get_Weapon()
+        local subWeapon = playerCharacter:get_SubWeapon()
+        local reserveWeapon = playerCharacter:get_ReserveWeapon()
+        
+        if not subWeapon or not mainWeapon or not reserveWeapon then return end
+        mainWeapon = mainWeapon:get_GameObject()
+        subWeapon = subWeapon:get_GameObject()
+        reserveWeapon = reserveWeapon:get_GameObject()
+
+        if not isWeaponDrawn then
+            if MDFXLSettings.isHideMainWeapon then
+                mainWeapon:set_DrawSelf(false)
+            else
+                mainWeapon:set_DrawSelf(true)
+            end
+            if MDFXLSettings.isHideSubWeapon then
+                subWeapon:set_DrawSelf(false)
+            else
+                subWeapon:set_DrawSelf(true)
+            end
+        else
+            mainWeapon:set_DrawSelf(true)
+            subWeapon:set_DrawSelf(true)
+        end
+        if reserveWeapon then
+            reserveWeapon:set_DrawSelf(true)
+        end
+    end
 end
 local function update_MDFXLViaHotkeys_MHWS()
-    local KBM_controls = not MDFXLSettings.useModifier or hk.check_hotkey("Modifier", true)
-    local KBM_controls2 = not MDFXLSettings.useModifier2 or hk.check_hotkey("Secondary Modifier", true)
-    local KBM_outfitChangeControls = not MDFXLSettings.useOutfitModifier or hk.check_hotkey("Outfit Change Modifier", true)
-    local PAD_outfitChangeControls = not MDFXLSettings.useOutfitPadModifier or hk.check_hotkey("Outfit Change Pad Modifier", true)
+    local KBM_Controls = not MDFXLSettings.useModifier or hk.check_hotkey("Modifier", true)
+    local KBM_Controls2 = not MDFXLSettings.useModifier2 or hk.check_hotkey("Secondary Modifier", true)
+    local KBM_OutfitChangeControls = not MDFXLSettings.useOutfitModifier or hk.check_hotkey("Outfit Change Modifier", true)
+    local PAD_Controls = not MDFXLSettings.useOutfitPadModifier or hk.check_hotkey("GamePad Modifier", true)
 
-    if (KBM_outfitChangeControls and hk.check_hotkey("Outfit Next")) or (PAD_outfitChangeControls and hk.check_hotkey("Outfit Pad Next")) then
+    if (KBM_OutfitChangeControls and hk.check_hotkey("Outfit Next")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Next") and not isWeaponDrawn) then
         local outfitCount = func.countTableElements(MDFXLOutfits.Presets)
         MDFXLOutfits.currentOutfitPresetIDX = math.min(MDFXLOutfits.currentOutfitPresetIDX + 1, outfitCount)
         setup_OutfitChanger()
     end
-    if (KBM_outfitChangeControls and hk.check_hotkey("Outfit Previous")) or (PAD_outfitChangeControls and hk.check_hotkey("Outfit Pad Previous")) then
+    if (KBM_OutfitChangeControls and hk.check_hotkey("Outfit Previous")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Previous") and not isWeaponDrawn) then
         MDFXLOutfits.currentOutfitPresetIDX = math.max(MDFXLOutfits.currentOutfitPresetIDX - 1, 1)
         setup_OutfitChanger()
     end
-
-    if KBM_controls and hk.check_hotkey("Toggle MDF-XL Editor") and isMDFXL then
+    if (KBM_Controls and hk.check_hotkey("Toggle Back Weapons")) or (PAD_Controls and hk.check_hotkey("GamePad Toggle Back Weapons") and not isWeaponDrawn) then
+        MDFXLSettings.isHideMainWeapon = not MDFXLSettings.isHideMainWeapon
+        MDFXLSettings.isHideSubWeapon = not MDFXLSettings.isHideSubWeapon
+    end
+    if KBM_Controls and hk.check_hotkey("Toggle MDF-XL Editor") and isMDFXL then
         MDFXLSettings.showMDFXLEditor = not MDFXLSettings.showMDFXLEditor
     end
-    if KBM_controls and hk.check_hotkey("Clear Outfit Search") and isMDFXL then
+    if KBM_Controls and hk.check_hotkey("Clear Outfit Search") and isMDFXL then
         outfitPresetSearchQuery = ""
     end
-    if KBM_controls2 and hk.check_hotkey("Toggle Case Sensitive Search") and isMDFXL then
+    if KBM_Controls2 and hk.check_hotkey("Toggle Case Sensitive Search") and isMDFXL then
         MDFXLSettings.isSearchMatchCase = not MDFXLSettings.isSearchMatchCase
     end
 
     if not MDFXLSettings.showMDFXLEditor then return end
 
-    if KBM_controls and hk.check_hotkey("Toggle Filter Favorites") then
+    if KBM_Controls and hk.check_hotkey("Toggle Filter Favorites") then
         MDFXLSettings.isFilterFavorites = not MDFXLSettings.isFilterFavorites
     end
     
-    if KBM_controls and hk.check_hotkey("Toggle Outfit Manager") then
+    if KBM_Controls and hk.check_hotkey("Toggle Outfit Manager") then
         MDFXLOutfits.showMDFXLOutfitEditor = not MDFXLOutfits.showMDFXLOutfitEditor
     end
     
-    if KBM_controls and hk.check_hotkey("Toggle Color Palettes") then
+    if KBM_Controls and hk.check_hotkey("Toggle Color Palettes") then
         MDFXLPalettes.showMDFXLPaletteEditor = not MDFXLPalettes.showMDFXLPaletteEditor
     end
 end
@@ -1816,8 +1871,15 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.same_line()
                     ui.textButton_ColoredValue("Material Count:", #entry.Parts, func.convert_rgba_to_ABGR(ui.colors.cerulean))
                 end
-
-                changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo("Preset", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
+                if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
+                    imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
+                    imgui.begin_rect()
+                    changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo("Preset ", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
+                    imgui.end_rect()
+                    imgui.pop_style_color(1)
+                else
+                    changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo("Preset", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
+                end
                 func.tooltip("Select a file from the dropdown menu to load the variant from that file.")
                 if changed then
                     local selected_preset = MDFXLData[entry.MeshName].Presets[MDFXLData[entry.MeshName].currentPresetIDX]
@@ -1927,6 +1989,64 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
                     cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+
+                    if MDFXLSettingsData.isAutoLoadPresetAfterSave then
+                        local saved_preset_IDX = func.find_index(MDFXLData[entry.MeshName].Presets, finalPresetName)
+                        local selected_preset = MDFXLData[entry.MeshName].Presets[saved_preset_IDX]
+                        MDFXLData[entry.MeshName].currentPresetIDX = saved_preset_IDX
+                        local json_filepath = [[MDF-XL\\Equipment\\]] ..entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
+                        local temp_parts = json.load_file(json_filepath)
+    
+                        if temp_parts.Parts ~= nil then
+                            if MDFXLSettingsData.isDebug then
+                                log.info("[MDF-XL] [Auto Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                            end
+                            
+                            local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
+        
+                            if partsMatch then
+                                for _, part in ipairs(temp_parts.Parts) do
+                                    local found = false
+                                    for _, ogPart in ipairs(MDFXLData[entry.MeshName].Parts) do
+                                        if part == ogPart then
+                                            found = true
+                                            break
+                                        end
+                                    end
+                    
+                                    if not found then
+                                        partsMatch = false
+                                        break
+                                    end
+                                end
+                            end
+                    
+                            if partsMatch then
+                                temp_parts.Presets = nil
+                                temp_parts.currentPresetIDX = nil
+        
+                                for key, value in pairs(temp_parts) do
+                                    MDFXLData[entry.MeshName][key] = value
+                                end
+                            else
+                                log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
+                                MDFXLData[entry.MeshName].currentPresetIDX = 1
+                            end
+                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                            end
+                        end
+    
+                        MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
+                        isUpdaterBypass = true
+                        updateFunc(MDFXLData)
+                        local chunkID = entry.MeshName:sub(1, 4)
+                        if (chunkID == "ch02") or (chunkID == "ch03") then
+                            chunkID = entry.MeshName:sub(1, 8)
+                        end
+                        json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
+                        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+                    end
                 end
                 if presetNameLen < 200 and presetName ~= "" then
                     func.tooltip("Save the current parameters of the " ..  entry.MeshName .. " to " .. finalPresetName .. ".json found in [MonsterHunterWilds/reframework/data/MDF-XL/Equipment/"..  entry.MeshName .. "]")
@@ -2172,10 +2292,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             changed, filteredIDX = imgui.combo("", filteredIDX, filteredTextures); wc = wc or changed
                                             if changed then
                                                 local selectedTexture = filteredTextures[filteredIDX]
-                                                local realIndex = func.find_index(MDFXLSubData.texturePaths, selectedTexture)
+                                                local realIDX = func.find_index(MDFXLSubData.texturePaths, selectedTexture)
                                                 
-                                                if realIndex then
-                                                    MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLSubData.texturePaths[realIndex]
+                                                if realIDX then
+                                                    MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLSubData.texturePaths[realIDX]
                                                 end
                                                 wc = true
                                             end
@@ -2254,10 +2374,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                 end
                                             else
                                                 if imgui.menu_item("Remove from Favorites") then
-                                                    local index = func.find_index(MDFXLSubData.matParamFavorites, paramName)
-                                                    if index then
+                                                    local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
+                                                    if faveIDX then
                                                         wc = true
-                                                        table.remove(MDFXLSubData.matParamFavorites, index)
+                                                        table.remove(MDFXLSubData.matParamFavorites, faveIDX)
                                                         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                                                     end
                                                 end
@@ -2312,10 +2432,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                 end
                                             else
                                                 if imgui.menu_item("Remove from Favorites") then
-                                                    local index = func.find_index(MDFXLSubData.matParamFavorites, paramName)
-                                                    if index then
+                                                    local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
+                                                    if faveIDX then
                                                         wc = true
-                                                        table.remove(MDFXLSubData.matParamFavorites, index)
+                                                        table.remove(MDFXLSubData.matParamFavorites, faveIDX)
                                                         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                                                     end
                                                 end
@@ -2380,6 +2500,13 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
 
     imgui.text_colored(ui.draw_line("=", 60) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
+    if order == "weaponOrder" then
+        changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon)wc = wc or changed
+        ui.tooltip("Hides the currently equipped main weapon when sheathed.")
+        imgui.same_line()
+        changed, MDFXLSettingsData.isHideSubWeapon = imgui.checkbox("Hide Sub Weapon", MDFXLSettingsData.isHideSubWeapon)wc = wc or changed
+        ui.tooltip("Hides the currently equipped sub weapon when sheathed.")
+    end
     for _, entryName in pairs(MDFXLSubData[order]) do
         local entry = MDFXLData[entryName]
         local displayName = nil
@@ -3238,6 +3365,8 @@ local function draw_MDFXLGUI_MHWS()
             if imgui.tree_node("Editor Settings") then
                 changed, MDFXLSettings.isInheritPresetName = imgui.checkbox("Inherit Preset Name", MDFXLSettings.isInheritPresetName); wc = wc or changed
                 func.tooltip("When enabled, the '[Enter Preset Name Here]' text in the Editor will be replaced by the name of the last loaded preset.")
+                changed, MDFXLSettings.isAutoLoadPresetAfterSave = imgui.checkbox("Auto-Load Preset After Manual Save", MDFXLSettings.isAutoLoadPresetAfterSave); wc = wc or changed
+                func.tooltip("When enabled, the newly saved preset will auto-load.")
                 changed, MDFXLSettings.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.showEquipmentName); wc = wc or changed
                 func.tooltip("When enabled, the equipment ID will be replaced by the equipment's name (if available).")
                 changed, MDFXLSettings.showMaterialCount = imgui.checkbox("Show Material Count", MDFXLSettings.showMaterialCount); wc = wc or changed
@@ -3283,6 +3412,7 @@ local function draw_MDFXLGUI_MHWS()
                 changed = hk.hotkey_setter("Toggle Outfit Manager", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Toggle Color Palettes", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Toggle Filter Favorites", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("Toggle Back Weapons", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Clear Outfit Search", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
 
                 imgui.spacing()
@@ -3311,10 +3441,21 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.useOutfitPadModifier = imgui.checkbox("", MDFXLSettings.useOutfitPadModifier); wc = wc or changed
                 func.tooltip("Require that you hold down this button")
                 imgui.same_line()
-                changed = hk.hotkey_setter("Outfit Change Pad Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("GamePad Modifier"); wc = wc or changed
                 imgui.pop_id()
-                changed = hk.hotkey_setter("Outfit Pad Previous", MDFXLSettings.useOutfitPadModifier and "Outfit Change Pad Modifier"); wc = wc or changed
-                changed = hk.hotkey_setter("Outfit Pad Next", MDFXLSettings.useOutfitPadModifier and "Outfit Change Pad Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("GamePad Outfit Previous", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
+                changed = hk.hotkey_setter("GamePad Outfit Next", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
+                changed = hk.hotkey_setter("GamePad Toggle Back Weapons", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
+                
+                imgui.spacing()
+                
+                imgui.text_colored("* Weapon must be sheathed!", func.convert_rgba_to_ABGR(ui.colors.orange))
                 imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.tree_pop()
             end
