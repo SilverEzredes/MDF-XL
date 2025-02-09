@@ -26,6 +26,10 @@ https://github.com/user-attachments/assets/11bbdf7e-f013-45c5-bac8-f5dea86f38f6
 
 https://github.com/user-attachments/assets/47193fbb-dd93-4155-913b-2ca4651a606b
 
+- Toggle sheathed weapon visibility via Hotkeys. (Supports KBM and Controllers)
+
+https://github.com/user-attachments/assets/5ad69eeb-3462-4a8b-9286-f14a2b18d71c
+
 [And much more that's yet to be covered.]
 
 ### Credits:
