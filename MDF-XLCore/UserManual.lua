@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/02/2025 |",
+        header = " [ USER MANUAL ] 02/09/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -12,7 +12,7 @@ local MDFXLUserManual = {
     },
     Install = {
         header = "1.1 Install",
-        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.1.8+)",
+        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.1.93+)",
         [011] = "Download the latest REF nightly build from here:",
         [012] = "If you are not using VR, only copy the 'dinput8.dll' into your game's root folder.",
         [013] = "Download the latest version of _ScriptCore from here:",
@@ -23,7 +23,7 @@ local MDFXLUserManual = {
     Troubleshooting = {
         header = "1.2 Troubleshooting",
         [020] = "I'm getting a ScriptRunner Error Message when I boot up the game. It mentions something about hotkeys.",
-        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.1.8+.",
+        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.1.93+.",
         [022] = "MDF-XL used to work, but now I'm getting 1 FPS and ScriptRunner mentions something about a nil value.",
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n'[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL' and delete the '_Holders' folder.",
         [024] = "I've selected a preset but it loaded the default preset instead.",

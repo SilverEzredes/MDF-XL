@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/09/2025"
-local modVersion = "v1.4.64-OBT2"
+local modVersion = "v1.4.65-OBT2"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -1209,6 +1209,65 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         end
     end
 end
+local function update_PlayerArmamentVisibility_MHWS()
+    local playerCharacter = masterPlayer:get_Character()
+    if not playerCharacter then return end
+
+    local mainWeapon = playerCharacter:get_Weapon()
+    local subWeapon = playerCharacter:get_SubWeapon()
+    local subWeaponInsect = playerCharacter:get_Wp10Insect()
+    local reserveWeapon = playerCharacter:get_ReserveWeapon()
+
+    if mainWeapon then
+        if not mainWeapon then return end
+        mainWeapon = mainWeapon:get_GameObject()
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+            if MDFXLSettings.isHideMainWeapon then
+                mainWeapon:set_DrawSelf(false)
+            else
+                mainWeapon:set_DrawSelf(true)
+            end
+        else
+            mainWeapon:set_DrawSelf(true)
+        end
+    end
+
+    if subWeapon then
+        if not subWeapon then return end
+        subWeapon = subWeapon:get_GameObject()
+        
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+            if MDFXLSettings.isHideSubWeapon then
+                subWeapon:set_DrawSelf(false)
+            else
+                subWeapon:set_DrawSelf(true)
+            end
+        else
+            subWeapon:set_DrawSelf(true)
+        end
+    end
+
+    if subWeaponInsect then
+        if not subWeaponInsect then return end
+        subWeaponInsect = subWeaponInsect:get_GameObject()
+        
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+            if MDFXLSettings.isHideSubWeapon then
+                subWeaponInsect:set_DrawSelf(false)
+            else
+                subWeaponInsect:set_DrawSelf(true)
+            end
+        else
+            subWeaponInsect:set_DrawSelf(true)
+        end
+    end
+    
+    if reserveWeapon then
+        if not reserveWeapon then return end
+        reserveWeapon = reserveWeapon:get_GameObject()
+        reserveWeapon:set_DrawSelf(true)
+    end
+end
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
     check_IfPlayerIsInScene_MHWS()
@@ -1751,36 +1810,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     end
     --Sheathed Weapon Visibility Updater
     if isPlayerInScene and isDefaultsDumped then
-        local playerCharacter = masterPlayer:get_Character()
-        if not playerCharacter then return end
-
-        local mainWeapon = playerCharacter:get_Weapon()
-        local subWeapon = playerCharacter:get_SubWeapon()
-        local reserveWeapon = playerCharacter:get_ReserveWeapon()
-        
-        if not subWeapon or not mainWeapon or not reserveWeapon then return end
-        mainWeapon = mainWeapon:get_GameObject()
-        subWeapon = subWeapon:get_GameObject()
-        reserveWeapon = reserveWeapon:get_GameObject()
-
-        if not isWeaponDrawn then
-            if MDFXLSettings.isHideMainWeapon then
-                mainWeapon:set_DrawSelf(false)
-            else
-                mainWeapon:set_DrawSelf(true)
-            end
-            if MDFXLSettings.isHideSubWeapon then
-                subWeapon:set_DrawSelf(false)
-            else
-                subWeapon:set_DrawSelf(true)
-            end
-        else
-            mainWeapon:set_DrawSelf(true)
-            subWeapon:set_DrawSelf(true)
-        end
-        if reserveWeapon then
-            reserveWeapon:set_DrawSelf(true)
-        end
+        update_PlayerArmamentVisibility_MHWS()
     end
 end
 local function update_MDFXLViaHotkeys_MHWS()
@@ -1801,6 +1831,7 @@ local function update_MDFXLViaHotkeys_MHWS()
     if (KBM_Controls and hk.check_hotkey("Toggle Back Weapons")) or (PAD_Controls and hk.check_hotkey("GamePad Toggle Back Weapons") and not isWeaponDrawn) then
         MDFXLSettings.isHideMainWeapon = not MDFXLSettings.isHideMainWeapon
         MDFXLSettings.isHideSubWeapon = not MDFXLSettings.isHideSubWeapon
+        json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
     end
     if KBM_Controls and hk.check_hotkey("Toggle MDF-XL Editor") and isMDFXL then
         MDFXLSettings.showMDFXLEditor = not MDFXLSettings.showMDFXLEditor
