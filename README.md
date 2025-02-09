@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/11bbdf7e-f013-45c5-bac8-f5dea86f38f6
 
 https://github.com/user-attachments/assets/47193fbb-dd93-4155-913b-2ca4651a606b
 
-- And more that yet to be covered.
+[And much more that's yet to be covered.]
 
 ### Credits:
 - [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
