@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/09/2025"
-local modVersion = "v1.4.65-OBT2"
+local modUpdated = "02/10/2025"
+local modVersion = "v1.4.68"
 local modCredits = "alphaZomega; praydog"
-
+--TODO something is wrong with having multiple dropdown menus open in the Editor 
 --/////////////////////////////////////--
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
@@ -95,6 +95,9 @@ local MDFXL_DefaultSettings = {
     showPresetVersion = true,
     showMeshPath = true,
     showMDFPath = true,
+    primaryDividerLen = 150,
+    secondaryDividerLen = 95,
+    tertiaryDividerLen = 130,
     isAutoSave = true,
     showAutoSaveProgressBar = true,
     autoSaveInterval = 30.0,
@@ -118,6 +121,9 @@ local MDFXL_DefaultSettings = {
         showEquipmentType = true,
         authorButtonsPerLine = 4,
         tagButtonsPerLine = 5,
+        primaryDividerLen = 120,
+        secondaryDividerLen = 60,
+        menuWidth = 450,
     },
     useModifier = true,
     useModifier2 = true,
@@ -716,58 +722,61 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
 end
 local function get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isOtomoInScene then return end
-    local otomoTransforms = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character():get_GameObject():get_Transform()
-    local otomoChildren = func.get_children(otomoTransforms)
+    local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
     MDFXLSubData.otomoOrder = {}
 
-    for i, child in pairs(otomoChildren) do
-        local childStrings = child:ToString()
-        local otomoEquipment = childStrings:match(MDFXL_Cache.matchEquip)
+    if otomoCharacter then
+        local otomoHelm = otomoCharacter:get_HelmGameObject()
+        local otomoHelmID = otomoHelm:get_Name()
+        local otomoBody = otomoCharacter:get_BodyGameObject()
+        local otomoBodyID = otomoBody:get_Name()
 
-        if otomoEquipment then
-            local currentEquipment = otomoTransforms:find(otomoEquipment)
-            local currentEquipmentID = currentEquipment:get_GameObject()
-            
-            if not MDFXLData[otomoEquipment] then
-                setup_MDFXLTable(MDFXLData, otomoEquipment)
+        if otomoHelm and otomoHelm:get_Valid() then
+            if not MDFXLData[otomoHelmID] then
+                setup_MDFXLTable(MDFXLData, otomoHelmID)
             end
+            MDFXLData[otomoHelmID].isInScene = true
+            MDFXLData[otomoHelmID].Parts = {}
+            MDFXLData[otomoHelmID].Enabled = {}
+            MDFXLData[otomoHelmID].Materials = {}
+            get_MaterialParams(otomoHelm, MDFXLData, otomoHelmID, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
+        elseif (not otomoHelm) or (not otomoHelm:get_Valid()) then
+            MDFXLData[otomoHelmID].isInScene = false
+        end
 
-            if currentEquipmentID and currentEquipmentID:get_Valid() then
-                MDFXLData[otomoEquipment].isInScene = true
-                MDFXLData[otomoEquipment].Parts = {}
-                MDFXLData[otomoEquipment].Enabled = {}
-                MDFXLData[otomoEquipment].Materials = {}
-                
-                get_MaterialParams(currentEquipmentID, MDFXLData, otomoEquipment, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
-            elseif (not currentEquipmentID) or (not currentEquipmentID:get_Valid()) then
-                MDFXLData[otomoEquipment].isInScene = false
+        if otomoBody and otomoBody:get_Valid() then
+            if not MDFXLData[otomoBodyID] then
+                setup_MDFXLTable(MDFXLData, otomoBodyID)
             end
+            MDFXLData[otomoBodyID].isInScene = true
+            MDFXLData[otomoBodyID].Parts = {}
+            MDFXLData[otomoBodyID].Enabled = {}
+            MDFXLData[otomoBodyID].Materials = {}
+            get_MaterialParams(otomoBody, MDFXLData, otomoBodyID, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
+        elseif (not otomoBody) or (not otomoBody:get_Valid()) then
+            MDFXLData[otomoBodyID].isInScene = false
         end
     end
 end
 local function get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isOtomoInScene then return end
-    local otomoGameObject = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character():get_GameObject()
+    local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
     MDFXLSubData.otomoWeaponOrder = {}
 
-    if otomoGameObject then
-        local otomoCharacter = func.get_GameObjectComponent(otomoGameObject, "app.OtomoCharacter")
-
-        if otomoCharacter then
-            local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-            local otomoWeaponID = otomoWeapon:get_Name()
-            if otomoWeapon and otomoWeapon:get_Valid() then
-                if not MDFXLData[otomoWeaponID] then
-                    setup_MDFXLTable(MDFXLData, otomoWeaponID)
-                end
-                MDFXLData[otomoWeaponID].isInScene = true
-                MDFXLData[otomoWeaponID].Parts = {}
-                MDFXLData[otomoWeaponID].Enabled = {}
-                MDFXLData[otomoWeaponID].Materials = {}
-                get_MaterialParams(otomoWeapon, MDFXLData, otomoWeaponID, MDFXLSubData, "otomoWeaponOrder", MDFXLSaveDataChunks)
-            elseif (not otomoWeapon) or (not otomoWeapon:get_Valid()) then
-                MDFXLData[otomoWeaponID].isInScene = false
+    if otomoCharacter then
+        local otomoWeapon = otomoCharacter:get_WeaponGameObject()
+        local otomoWeaponID = otomoWeapon:get_Name()
+        if otomoWeapon and otomoWeapon:get_Valid() then
+            if not MDFXLData[otomoWeaponID] then
+                setup_MDFXLTable(MDFXLData, otomoWeaponID)
             end
+            MDFXLData[otomoWeaponID].isInScene = true
+            MDFXLData[otomoWeaponID].Parts = {}
+            MDFXLData[otomoWeaponID].Enabled = {}
+            MDFXLData[otomoWeaponID].Materials = {}
+            get_MaterialParams(otomoWeapon, MDFXLData, otomoWeaponID, MDFXLSubData, "otomoWeaponOrder", MDFXLSaveDataChunks)
+        elseif (not otomoWeapon) or (not otomoWeapon:get_Valid()) then
+            MDFXLData[otomoWeaponID].isInScene = false
         end
     end
 end
@@ -1135,80 +1144,6 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
         end
     end
 end
-local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-    if not isOtomoInScene then return end
-    for _, equipment in pairs(MDFXLData) do
-        if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-            local otomoTransforms = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character():get_GameObject():get_Transform()
-            local otomoChildren = func.get_children(otomoTransforms)
-            
-            for i, child in pairs(otomoChildren) do
-                local childStrings = child:ToString()
-                local otomoEquipment = childStrings:match(MDFXL_Cache.matchEquip)
-                
-                if otomoEquipment == equipment.MeshName then
-                    local currentEquipment = otomoTransforms:find(otomoEquipment)
-                    local currentEquipmentID = currentEquipment:get_GameObject()
-                
-                    if not (currentEquipmentID and currentEquipmentID:get_Valid()) then return end
-                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
-                end
-            end
-        end
-    end
-end
-local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
-    if not isOtomoInScene then return end
-    for _, weapon in pairs(MDFXLData) do
-        if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
-            local otomoGameObject = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character():get_GameObject()
-
-            if otomoGameObject then
-                local otomoCharacter = func.get_GameObjectComponent(otomoGameObject, "app.OtomoCharacter")
-        
-                if otomoCharacter then
-                    local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-                    local otomoWeaponID = otomoWeapon:get_Name()
-                    if otomoWeaponID == weapon.MeshName then
-                        set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
-                    end
-                end
-            end
-        end
-    end
-end
-local function update_PorterMaterialParams_MHWS(MDFXLData)
-    if not isPorterInScene then return end
-    for _, equipment in pairs(MDFXLData) do
-        if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-            local porterTransforms = masterPorter and masterPorter:get_Valid() and masterPorter:get_Object():get_Transform()
-            local porterChildren = func.get_children(porterTransforms)
-
-            for i, child in pairs(porterChildren) do
-                local childStrings = child:ToString()
-        
-                for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
-                    local porterEquipment = childStrings:match(pattern)
-                    
-                    if porterEquipment then
-                        local currentEquipment = porterTransforms:find(porterEquipment)
-                        local currentEquipmentID = currentEquipment:get_GameObject()
-                        local renderMesh = func.get_GameObjectComponent(currentEquipmentID, renderComp)
-        
-                        if renderMesh then
-                            local nativesMesh = renderMesh:getMesh():ToString()
-                            nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
-
-                            if nativesMesh == equipment.MeshName then
-                                set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end
 local function update_PlayerArmamentVisibility_MHWS()
     local playerCharacter = masterPlayer:get_Character()
     if not playerCharacter then return end
@@ -1268,6 +1203,77 @@ local function update_PlayerArmamentVisibility_MHWS()
         reserveWeapon:set_DrawSelf(true)
     end
 end
+local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+    if not isOtomoInScene then return end
+    for _, equipment in pairs(MDFXLData) do
+        if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
+            local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
+        
+            if otomoCharacter then
+                local otomoHelm = otomoCharacter:get_HelmGameObject()
+                local otomoHelmID = otomoHelm:get_Name()
+                local otomoBody = otomoCharacter:get_BodyGameObject()
+                local otomoBodyID = otomoBody:get_Name()
+                
+                if otomoHelmID == equipment.MeshName then
+                    set_MaterialParams(otomoHelm, MDFXLData, equipment, MDFXLSaveDataChunks)
+                end
+
+                if otomoBodyID == equipment.MeshName then
+                    set_MaterialParams(otomoBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                end
+            end
+        end
+    end
+end
+local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+    if not isOtomoInScene then return end
+    for _, weapon in pairs(MDFXLData) do
+        if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
+            local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
+        
+            if otomoCharacter then
+                local otomoWeapon = otomoCharacter:get_WeaponGameObject()
+                local otomoWeaponID = otomoWeapon:get_Name()
+                if otomoWeaponID == weapon.MeshName then
+                    set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
+                end
+            end
+        end
+    end
+end
+local function update_PorterMaterialParams_MHWS(MDFXLData)
+    if not isPorterInScene then return end
+    for _, equipment in pairs(MDFXLData) do
+        if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
+            local porterTransforms = masterPorter and masterPorter:get_Valid() and masterPorter:get_Object():get_Transform()
+            local porterChildren = func.get_children(porterTransforms)
+
+            for i, child in pairs(porterChildren) do
+                local childStrings = child:ToString()
+        
+                for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
+                    local porterEquipment = childStrings:match(pattern)
+                    
+                    if porterEquipment then
+                        local currentEquipment = porterTransforms:find(porterEquipment)
+                        local currentEquipmentID = currentEquipment:get_GameObject()
+                        local renderMesh = func.get_GameObjectComponent(currentEquipmentID, renderComp)
+        
+                        if renderMesh then
+                            local nativesMesh = renderMesh:getMesh():ToString()
+                            nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
+
+                            if nativesMesh == equipment.MeshName then
+                                set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
     check_IfPlayerIsInScene_MHWS()
@@ -1304,7 +1310,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                     if temp_parts.Parts ~= nil then
                         if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                         end
                         
                         local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1399,7 +1405,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                     if temp_parts.Parts ~= nil then
                         if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                         end
                         
                         local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1466,10 +1472,13 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     end
     --Equipment Menu Updater
     if isPlayerLeftEquipmentMenu and isDefaultsDumped then
-        get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        if GUI090001DecideIDX == 1 then
+            get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        elseif GUI090001DecideIDX == 2 then
+            get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        end
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
@@ -1484,6 +1493,17 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
+            if GUI090001DecideIDX == 1 then
+                if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName) then
+                    goto continue
+                end
+            end
+            if GUI090001DecideIDX == 2 then
+                if not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName) then
+                    goto continue
+                end
+            end
+
             if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
                 materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
@@ -1498,7 +1518,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 local temp_parts = json.load_file(json_filepath)
                 if #temp_parts.Parts ~= 0 then
                     if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1547,6 +1567,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             elseif selected_preset == nil or {} then
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
+            ::continue::
         end
         
         for i, chunk in pairs(MDFXLSaveData) do
@@ -1595,7 +1616,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 local temp_parts = json.load_file(json_filepath)
                 if #temp_parts.Parts ~= 0 then
                     if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1681,7 +1702,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 local temp_parts = json.load_file(json_filepath)
                 if #temp_parts.Parts ~= 0 then
                     if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1749,7 +1770,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 local temp_parts = json.load_file(json_filepath)
                 if #temp_parts.Parts ~= 0 then
                     if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
@@ -1878,7 +1899,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 imgui.begin_rect()
                 imgui.spacing()
                 
-                imgui.text_colored("  " .. ui.draw_line("=", 130) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
+                imgui.text_colored("  " .. ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
                 imgui.indent(10)
 
                 if imgui.button("Reset to Defaults") then
@@ -2119,7 +2140,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 if imgui.tree_node("Mesh Editor") then
                     isMeshEditor = true
                     imgui.spacing()
-                    imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.indent(15)
 
                     for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
@@ -2135,7 +2156,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                         end
                     end
-                    imgui.text_colored(ui.draw_line("-", 75), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
                     if imgui.tree_node("Flags") then
                         isFlagEditor = true
                         if MDFXLData[entry.MeshName].Flags.isForceTwoSide == MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide or MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
@@ -2164,7 +2185,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         isFlagEditor = false
                     end
                     imgui.indent(-15)
-                    imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.tree_pop()
                 else
                     isMeshEditor = false
@@ -2172,7 +2193,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 
                 if imgui.tree_node("Material Editor") then
                     imgui.spacing()
-                    imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                     changed, searchQuery = imgui.input_text("Param Search", searchQuery); wc = wc or changed
                     ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
                     func.tooltip("Match Case")
@@ -2238,7 +2259,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             if entry.TextureCount[matName] ~= 0 then
                                 if imgui.tree_node("Textures") then
                                     isTextureEditor = true
-                                    imgui.text_colored(ui.draw_line("=", 115), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
 
                                     changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
                                     ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -2336,12 +2357,12 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             imgui.pop_id(); imgui.pop_style_color(); imgui.end_rect(); imgui.spacing()
                                         end
                                     end
-                                    imgui.text_colored(ui.draw_line("=", 115), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                     imgui.tree_pop()
                                 else
                                     isTextureEditor = false
                                 end
-                                imgui.text_colored(ui.draw_line("-", 75), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                             end
 
                             for paramName, paramValue in func.orderedPairs(matData) do
@@ -2510,7 +2531,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         end
                     end
                     imgui.indent(-5)
-                    imgui.text_colored(ui.draw_line("=", 100), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                     imgui.tree_pop()
                 end
 
@@ -2518,10 +2539,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     MDFXLData[entry.MeshName].isUpdated = true
                 end
                 imgui.indent(-10)
-                imgui.text_colored("  " .. ui.draw_line("=", 130) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
+                imgui.text_colored("  " .. ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
                 imgui.end_rect(); imgui.tree_pop()
             end
-            imgui.text_colored("  " .. ui.draw_line("-", 150) .."  ", func.convert_rgba_to_ABGR(color01))
+            imgui.text_colored("  " .. ui.draw_line("-", MDFXLSettingsData.primaryDividerLen) .."  ", func.convert_rgba_to_ABGR(color01))
             imgui.indent(-15)
         end
     end
@@ -2529,7 +2550,7 @@ end
 local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubData, order, updateFunc, displayText, color01, isDraw)
     if not isDraw then return end
 
-    imgui.text_colored(ui.draw_line("=", 60) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
+    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.presetManager.secondaryDividerLen) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
     if order == "weaponOrder" then
         changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon)wc = wc or changed
@@ -2657,7 +2678,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     break
                 end
             end
-            imgui.push_item_width(450)
+            imgui.push_item_width(MDFXLSettingsData.presetManager.menuWidth)
             if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
                 imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
                 imgui.begin_rect()
@@ -2739,10 +2760,10 @@ end
 local function draw_MDFXLOutfitManagerGUI_MHWS()
     if imgui.begin_window("MDF-XL: Outfit Manager") then
         imgui.begin_rect()
-        imgui.text_colored("  [ " .. ui.draw_line("=", 80)  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.spacing()
         imgui.indent(25)
-
+        imgui.push_item_width(MDFXLSettings.presetManager.menuWidth)
         changed, MDFXLOutfits.currentOutfitPresetIDX = imgui.combo("Outfit Preset", MDFXLOutfits.currentOutfitPresetIDX or 1, MDFXLOutfits.Presets); wc = wc or changed
         if changed then
             local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
@@ -2758,6 +2779,7 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
             end
         end
         changed, outfitName = imgui.input_text("", outfitName); wc = wc or changed
+        imgui.pop_item_width()
         imgui.same_line()
         if imgui.button("Save Outfit Preset") then
             local MDFXLOutfitData = {}
@@ -2814,7 +2836,7 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, "Seikret", ui.colors.lime, MDFXLOutfits.isPorter)
     
         imgui.indent(-25)
-        imgui.text_colored("  [ " .. ui.draw_line("=", 80)  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.end_rect(1)
         imgui.end_window()
     end
@@ -2923,7 +2945,7 @@ local function draw_MDFXLEditorGUI_MHWS()
     if imgui.begin_window("MDF-XL: Editor") then
         imgui.begin_rect()
         
-        imgui.text_colored("[ " .. ui.draw_line("=", 150)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
         
         imgui.indent(25)
 
@@ -2961,35 +2983,38 @@ local function draw_MDFXLEditorGUI_MHWS()
 
         imgui.indent(-15)
         
-        imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Armor // ", func.convert_rgba_to_ABGR(ui.colors.gold))
+        imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Hunter: Armor // ", func.convert_rgba_to_ABGR(ui.colors.gold))
         setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, ui.colors.gold)
 
-        imgui.text_colored(ui.draw_line("=", 95) ..  " // Hunter: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.orange))
+        imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Hunter: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.orange))
         setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, ui.colors.orange)
 
-        imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Armor // ", func.convert_rgba_to_ABGR(ui.colors.cyan))
+        imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Palico: Armor // ", func.convert_rgba_to_ABGR(ui.colors.cyan))
         setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, ui.colors.cyan)
 
-        imgui.text_colored(ui.draw_line("=", 95) ..  " // Palico: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+        imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Palico: Weapon // ", func.convert_rgba_to_ABGR(ui.colors.cerulean))
         setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, ui.colors.cerulean)
 
-        imgui.text_colored(ui.draw_line("=", 95) ..  " // Seikret // ", func.convert_rgba_to_ABGR(ui.colors.lime))
+        imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Seikret // ", func.convert_rgba_to_ABGR(ui.colors.lime))
         setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, ui.colors.lime)
 
         imgui.indent(-10)
-        imgui.text_colored("[ " .. ui.draw_line("=", 150)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.end_rect()
         imgui.end_window()
     end
 end
 local function draw_MDFXLPresetGUI_MHWS()
-    imgui.text_colored(ui.draw_line("-", 120), func.convert_rgba_to_ABGR(ui.colors.white))
+    imgui.text_colored(ui.draw_line("-", MDFXLSettings.presetManager.primaryDividerLen), func.convert_rgba_to_ABGR(ui.colors.white))
     
     if MDFXLSettings.presetManager.showOutfitPreset then
         imgui.indent(10)
-        imgui.push_item_width(400); imgui.push_id(10)
+        imgui.push_item_width(MDFXLSettings.presetManager.menuWidth - 50)
+        imgui.push_id(10)
         changed, outfitPresetSearchQuery = imgui.input_text("", outfitPresetSearchQuery); wc = wc or changed
-        imgui.pop_id(); imgui.pop_item_width(); imgui.same_line()
+        imgui.pop_id()
+        imgui.pop_item_width()
+        imgui.same_line()
         ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
         func.tooltip("Match Case")
         imgui.same_line()
@@ -3022,7 +3047,7 @@ local function draw_MDFXLPresetGUI_MHWS()
                 break
             end
         end
-        imgui.push_item_width(450)
+        imgui.push_item_width(MDFXLSettings.presetManager.menuWidth)
         changed, filteredIDX = imgui.combo("Outfit Preset", filteredIDX or 1, filteredPresets); wc = wc or changed
         if changed then
             local selected_preset = filteredPresets[filteredIDX]
@@ -3049,7 +3074,7 @@ local function draw_MDFXLPresetGUI_MHWS()
     end
     if imgui.tree_node("Advanced Search") then
         isAdvancedSearch = true
-        imgui.push_item_width(390)
+        imgui.push_item_width(MDFXLSettings.presetManager.menuWidth - 60)
         imgui.push_id(15)
         changed, presetSearchQuery = imgui.input_text("", presetSearchQuery); wc = wc or changed
         imgui.pop_id()
@@ -3097,7 +3122,7 @@ local function draw_MDFXLPresetGUI_MHWS()
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, "Palico: Armor", ui.colors.cyan, MDFXLSettings.presetManager.showOtomoEquipment)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, "Palico: Weapon", ui.colors.cerulean, MDFXLSettings.presetManager.showOtomoArmament)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, "Seikret", ui.colors.lime, MDFXLSettings.presetManager.showPorter)
-    imgui.text_colored(ui.draw_line("-", 120), func.convert_rgba_to_ABGR(ui.colors.white))
+    imgui.text_colored(ui.draw_line("-", MDFXLSettings.presetManager.primaryDividerLen), func.convert_rgba_to_ABGR(ui.colors.white))
 end
 local function load_MDFXLEditorAndPresetGUI_MHWS()
     changed, MDFXLSettings.showMDFXLEditor = imgui.checkbox("Open MDF-XL: Editor", MDFXLSettings.showMDFXLEditor); wc = wc or changed
@@ -3394,10 +3419,15 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.pop_item_width()
             end
             if imgui.tree_node("Editor Settings") then
+                imgui.text_colored("[ Preset Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
                 changed, MDFXLSettings.isInheritPresetName = imgui.checkbox("Inherit Preset Name", MDFXLSettings.isInheritPresetName); wc = wc or changed
                 func.tooltip("When enabled, the '[Enter Preset Name Here]' text in the Editor will be replaced by the name of the last loaded preset.")
                 changed, MDFXLSettings.isAutoLoadPresetAfterSave = imgui.checkbox("Auto-Load Preset After Manual Save", MDFXLSettings.isAutoLoadPresetAfterSave); wc = wc or changed
                 func.tooltip("When enabled, the newly saved preset will auto-load.")
+                imgui.spacing()
+                imgui.text_colored("[ Display Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
                 changed, MDFXLSettings.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.showEquipmentName); wc = wc or changed
                 func.tooltip("When enabled, the equipment ID will be replaced by the equipment's name (if available).")
                 changed, MDFXLSettings.showMaterialCount = imgui.checkbox("Show Material Count", MDFXLSettings.showMaterialCount); wc = wc or changed
@@ -3410,9 +3440,20 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.showFinalizedPresetName = imgui.checkbox("Show Finalized Preset Name", MDFXLSettings.showFinalizedPresetName); wc = wc or changed
                 changed, MDFXLSettings.showPresetPath = imgui.checkbox("Show Preset Path", MDFXLSettings.showPresetPath); wc = wc or changed
                 changed, MDFXLSettings.showPresetVersion = imgui.checkbox("Show Preset Version", MDFXLSettings.showPresetVersion); wc = wc or changed
+                imgui.spacing()
+                imgui.text_colored("[ UI Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
+                imgui.push_item_width(200)
+                changed, MDFXLSettings.primaryDividerLen = imgui.drag_int("Primary Divider Length", MDFXLSettings.primaryDividerLen, 1, 0, 500); wc = wc or changed
+                changed, MDFXLSettings.secondaryDividerLen = imgui.drag_int("Secondary Divider Length", MDFXLSettings.secondaryDividerLen, 1, 0, 500); wc = wc or changed
+                changed, MDFXLSettings.tertiaryDividerLen = imgui.drag_int("Tertiary Divider Length", MDFXLSettings.tertiaryDividerLen, 1, 0, 500); wc = wc or changed
+                imgui.pop_item_width()
+                imgui.spacing()
                 imgui.tree_pop()
             end
             if imgui.tree_node("Preset Manager Settings") then
+                imgui.text_colored("[ Display Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
                 changed, MDFXLSettings.presetManager.showOutfitPreset = imgui.checkbox("Show Outfit Preset", MDFXLSettings.presetManager.showOutfitPreset); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterEquipment = imgui.checkbox("Show Hunter Armor Presets", MDFXLSettings.presetManager.showHunterEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterArmament = imgui.checkbox("Show Hunter Weapon Presets", MDFXLSettings.presetManager.showHunterArmament); wc = wc or changed
@@ -3423,14 +3464,26 @@ local function draw_MDFXLGUI_MHWS()
                 func.tooltip("When enabled, Tags and the Author Name will be hidden from preset names.")
                 changed, MDFXLSettings.presetManager.showEquipmentName = imgui.checkbox("Use Equipment Name", MDFXLSettings.presetManager.showEquipmentName); wc = wc or changed
                 func.tooltip("When enabled, the equipment ID will be replaced by the equipment's name (if available).")
+                
+                imgui.spacing()
+                imgui.text_colored("[ UI Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
                 imgui.push_item_width(200)
+                changed, MDFXLSettings.presetManager.primaryDividerLen = imgui.drag_int("Primary Divider Length", MDFXLSettings.presetManager.primaryDividerLen, 1, 0, 500); wc = wc or changed
+                changed, MDFXLSettings.presetManager.secondaryDividerLen = imgui.drag_int("Secondary Divider Length", MDFXLSettings.presetManager.secondaryDividerLen, 1, 0, 500); wc = wc or changed
+                changed, MDFXLSettings.presetManager.menuWidth = imgui.drag_int("Menu Width", MDFXLSettings.presetManager.menuWidth, 1, 100, 500); wc = wc or changed
+                if MDFXLSettings.presetManager.menuWidth < 100 then
+                    MDFXLSettings.presetManager.menuWidth = 100
+                end
+                imgui.spacing()
                 changed, MDFXLSettings.presetManager.authorButtonsPerLine = imgui.drag_int("Author Names Per Line", MDFXLSettings.presetManager.authorButtonsPerLine, 1, 1, 100); wc = wc or changed
                 changed, MDFXLSettings.presetManager.tagButtonsPerLine = imgui.drag_int("Tags Per Line", MDFXLSettings.presetManager.tagButtonsPerLine, 1, 1, 100); wc = wc or changed
                 imgui.pop_item_width()
                 imgui.tree_pop()
             end
             if imgui.tree_node("Hotkeys") then
-                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.text_colored("[ KBM Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
                 
                 imgui.push_id(1)
                 changed, MDFXLSettings.useModifier = imgui.checkbox("", MDFXLSettings.useModifier); wc = wc or changed
@@ -3456,7 +3509,6 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.pop_id()
                 changed = hk.hotkey_setter("Toggle Case Sensitive Search", MDFXLSettings.useModifier2 and "Secondary Modifier"); wc = wc or changed
                 
-                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.push_id(3)
                 changed, MDFXLSettings.useOutfitModifier = imgui.checkbox("", MDFXLSettings.useOutfitModifier); wc = wc or changed
                 func.tooltip("Require that you hold down this button")
@@ -3466,6 +3518,9 @@ local function draw_MDFXLGUI_MHWS()
                 changed = hk.hotkey_setter("Outfit Previous", MDFXLSettings.useOutfitModifier and "Outfit Change Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Outfit Next", MDFXLSettings.useOutfitModifier and "Outfit Change Modifier"); wc = wc or changed
                 
+                imgui.spacing()
+
+                imgui.text_colored("[ GamePad Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.spacing()
 
                 imgui.push_id(4)
@@ -3487,7 +3542,6 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.spacing()
                 
                 imgui.text_colored("* Weapon must be sheathed!", func.convert_rgba_to_ABGR(ui.colors.orange))
-                imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.tree_pop()
             end
 
