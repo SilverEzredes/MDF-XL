@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/11/2025"
-local modVersion = "v1.4.70"
+local modVersion = "v1.4.71"
 local modCredits = "alphaZomega; praydog"
 --TODO something is wrong with having multiple dropdown menus open in the Editor 
 --/////////////////////////////////////--
@@ -59,10 +59,6 @@ local MDFXL_Cache = {
     mdf2 = ".mdf2",
     texOG = ".tex%]",
     tex = ".tex",
-    matchEquip = "(ch[^@]+)",
-    matchWeapon = "(Wp[^@]+)",
-    matchItem = "(it[^@]+)",
-    PorterMatch = {"Saddle[^@]+", "Body[^@]+"},
     AppearanceMenu = {
         "身だしなみの変更",
         "Change Appearance",
@@ -95,9 +91,9 @@ local MDFXL_DefaultSettings = {
     showPresetVersion = true,
     showMeshPath = true,
     showMDFPath = true,
-    primaryDividerLen = 150,
-    secondaryDividerLen = 95,
-    tertiaryDividerLen = 130,
+    primaryDividerLen = 100,
+    secondaryDividerLen = 75,
+    tertiaryDividerLen = 90,
     isAutoSave = true,
     showAutoSaveProgressBar = true,
     autoSaveInterval = 30.0,
@@ -466,6 +462,7 @@ local masterOtomo = nil
 local masterPorter = nil
 local playerCharacter = nil
 local otomoCharacter = nil
+local porterCharacter = nil
 local GUI010000 = nil
 local GUI080001 = nil
 local GUI090000 = nil
@@ -530,6 +527,7 @@ local function check_IfPorterIsInScene_MHWS()
         local porter = masterPorter and masterPorter:get_Valid()
 
         if porter then
+            porterCharacter = masterPorter:get_Character()
             isPorterInScene = true
         else
             isPorterInScene = false
@@ -746,42 +744,37 @@ local function get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
 end
 local function get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isPorterInScene then return end
-    
-    local porterTransforms = masterPorter and masterPorter:get_Valid() and masterPorter:get_Object():get_Transform()
-    local porterChildren = func.get_children(porterTransforms)
+
     MDFXLSubData.porterOrder = {}
+    if porterCharacter then
+        local porterBody = porterCharacter:get_EquipBody()
+        local porterSaddle = porterCharacter:get_EquipSaddle()
+        local porterRein = porterCharacter:get_EquipRein()
+        local porterWeaponBag = porterCharacter:get_EquipWeaponBags()
 
-    for i, child in pairs(porterChildren) do
-        local childStrings = child:ToString()
-        
-        for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
-            local porterEquipment = childStrings:match(pattern)
-            
-            if porterEquipment then
-                local currentEquipment = porterTransforms:find(porterEquipment)
-                local currentEquipmentID = currentEquipment:get_GameObject()
-                local renderMesh = func.get_GameObjectComponent(currentEquipmentID, renderComp)
-
-                if renderMesh then
-                    local nativesMesh = renderMesh:getMesh():ToString()
-                    nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
-
-                    if not MDFXLData[nativesMesh] then
-                        setup_MDFXLTable(MDFXLData, nativesMesh)
-                    end
-
-                    if currentEquipmentID and currentEquipmentID:get_Valid() then
-                        MDFXLData[nativesMesh].isInScene = true
-                        MDFXLData[nativesMesh].Parts = {}
-                        MDFXLData[nativesMesh].Enabled = {}
-                        MDFXLData[nativesMesh].Materials = {}
-
-                        get_MaterialParams(currentEquipmentID, MDFXLData, nativesMesh, MDFXLSubData, "porterOrder", MDFXLSaveDataChunks)
-                    elseif (not currentEquipmentID) or (not currentEquipmentID:get_Valid()) then
-                        MDFXLData[nativesMesh].isInScene = false
-                    end
-                end
-            end
+        if porterBody then
+            local renderMesh = func.get_GameObjectComponent(porterBody, renderComp)
+            local porterBodyID = renderMesh:getMesh():ToString()
+            porterBodyID = porterBodyID and porterBodyID:match(MDFXL_Cache.matchMesh)
+            help_GetMaterialParams_MHWS(porterBody, porterBodyID, "porterOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if porterSaddle then
+            local renderMesh = func.get_GameObjectComponent(porterSaddle, renderComp)
+            local porterSaddleID = renderMesh:getMesh():ToString()
+            porterSaddleID = porterSaddleID and porterSaddleID:match(MDFXL_Cache.matchMesh)
+            help_GetMaterialParams_MHWS(porterSaddle, porterSaddleID, "porterOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if porterRein then
+            local renderMesh = func.get_GameObjectComponent(porterRein, renderComp)
+            local porterReinID = renderMesh:getMesh():ToString()
+            porterReinID = porterReinID and porterReinID:match(MDFXL_Cache.matchMesh)
+            help_GetMaterialParams_MHWS(porterRein, porterReinID, "porterOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if porterWeaponBag then
+            local renderMesh = func.get_GameObjectComponent(porterWeaponBag, renderComp)
+            local porterWeaponBagID = renderMesh:getMesh():ToString()
+            porterWeaponBagID = porterWeaponBagID and porterWeaponBagID:match(MDFXL_Cache.matchMesh)
+            help_GetMaterialParams_MHWS(porterWeaponBag, porterWeaponBagID, "porterOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
     end
 end
@@ -1281,33 +1274,55 @@ end
 local function update_PorterMaterialParams_MHWS(MDFXLData)
     if not isPorterInScene then return end
     for _, equipment in pairs(MDFXLData) do
+        if not func.table_contains(MDFXLSub.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
+            goto continue
+        end
         if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-            local porterTransforms = masterPorter and masterPorter:get_Valid() and masterPorter:get_Object():get_Transform()
-            local porterChildren = func.get_children(porterTransforms)
+            if porterCharacter then
+                local porterBody = porterCharacter:get_EquipBody()
+                local porterSaddle = porterCharacter:get_EquipSaddle()
+                local porterRein = porterCharacter:get_EquipRein()
+                local porterWeaponBag = porterCharacter:get_EquipWeaponBags()
+                
+                if porterBody then
+                    local renderMesh = func.get_GameObjectComponent(porterBody, renderComp)
+                    local porterBodyID = renderMesh:getMesh():ToString()
+                    porterBodyID = porterBodyID and porterBodyID:match(MDFXL_Cache.matchMesh)
 
-            for i, child in pairs(porterChildren) do
-                local childStrings = child:ToString()
-        
-                for j, pattern in ipairs(MDFXL_Cache.PorterMatch) do
-                    local porterEquipment = childStrings:match(pattern)
-                    
-                    if porterEquipment then
-                        local currentEquipment = porterTransforms:find(porterEquipment)
-                        local currentEquipmentID = currentEquipment:get_GameObject()
-                        local renderMesh = func.get_GameObjectComponent(currentEquipmentID, renderComp)
-        
-                        if renderMesh then
-                            local nativesMesh = renderMesh:getMesh():ToString()
-                            nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
+                    if porterBodyID == equipment.MeshName then
+                        set_MaterialParams(porterBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if porterSaddle then
+                    local renderMesh = func.get_GameObjectComponent(porterSaddle, renderComp)
+                    local porterSaddleID = renderMesh:getMesh():ToString()
+                    porterSaddleID = porterSaddleID and porterSaddleID:match(MDFXL_Cache.matchMesh)
 
-                            if nativesMesh == equipment.MeshName then
-                                set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
-                            end
-                        end
+                    if porterSaddleID == equipment.MeshName then
+                        set_MaterialParams(porterSaddle, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if porterRein then
+                    local renderMesh = func.get_GameObjectComponent(porterRein, renderComp)
+                    local porterReinID = renderMesh:getMesh():ToString()
+                    porterReinID = porterReinID and porterReinID:match(MDFXL_Cache.matchMesh)
+
+                    if porterReinID == equipment.MeshName then
+                        set_MaterialParams(porterRein, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if porterWeaponBag then
+                    local renderMesh = func.get_GameObjectComponent(porterWeaponBag, renderComp)
+                    local porterWeaponBagID = renderMesh:getMesh():ToString()
+                    porterWeaponBagID = porterWeaponBagID and porterWeaponBagID:match(MDFXL_Cache.matchMesh)
+
+                    if porterWeaponBagID == equipment.MeshName then
+                        set_MaterialParams(porterWeaponBag, MDFXLData, equipment, MDFXLSaveDataChunks)
                     end
                 end
             end
         end
+        :: continue ::
     end
 end
 --Master Functions
@@ -2176,7 +2191,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 if imgui.tree_node("Mesh Editor") then
                     isMeshEditor = true
                     imgui.spacing()
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.indent(15)
 
                     for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
@@ -2221,7 +2236,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         isFlagEditor = false
                     end
                     imgui.indent(-15)
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.tree_pop()
                 else
                     isMeshEditor = false
@@ -2229,7 +2244,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 
                 if imgui.tree_node("Material Editor") then
                     imgui.spacing()
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                     changed, searchQuery = imgui.input_text("Param Search", searchQuery); wc = wc or changed
                     ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
                     func.tooltip("Match Case")
@@ -2563,11 +2578,13 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                     imgui.pop_style_color()
                                 end
                             end
-                            imgui.pop_id(); imgui.spacing(); imgui.tree_pop()
+                            imgui.pop_id()
+                            imgui.spacing()
+                            imgui.tree_pop()
                         end
                     end
                     imgui.indent(-5)
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                     imgui.tree_pop()
                 end
 
