@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/11/2025"
-local modVersion = "v1.4.69"
+local modVersion = "v1.4.70"
 local modCredits = "alphaZomega; praydog"
 --TODO something is wrong with having multiple dropdown menus open in the Editor 
 --/////////////////////////////////////--
@@ -265,9 +265,6 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
             local meshPath = string.gsub(nativesMesh, MDFXL_Cache.resourceOG, MDFXL_Cache.nativesSTM)
             local formattedMeshPath = string.gsub(meshPath, MDFXL_Cache.meshOG, MDFXL_Cache.mesh)
             dataTable[entry].MeshPath = formattedMeshPath
-            if MDFXLSettings.isDebug then
-                log.info("[MDF-XL] [" .. formattedMeshPath .. "]")
-            end
             if order == "porterOrder" then
                 nativesMesh = nativesMesh and nativesMesh:match(MDFXL_Cache.matchMesh)
                 dataTable[entry].MeshName = nativesMesh
@@ -290,9 +287,6 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
             local mdfPath = string.gsub(nativesMDF, MDFXL_Cache.resourceOG, MDFXL_Cache.nativesSTM)
             local formattedMDFPath = string.gsub(mdfPath, MDFXL_Cache.mdf2OG, MDFXL_Cache.mdf2)
             dataTable[entry].MDFPath = formattedMDFPath
-            if MDFXLSettings.isDebug then
-                log.info("[MDF-XL] [" .. formattedMDFPath .. "]")
-            end
         end
         if matCount then
             for j = 0, matCount - 1 do
@@ -470,6 +464,8 @@ local porterManager = sdk.get_managed_singleton("app.PorterManager")
 
 local masterOtomo = nil
 local masterPorter = nil
+local playerCharacter = nil
+local otomoCharacter = nil
 local GUI010000 = nil
 local GUI080001 = nil
 local GUI090000 = nil
@@ -504,6 +500,7 @@ local function check_IfPlayerIsInScene_MHWS()
         local player = masterPlayer and masterPlayer:get_Valid()
 
         if player then
+            playerCharacter = masterPlayer:get_Character()
             isPlayerInScene = true
         else
             isPlayerInScene = false
@@ -518,6 +515,7 @@ local function check_IfOtomoIsInScene_MHWS()
         local otomo = masterOtomo and masterOtomo:get_Valid()
 
         if otomo then
+            otomoCharacter = masterOtomo:get_Character()
             isOtomoInScene = true
         else
             isOtomoInScene = false
@@ -615,40 +613,60 @@ if reframework.get_game_name() == "mhwilds" then
     )
 end
 --Material Param Getters
+local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+    if gameObject and gameObject:get_Valid() then
+        if not MDFXLData[gameObjectID] then
+            setup_MDFXLTable(MDFXLData, gameObjectID)
+        end
+        MDFXLData[gameObjectID].isInScene = true
+        MDFXLData[gameObjectID].Parts = {}
+        MDFXLData[gameObjectID].Enabled = {}
+        MDFXLData[gameObjectID].Materials = {}
+        get_MaterialParams(gameObject, MDFXLData, gameObjectID, MDFXLSubData, order, MDFXLSaveDataChunks)
+    elseif (not gameObject) or (not gameObject:get_Valid()) then
+        MDFXLData[gameObjectID].isInScene = false
+    end
+end
 local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isPlayerInScene then return end
-
-    local playerTransforms = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform()
-    local playerChildren = func.get_children(playerTransforms)
     MDFXLSubData.order = {}
+    
+    if playerCharacter then
+        local helm = playerCharacter:getParts(0)
+        local body = playerCharacter:getParts(1)
+        local arm = playerCharacter:getParts(2)
+        local waist = playerCharacter:getParts(3)
+        local leg = playerCharacter:getParts(4)
+        local slinger = playerCharacter:getParts(5)
 
-    for i, child in pairs(playerChildren) do
-        local childStrings = child:ToString()
-        local playerEquipment = childStrings:match(MDFXL_Cache.matchEquip)
-
-        if playerEquipment then
-            local currentEquipment = playerTransforms:find(playerEquipment)
-            local currentEquipmentID = currentEquipment:get_GameObject()
-
-            if not MDFXLData[playerEquipment] then
-                setup_MDFXLTable(MDFXLData, playerEquipment)
-            end
-
-            if currentEquipmentID and currentEquipmentID:get_Valid() then
-                MDFXLData[playerEquipment].isInScene = true
-                MDFXLData[playerEquipment].Parts = {}
-                MDFXLData[playerEquipment].Enabled = {}
-                MDFXLData[playerEquipment].Materials = {}
-                get_MaterialParams(currentEquipmentID, MDFXLData, playerEquipment, MDFXLSubData, "order", MDFXLSaveDataChunks)
-            else
-                MDFXLData[playerEquipment].isInScene = false
-            end
+        if helm then
+            local helmID = helm:get_Name()
+            help_GetMaterialParams_MHWS(helm, helmID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if body then
+            local bodyID = body:get_Name()
+            help_GetMaterialParams_MHWS(body, bodyID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if arm then
+            local armID = arm:get_Name()
+            help_GetMaterialParams_MHWS(arm, armID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if waist then
+            local waistID = waist:get_Name()
+            help_GetMaterialParams_MHWS(waist, waistID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if leg then
+            local legID = leg:get_Name()
+            help_GetMaterialParams_MHWS(leg, legID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if slinger then
+            local slingerID = slinger:get_Name()
+            help_GetMaterialParams_MHWS(slinger, slingerID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
     end
 end
 local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isPlayerInScene then return end
-    local playerCharacter = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Character()
     MDFXLSubData.weaponOrder = {}
     if playerCharacter then
         local mainWeapon = playerCharacter:get_Weapon()
@@ -662,174 +680,67 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         if mainWeapon then
             mainWeapon = mainWeapon:get_GameObject()
             local mainWeaponID = mainWeapon:get_Name()
-            if mainWeapon and mainWeapon:get_Valid() then
-                if not MDFXLData[mainWeaponID] then
-                    setup_MDFXLTable(MDFXLData, mainWeaponID)
-                end
-                MDFXLData[mainWeaponID].isInScene = true
-                MDFXLData[mainWeaponID].Parts = {}
-                MDFXLData[mainWeaponID].Enabled = {}
-                MDFXLData[mainWeaponID].Materials = {}
-                get_MaterialParams(mainWeapon, MDFXLData, mainWeaponID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not mainWeapon) or (not mainWeapon:get_Valid()) then
-                MDFXLData[mainWeaponID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(mainWeapon, mainWeaponID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if subWeapon then
             subWeapon = subWeapon:get_GameObject()
             local subWeaponID = subWeapon:get_Name()
-            if subWeapon and subWeapon:get_Valid() then
-            if not MDFXLData[subWeaponID] then
-                setup_MDFXLTable(MDFXLData, subWeaponID)
-            end
-            MDFXLData[subWeaponID].isInScene = true
-            MDFXLData[subWeaponID].Parts = {}
-            MDFXLData[subWeaponID].Enabled = {}
-            MDFXLData[subWeaponID].Materials = {}
-            get_MaterialParams(subWeapon, MDFXLData, subWeaponID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not subWeapon) or (not subWeapon:get_Valid()) then
-            MDFXLData[subWeaponID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(subWeapon, subWeaponID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if subWeaponInsect then
             subWeaponInsect = subWeaponInsect:get_GameObject()
             local subWeaponInsectID = subWeaponInsect:get_Name()
-            if subWeaponInsect and subWeaponInsect:get_Valid() then
-                if not MDFXLData[subWeaponInsectID] then
-                    setup_MDFXLTable(MDFXLData, subWeaponInsectID)
-                end
-                MDFXLData[subWeaponInsectID].isInScene = true
-                MDFXLData[subWeaponInsectID].Parts = {}
-                MDFXLData[subWeaponInsectID].Enabled = {}
-                MDFXLData[subWeaponInsectID].Materials = {}
-                get_MaterialParams(subWeaponInsect, MDFXLData, subWeaponInsectID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not subWeaponInsect) or (not subWeaponInsect:get_Valid()) then
-                MDFXLData[subWeaponInsectID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(subWeaponInsect, subWeaponInsectID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if reserveWeapon then
             reserveWeapon = reserveWeapon:get_GameObject()
             local reserveWeaponID = reserveWeapon:get_Name()
-            if reserveWeapon and reserveWeapon:get_Valid() then
-                if not MDFXLData[reserveWeaponID] then
-                    setup_MDFXLTable(MDFXLData, reserveWeaponID)
-                end
-                MDFXLData[reserveWeaponID].isInScene = true
-                MDFXLData[reserveWeaponID].Parts = {}
-                MDFXLData[reserveWeaponID].Enabled = {}
-                MDFXLData[reserveWeaponID].Materials = {}
-                get_MaterialParams(reserveWeapon, MDFXLData, reserveWeaponID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not reserveWeapon) or (not reserveWeapon:get_Valid()) then
-                MDFXLData[reserveWeaponID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(reserveWeapon, reserveWeaponID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if reserveSubWeapon then
             reserveSubWeapon = reserveSubWeapon:get_GameObject()
             local reserveSubWeaponID = reserveSubWeapon:get_Name()
-            if reserveSubWeapon and reserveSubWeapon:get_Valid() then
-                if not MDFXLData[reserveSubWeaponID] then
-                    setup_MDFXLTable(MDFXLData, reserveSubWeaponID)
-                end
-                MDFXLData[reserveSubWeaponID].isInScene = true
-                MDFXLData[reserveSubWeaponID].Parts = {}
-                MDFXLData[reserveSubWeaponID].Enabled = {}
-                MDFXLData[reserveSubWeaponID].Materials = {}
-                get_MaterialParams(reserveSubWeapon, MDFXLData, reserveSubWeaponID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not reserveSubWeapon) or (not reserveSubWeapon:get_Valid()) then
-                MDFXLData[reserveSubWeaponID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(reserveSubWeapon, reserveSubWeaponID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if mainWeaponCharm then
             mainWeaponCharm = mainWeaponCharm:get_GameObject()
             local mainWeaponCharmID = mainWeaponCharm:get_Name()
-            if mainWeaponCharm and mainWeaponCharm:get_Valid() then
-                if not MDFXLData[mainWeaponCharmID] then
-                    setup_MDFXLTable(MDFXLData, mainWeaponCharmID)
-                end
-                MDFXLData[mainWeaponCharmID].isInScene = true
-                MDFXLData[mainWeaponCharmID].Parts = {}
-                MDFXLData[mainWeaponCharmID].Enabled = {}
-                MDFXLData[mainWeaponCharmID].Materials = {}
-                get_MaterialParams(mainWeaponCharm, MDFXLData, mainWeaponCharmID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not mainWeaponCharm) or (not mainWeaponCharm:get_Valid()) then
-                MDFXLData[mainWeaponCharmID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(mainWeaponCharm, mainWeaponCharmID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if reserveWeaponCharm then
             reserveWeaponCharm = reserveWeaponCharm:get_GameObject()
             local reserveWeaponCharmID = reserveWeaponCharm:get_Name()
-            if reserveWeaponCharm and reserveWeaponCharm:get_Valid() then
-                if not MDFXLData[reserveWeaponCharmID] then
-                    setup_MDFXLTable(MDFXLData, reserveWeaponCharmID)
-                end
-                MDFXLData[reserveWeaponCharmID].isInScene = true
-                MDFXLData[reserveWeaponCharmID].Parts = {}
-                MDFXLData[reserveWeaponCharmID].Enabled = {}
-                MDFXLData[reserveWeaponCharmID].Materials = {}
-                get_MaterialParams(reserveWeaponCharm, MDFXLData, reserveWeaponCharmID, MDFXLSubData, "weaponOrder", MDFXLSaveDataChunks)
-            elseif (not reserveWeaponCharm) or (not reserveWeaponCharm:get_Valid()) then
-                MDFXLData[reserveWeaponCharmID].isInScene = false
-            end
+            help_GetMaterialParams_MHWS(reserveWeaponCharm, reserveWeaponCharmID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
     end
 end
 local function get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isOtomoInScene then return end
-    local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
     MDFXLSubData.otomoOrder = {}
 
     if otomoCharacter then
         local otomoHelm = otomoCharacter:get_HelmGameObject()
-        local otomoHelmID = otomoHelm:get_Name()
         local otomoBody = otomoCharacter:get_BodyGameObject()
-        local otomoBodyID = otomoBody:get_Name()
-
-        if otomoHelm and otomoHelm:get_Valid() then
-            if not MDFXLData[otomoHelmID] then
-                setup_MDFXLTable(MDFXLData, otomoHelmID)
-            end
-            MDFXLData[otomoHelmID].isInScene = true
-            MDFXLData[otomoHelmID].Parts = {}
-            MDFXLData[otomoHelmID].Enabled = {}
-            MDFXLData[otomoHelmID].Materials = {}
-            get_MaterialParams(otomoHelm, MDFXLData, otomoHelmID, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
-        elseif (not otomoHelm) or (not otomoHelm:get_Valid()) then
-            MDFXLData[otomoHelmID].isInScene = false
+        
+        if otomoHelm then
+            local otomoHelmID = otomoHelm:get_Name()
+            help_GetMaterialParams_MHWS(otomoHelm, otomoHelmID, "otomoOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
-
-        if otomoBody and otomoBody:get_Valid() then
-            if not MDFXLData[otomoBodyID] then
-                setup_MDFXLTable(MDFXLData, otomoBodyID)
-            end
-            MDFXLData[otomoBodyID].isInScene = true
-            MDFXLData[otomoBodyID].Parts = {}
-            MDFXLData[otomoBodyID].Enabled = {}
-            MDFXLData[otomoBodyID].Materials = {}
-            get_MaterialParams(otomoBody, MDFXLData, otomoBodyID, MDFXLSubData, "otomoOrder", MDFXLSaveDataChunks)
-        elseif (not otomoBody) or (not otomoBody:get_Valid()) then
-            MDFXLData[otomoBodyID].isInScene = false
+        if otomoBody then
+            local otomoBodyID = otomoBody:get_Name()
+            help_GetMaterialParams_MHWS(otomoBody, otomoBodyID, "otomoOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
     end
 end
 local function get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     if not isOtomoInScene then return end
-    local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
     MDFXLSubData.otomoWeaponOrder = {}
 
     if otomoCharacter then
         local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-        local otomoWeaponID = otomoWeapon:get_Name()
-        if otomoWeapon and otomoWeapon:get_Valid() then
-            if not MDFXLData[otomoWeaponID] then
-                setup_MDFXLTable(MDFXLData, otomoWeaponID)
-            end
-            MDFXLData[otomoWeaponID].isInScene = true
-            MDFXLData[otomoWeaponID].Parts = {}
-            MDFXLData[otomoWeaponID].Enabled = {}
-            MDFXLData[otomoWeaponID].Materials = {}
-            get_MaterialParams(otomoWeapon, MDFXLData, otomoWeaponID, MDFXLSubData, "otomoWeaponOrder", MDFXLSaveDataChunks)
-        elseif (not otomoWeapon) or (not otomoWeapon:get_Valid()) then
-            MDFXLData[otomoWeaponID].isInScene = false
+        if otomoWeapon then
+            local otomoWeaponID = otomoWeapon:get_Name()
+            help_GetMaterialParams_MHWS(otomoWeapon, otomoWeaponID, "otomoWeaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
     end
 end
@@ -1128,19 +1039,49 @@ local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
             goto continue
         end
         if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-            local playerTransforms = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform()
-            local playerChildren = func.get_children(playerTransforms)
-            
-            for i, child in pairs(playerChildren) do
-                local childStrings = child:ToString()
-                local playerEquipment = childStrings:match(MDFXL_Cache.matchEquip)
-                
-                if playerEquipment == equipment.MeshName then
-                    local currentEquipment = playerTransforms:find(playerEquipment)
-                    local currentEquipmentID = currentEquipment:get_GameObject()
-
-                    if not (currentEquipmentID and currentEquipmentID:get_Valid()) then return end
-                    set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
+            if playerCharacter then
+                local helm = playerCharacter:getParts(0)
+                local body = playerCharacter:getParts(1)
+                local arm = playerCharacter:getParts(2)
+                local waist = playerCharacter:getParts(3)
+                local leg = playerCharacter:getParts(4)
+                local slinger = playerCharacter:getParts(5)
+        
+                if helm then
+                    local helmID = helm:get_Name()
+                    if helmID == equipment.MeshName then
+                        set_MaterialParams(helm, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if body then
+                    local bodyID = body:get_Name()
+                    if bodyID == equipment.MeshName then
+                        set_MaterialParams(body, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if arm then
+                    local armID = arm:get_Name()
+                    if armID == equipment.MeshName then
+                        set_MaterialParams(arm, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if waist then
+                    local waistID = waist:get_Name()
+                    if waistID == equipment.MeshName then
+                        set_MaterialParams(waist, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if leg then
+                    local legID = leg:get_Name()
+                    if legID == equipment.MeshName then
+                        set_MaterialParams(leg, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                if slinger then
+                    local slingerID = slinger:get_Name()
+                    if slingerID == equipment.MeshName then
+                        set_MaterialParams(slinger, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
                 end
             end
         end
@@ -1154,7 +1095,6 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
             goto continue
         end
         if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
-            local playerCharacter = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Character()
             if playerCharacter then
                 local mainWeapon = playerCharacter:get_Weapon()
                 local subWeapon = playerCharacter:get_SubWeapon()
@@ -1233,7 +1173,6 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
     end
 end
 local function update_PlayerArmamentVisibility_MHWS()
-    local playerCharacter = masterPlayer:get_Character()
     if not playerCharacter then return end
 
     local mainWeapon = playerCharacter:get_Weapon()
@@ -1298,20 +1237,21 @@ local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
             goto continue
         end
         if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-            local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
-        
             if otomoCharacter then
                 local otomoHelm = otomoCharacter:get_HelmGameObject()
-                local otomoHelmID = otomoHelm:get_Name()
                 local otomoBody = otomoCharacter:get_BodyGameObject()
-                local otomoBodyID = otomoBody:get_Name()
                 
-                if otomoHelmID == equipment.MeshName then
-                    set_MaterialParams(otomoHelm, MDFXLData, equipment, MDFXLSaveDataChunks)
+                if otomoHelm then
+                    local otomoHelmID = otomoHelm:get_Name()
+                    if otomoHelmID == equipment.MeshName then
+                        set_MaterialParams(otomoHelm, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
                 end
-
-                if otomoBodyID == equipment.MeshName then
-                    set_MaterialParams(otomoBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                if otomoBody then
+                    local otomoBodyID = otomoBody:get_Name()
+                    if otomoBodyID == equipment.MeshName then
+                        set_MaterialParams(otomoBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
                 end
             end
         end
@@ -1325,13 +1265,13 @@ local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
             goto continue
         end
         if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
-            local otomoCharacter = masterOtomo and masterOtomo:get_Valid() and masterOtomo:get_Character()
-        
             if otomoCharacter then
                 local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-                local otomoWeaponID = otomoWeapon:get_Name()
-                if otomoWeaponID == weapon.MeshName then
-                    set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
+                if otomoWeapon then
+                    local otomoWeaponID = otomoWeapon:get_Name()
+                    if otomoWeaponID == weapon.MeshName then
+                        set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
+                    end
                 end
             end
         end
