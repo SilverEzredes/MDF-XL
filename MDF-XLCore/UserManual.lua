@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/09/2025 |",
+        header = " [ USER MANUAL ] 02/12/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -54,7 +54,7 @@ local MDFXLUserManual = {
         header = "2.1 Preset Manager",
         [070] = "This is what takes up most of the MDF-XL tab, starting with the Outfit Preset search bar.\nOutfit Presets function as 'Master' Presets, they allow you to apply multiple Presets simultaneously and can be switched between using hotkeys.\n(Presets affect only a single piece of equipment and are grouped by equipment type and name.)",
         [071] = "Keyboard and Mouse:\n\nRight Shift + Page Up\nRight Shift + Page Down",
-        [072] = "Gamepad:\n\nLT (L2) + DPad Up\nLT (L2) + DPad Down",
+        [072] = "Gamepad:\n\nLT (L2) + LB(L1)\nLT (L2) + RB (R1)",
         [073] = "Hotkeys can be customized under 'MDF-XL > MDF-XL: Settings > Hotkeys'",
         [074] = "Advanced Search allows you to filter presets by tags or the author's name.\nYou can also use the search bar to filter presets in the same way as you would for Outfit Presets. Tags are optional, and some presets might not have any.",
         [075] = "Every piece of gear or equipment has a 'Default Preset.' These are auto-generated, and their purpose is to allow you to reset the appearance of the gear.\nThe Default Preset is always listed first and is named something like 'ch_03_001_002 Default' essentially the equipment ID followed by Default.",
@@ -68,7 +68,7 @@ local MDFXLUserManual = {
         [101] = "You have the option to change Presets here as well however, there's no Preset search function and presets are displayed using their full names.",
         [102] = "- Name:\nThis is the field where you input the Preset's name.",
         [103] = "- Tags:\nThis is the field where you input tags for your Preset. Tags must be separated by commas, and you're limited to five tags per preset.\nLeaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
-        [104] = "- Author:\nThis is the field where you input your username.",
+        [104] = "- Author:\nThis is the field where you input your name.",
         [105] = "- Save Preset:\nClicking this button saves your preset to its proper location. Hovering over the 'Save Preset' button will display this location.\nAlternatively, you can enable 'Show Preset Path' in the settings. Saving a preset will also update the preset list for the given equipment.\nNext to it, you can see the Finalized Preset Name, which is limited to 200 characters.",
         [106] = "- MESH/MDF Path:\nDisplays the location of the MESH and MDF files for the given equipment in the game files.",
         [107] = "Mesh Editor:",

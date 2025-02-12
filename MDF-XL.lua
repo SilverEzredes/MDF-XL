@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/12/2025"
-local modVersion = "v1.4.72"
+local modVersion = "v1.4.73"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -160,6 +160,7 @@ local MDFXL_Sub = {
     porterOrder = {},
     jsonPaths = {},
     matParamFavorites = {},
+    matPartHighlights = {},
     texturePaths = {},
 }
 local MDFXL_OutfitManager = {
@@ -2226,17 +2227,44 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     end
 
                     imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    if imgui.button("Clear Highlights") then
+                        MDFXLSubData.matPartHighlights = {}
+                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                    end
                     
+                    imgui.spacing()
+
                     for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
                         local enabledMeshPart =  MDFXLData[entry.MeshName].Enabled[i]
                         local defaultEnabledMeshPart = MDFXLDefaultsData[entry.MeshName].Enabled[i]
         
                         if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
                             changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
+                            if imgui.begin_popup_context_item() then
+                                if not func.table_contains(MDFXLSubData.matPartHighlights, partName) then
+                                    if imgui.menu_item("Highlight") then
+                                        wc = true
+                                        table.insert(MDFXLSubData.matPartHighlights, partName)
+                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                    end
+                                else
+                                    if imgui.menu_item("Remove Highlight") then
+                                        local highlightIDX = func.find_index(MDFXLSubData.matPartHighlights, paramName)
+                                        wc = true
+                                        table.remove(MDFXLSubData.matPartHighlights, highlightIDX)
+                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                    end
+                                end
+                                imgui.end_popup()
+                            end
                             MDFXLData[entry.MeshName].Enabled[i] = enabledMeshPart
                             if enabledMeshPart ~= defaultEnabledMeshPart then
                                 imgui.same_line()
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                            end
+                            if func.table_contains(MDFXLSubData.matPartHighlights,partName) then
+                                imgui.same_line()
+                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
                             end
                         end
                     end
@@ -2280,6 +2308,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 local meshPart = MDFXLData[entry.MeshName].Enabled[i]
                                 if not meshPart then
                                     imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white50))
+                                elseif func.table_contains(MDFXLSubData.matPartHighlights, partName) then
+                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.orange))
                                 else
                                     imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white))
                                 end
@@ -2756,7 +2786,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
             if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
                 imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
                 imgui.begin_rect()
-                changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets);wc = wc or changed
+                changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
                 imgui.end_rect()
                 imgui.pop_style_color(1)
             else
