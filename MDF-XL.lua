@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/11/2025"
-local modVersion = "v1.4.71"
+local modUpdated = "02/12/2025"
+local modVersion = "v1.4.72"
 local modCredits = "alphaZomega; praydog"
---TODO something is wrong with having multiple dropdown menus open in the Editor 
+
 --/////////////////////////////////////--
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
@@ -1739,6 +1739,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
             if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
                 materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
@@ -1796,6 +1799,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             elseif selected_preset == nil or {} then
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
+            :: continue ::
         end
         for i, chunk in pairs(MDFXLSaveData) do
             if chunk.wasUpdated then
@@ -2193,21 +2197,6 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.spacing()
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.indent(15)
-
-                    for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
-                        local enabledMeshPart =  MDFXLData[entry.MeshName].Enabled[i]
-                        local defaultEnabledMeshPart = MDFXLDefaultsData[entry.MeshName].Enabled[i]
-        
-                        if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
-                            changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
-                            MDFXLData[entry.MeshName].Enabled[i] = enabledMeshPart
-                            if enabledMeshPart ~= defaultEnabledMeshPart then
-                                imgui.same_line()
-                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                            end
-                        end
-                    end
-                    imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
                     if imgui.tree_node("Flags") then
                         isFlagEditor = true
                         if MDFXLData[entry.MeshName].Flags.isForceTwoSide == MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide or MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
@@ -2234,6 +2223,22 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         imgui.tree_pop()
                     else
                         isFlagEditor = false
+                    end
+
+                    imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
+                    
+                    for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
+                        local enabledMeshPart =  MDFXLData[entry.MeshName].Enabled[i]
+                        local defaultEnabledMeshPart = MDFXLDefaultsData[entry.MeshName].Enabled[i]
+        
+                        if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
+                            changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
+                            MDFXLData[entry.MeshName].Enabled[i] = enabledMeshPart
+                            if enabledMeshPart ~= defaultEnabledMeshPart then
+                                imgui.same_line()
+                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                            end
+                        end
                     end
                     imgui.indent(-15)
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -2270,8 +2275,19 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
 
                     for matName, matData in func.orderedPairs(MDFXLData[entry.MeshName].Materials) do
                         imgui.spacing()
+                        for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
+                            if partName == matName then
+                                local meshPart = MDFXLData[entry.MeshName].Enabled[i]
+                                if not meshPart then
+                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white50))
+                                else
+                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white))
+                                end
+                            end
+                        end
                         if imgui.tree_node(matName) then
                             imgui.push_id(matName)
+                            imgui.pop_style_color(1)
                             imgui.spacing()
                             if imgui.begin_popup_context_item() then
                                 if imgui.menu_item("Reset") then
@@ -2405,7 +2421,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             if currentData ~= originalData then
                                                 imgui.indent(-35)
                                             end
-                                            imgui.pop_id(); imgui.pop_style_color(); imgui.end_rect(); imgui.spacing()
+                                            imgui.pop_id()
+                                            imgui.pop_style_color()
+                                            imgui.end_rect()
+                                            imgui.spacing()
                                         end
                                     end
                                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
@@ -2582,7 +2601,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             imgui.spacing()
                             imgui.tree_pop()
                         end
+                        imgui.pop_style_color(1)
                     end
+                    
                     imgui.indent(-5)
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                     imgui.tree_pop()
@@ -2606,10 +2627,10 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.presetManager.secondaryDividerLen) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
     if order == "weaponOrder" then
-        changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon)wc = wc or changed
+        changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon); wc = wc or changed
         ui.tooltip("Hides the currently equipped main weapon when sheathed.")
         imgui.same_line()
-        changed, MDFXLSettingsData.isHideSubWeapon = imgui.checkbox("Hide Sub Weapon", MDFXLSettingsData.isHideSubWeapon)wc = wc or changed
+        changed, MDFXLSettingsData.isHideSubWeapon = imgui.checkbox("Hide Sub Weapon", MDFXLSettingsData.isHideSubWeapon); wc = wc or changed
         ui.tooltip("Hides the currently equipped sub weapon when sheathed.")
     end
     for _, entryName in pairs(MDFXLSubData[order]) do
