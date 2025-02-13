@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/13/2025"
-local modVersion = "v1.4.74"
+local modVersion = "v1.4.75"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -104,7 +104,7 @@ local MDFXL_DefaultSettings = {
     isHideMainWeapon = false,
     isHideSubWeapon = false,
     version = modVersion,
-    presetVersion = "v1.00",
+    presetVersion = "v1.01",
     presetManager = {
         isTrimPresetNames = true,
         showOutfitPreset = true,
@@ -412,7 +412,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
             renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
             renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
             renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
-            renderMesh:set_DrawShadowCast(dataTable[entry].Flags.isShadowCastEnable)
+            renderMesh:set_DrawShadowCast(dataTable[entry.MeshName].Flags.isShadowCastEnable)
         end
         local chunkID = entry.MeshName:sub(1, 4)
         if (chunkID == "ch02") or (chunkID == "ch03") then
@@ -1329,6 +1329,46 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         :: continue ::
     end
 end
+
+local function spawn_PlayerFemaleBaseBody_MHWS()
+    --NOTE: via.Prefab doesn't have 'set_Path' as a TBD Method in MHWilds, not sure how to get around this atm. 02/13/25
+    -- local objComps = {
+    --     "via.render.Mesh",
+    --     "app.MeshSettings",
+    --     "app.CharacterEditRegion",
+    --     "via.render.StreamingMeshController",
+    --     "via.render.StreamingTextureController",
+    --     "app.StreamingController",
+    --     "app.ChainSetting",
+    --     "via.character.CollisionShapePreset",
+    --     "app.UnderWaterChain",
+    --     "via.motion.JointConstraints",
+    --     "via.motion.ChildSecondary",
+    --     "via.motion.Chain2",
+    --     "ace.MeshBoundary"
+    -- }
+    --if not isPlayerInScene then return end
+    --local scene = func.get_CurrentScene()
+    --local playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    -- if not playerBaseBody then
+    --     local spawn
+    --     local pfb = sdk.create_instance("via.Prefab"):add_ref()
+    --     pfb:call(".ctor()")
+    --     pfb:set_Path("MDF-XL/FemaleBase/ch03_002_1002.pfb")
+    --     pfb:set_Standby(true)
+
+    --     spawn = spawn or pfb:call("instantiate(via.vec3)", Vector3f.new(0,0,0))
+        --func.spawn_gameobj("MDFXL_FPlayerBase",  Vector3f.new(0,0,0), Vector4f.new(0,0,0,0), 0, objComps)
+    --end
+    -- local renderMesh = func.get_GameObjectComponent(playerBaseBody, renderComp)
+
+    -- if renderMesh then
+    --     local mesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/ch03_basebody.mesh")
+    --     local mdf = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/ch03_basebody.mdf2")
+    --     renderMesh:setMesh(mesh)
+    --     renderMesh:set_Material(mdf)
+    -- end
+end
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
     check_IfPlayerIsInScene_MHWS()
@@ -1341,6 +1381,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        --spawn_PlayerFemaleBaseBody_MHWS()
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
@@ -1356,6 +1397,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         materialParamDefaultsHolder = func.deepcopy(MDFXLData)
 
         for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName)
+            and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName)
+            and not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
             if MDFXLData[equipment.MeshName].Presets ~= nil then
                 local selected_preset = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
                 if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil and equipment.isInScene then
@@ -1417,6 +1463,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 end
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
+            :: continue ::
         end
         
         for i, chunk in pairs(MDFXLSaveData) do
@@ -1451,6 +1498,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName)
+            and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName)
+            and not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
             if MDFXLData[equipment.MeshName].Presets ~= nil then
                 local selected_preset = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
                 if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
@@ -1512,6 +1564,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 end
                 MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
+            :: continue ::
         end
         
         for i, chunk in pairs(MDFXLSaveData) do
