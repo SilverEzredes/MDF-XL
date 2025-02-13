@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/12/2025"
-local modVersion = "v1.4.73"
+local modUpdated = "02/13/2025"
+local modVersion = "v1.4.74"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -235,6 +235,7 @@ local function setup_MDFXLTable(MDFXLData, entry)
         isForceTwoSide = nil,
         isBeautyMask = nil,
         isReceiveSSSSS = nil,
+        isShadowCastEnable = nil,
     }
     MDFXLData[entry].Textures = {}
     MDFXLData[entry].TextureCount = {}
@@ -359,6 +360,7 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
         dataTable[entry].Flags.isForceTwoSide = renderMesh:get_ForceTwoSide()
         dataTable[entry].Flags.isBeautyMask = renderMesh:get_BeautyMaskFlag()
         dataTable[entry].Flags.isReceiveSSSSS = renderMesh:get_ReceiveSSSSSFlag()
+        dataTable[entry].Flags.isShadowCastEnable = renderMesh:get_DrawShadowCast()
         table.sort(subDataTable.texturePaths)
     end
 end
@@ -410,6 +412,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
             renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
             renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
             renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
+            renderMesh:set_DrawShadowCast(dataTable[entry].Flags.isShadowCastEnable)
         end
         local chunkID = entry.MeshName:sub(1, 4)
         if (chunkID == "ch02") or (chunkID == "ch03") then
@@ -2221,6 +2224,13 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
                             end
                         end
+                        if MDFXLData[entry.MeshName].Flags.isShadowCastEnable == MDFXLDefaultsData[entry.MeshName].Flags.isShadowCastEnable or MDFXLData[entry.MeshName].Flags.isShadowCastEnable ~= MDFXLDefaultsData[entry.MeshName].Flags.isShadowCastEnable then
+                            changed, MDFXLData[entry.MeshName].Flags.isShadowCastEnable = imgui.checkbox("Shadow Cast", MDFXLData[entry.MeshName].Flags.isShadowCastEnable); wc = wc or changed
+                            if MDFXLData[entry.MeshName].Flags.isShadowCastEnable ~= MDFXLDefaultsData[entry.MeshName].Flags.isShadowCastEnable then
+                                imgui.same_line()
+                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                            end
+                        end
                         imgui.tree_pop()
                     else
                         isFlagEditor = false
@@ -2339,6 +2349,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                         if targetParams[paramName] ~= nil then
                                             targetParams[paramName] = func.deepcopy(paramValue)
                                             wc = true
+                                            isUpdaterBypass = true
                                         end
                                     end
                                 end
