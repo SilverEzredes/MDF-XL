@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/13/2025"
-local modVersion = "v1.4.75"
+local modUpdated = "02/14/2025"
+local modVersion = "v1.4.76"
 local modCredits = "alphaZomega; praydog"
 
 --/////////////////////////////////////--
@@ -14,6 +14,7 @@ local hk = require("Hotkeys/Hotkeys")
 local changed = false
 local wc = false
 
+local scene = func.get_CurrentScene()
 local renderComp = "via.render.Mesh"
 local texResourceComp = "via.render.TextureResource"
 local masterPlayer = nil
@@ -162,6 +163,7 @@ local MDFXL_Sub = {
     matParamFavorites = {},
     matPartHighlights = {},
     texturePaths = {},
+    playerSkinColorData = {},
 }
 local MDFXL_OutfitManager = {
     showMDFXLOutfitEditor = false,
@@ -713,6 +715,41 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             reserveWeaponCharm = reserveWeaponCharm:get_GameObject()
             local reserveWeaponCharmID = reserveWeaponCharm:get_Name()
             help_GetMaterialParams_MHWS(reserveWeaponCharm, reserveWeaponCharmID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+    end
+end
+local function get_PlayerSkinData_MHWS(MDFXLSubData)
+    if not isPlayerInScene then return end
+    local playerTransforms = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform()
+    
+    if playerTransforms then
+        local playerFace = playerTransforms:find("Player_Face")
+        playerFace = playerFace:get_GameObject()
+
+        if playerFace then
+            local renderMesh = func.get_GameObjectComponent(playerFace, renderComp)
+
+            if renderMesh then
+                local matCount = renderMesh:get_MaterialNum()
+                for j = 0, matCount - 1 do
+                    local matName = renderMesh:getMaterialName(j)
+                    local matParam = renderMesh:getMaterialVariableNum(j)
+                    
+                    if matName == "face" then
+                        if matParam then
+                            for k = 0, matParam - 1 do
+                                local matParamNames = renderMesh:getMaterialVariableName(j, k)
+                                if matParamNames == "AddColorUV" then
+                                    MDFXLSubData.playerSkinColorData = {}
+                                    local matTypeFloat4 = renderMesh:getMaterialFloat4(j, k)
+                                    local matTypeFloat4New = {matTypeFloat4.x, matTypeFloat4.y, matTypeFloat4.z, matTypeFloat4.w}
+                                    table.insert(MDFXLSubData.playerSkinColorData, matTypeFloat4New)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
 end
@@ -1331,43 +1368,34 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
 end
 
 local function spawn_PlayerFemaleBaseBody_MHWS()
-    --NOTE: via.Prefab doesn't have 'set_Path' as a TBD Method in MHWilds, not sure how to get around this atm. 02/13/25
-    -- local objComps = {
-    --     "via.render.Mesh",
-    --     "app.MeshSettings",
-    --     "app.CharacterEditRegion",
-    --     "via.render.StreamingMeshController",
-    --     "via.render.StreamingTextureController",
-    --     "app.StreamingController",
-    --     "app.ChainSetting",
-    --     "via.character.CollisionShapePreset",
-    --     "app.UnderWaterChain",
-    --     "via.motion.JointConstraints",
-    --     "via.motion.ChildSecondary",
-    --     "via.motion.Chain2",
-    --     "ace.MeshBoundary"
-    -- }
-    --if not isPlayerInScene then return end
-    --local scene = func.get_CurrentScene()
-    --local playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
-    -- if not playerBaseBody then
-    --     local spawn
-    --     local pfb = sdk.create_instance("via.Prefab"):add_ref()
-    --     pfb:call(".ctor()")
-    --     pfb:set_Path("MDF-XL/FemaleBase/ch03_002_1002.pfb")
-    --     pfb:set_Standby(true)
+    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    if not playerFemaleBaseBody then
+        func.spawn_gameobj("MDFXL_FPlayerBase", Vector3f.new(0,0,0), Vector4f.new(0,0,0,1), 0, {"via.render.Mesh"})
+    end
+end
+local function update_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
 
-    --     spawn = spawn or pfb:call("instantiate(via.vec3)", Vector3f.new(0,0,0))
-        --func.spawn_gameobj("MDFXL_FPlayerBase",  Vector3f.new(0,0,0), Vector4f.new(0,0,0,0), 0, objComps)
-    --end
-    -- local renderMesh = func.get_GameObjectComponent(playerBaseBody, renderComp)
+    if playerFemaleBaseBody then
+        local renderMesh = func.get_GameObjectComponent(playerFemaleBaseBody, renderComp)
+        
+        local mesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
+        local mdf = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
+        if renderMesh then
+            renderMesh:setMesh(mesh)
+            renderMesh:set_Material(mdf)
+            renderMesh:set_StencilValue(1)    
+        end
 
-    -- if renderMesh then
-    --     local mesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/ch03_basebody.mesh")
-    --     local mdf = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/ch03_basebody.mdf2")
-    --     renderMesh:setMesh(mesh)
-    --     renderMesh:set_Material(mdf)
-    -- end
+        local playerFemaleBaseBodyID = playerFemaleBaseBody:get_Name()
+        help_GetMaterialParams_MHWS(playerFemaleBaseBody, playerFemaleBaseBodyID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        
+        local playerFemaleBaseBodyTransforms = playerFemaleBaseBody:get_Transform()
+        if playerFemaleBaseBodyTransforms then
+            playerFemaleBaseBodyTransforms:setParent(masterPlayer:get_Object():get_Transform(), true)
+            playerFemaleBaseBodyTransforms:set_SameJointsConstraint(true)
+        end
+    end
 end
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
@@ -1378,14 +1406,20 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater then
         get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        get_PlayerSkinData_MHWS(MDFXLSubData)
+        spawn_PlayerFemaleBaseBody_MHWS() --TODO
+
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        --spawn_PlayerFemaleBaseBody_MHWS()
+
+        update_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData) --TODO
+        
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+        dump_DefaultMaterialParamJSON_MHWS(MDFXLData) 
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+        
         json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
         for i, chunk in pairs(MDFXLSaveData) do
             if chunk.wasUpdated then
