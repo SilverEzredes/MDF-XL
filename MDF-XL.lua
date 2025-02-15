@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/14/2025"
-local modVersion = "v1.4.76"
-local modCredits = "alphaZomega; praydog"
-
+local modUpdated = "02/15/2025"
+local modVersion = "v1.4.80"
+local modCredits = "alphaZomega; praydog; raq"
+--todo auto loader for base body
 --/////////////////////////////////////--
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
@@ -14,7 +14,6 @@ local hk = require("Hotkeys/Hotkeys")
 local changed = false
 local wc = false
 
-local scene = func.get_CurrentScene()
 local renderComp = "via.render.Mesh"
 local texResourceComp = "via.render.TextureResource"
 local masterPlayer = nil
@@ -30,6 +29,7 @@ local isMDFXL = false
 local isMeshEditor = false
 local isFlagEditor = false
 local isTextureEditor = false
+local isBodyEditor = false
 local isUserManual = false
 local isAdvancedSearch = false
 local materialParamDefaultsHolder = {}
@@ -164,6 +164,7 @@ local MDFXL_Sub = {
     matPartHighlights = {},
     texturePaths = {},
     playerSkinColorData = {},
+    playerBaseBodyOrder = {},
 }
 local MDFXL_OutfitManager = {
     showMDFXLOutfitEditor = false,
@@ -305,11 +306,15 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
                     if not func.table_contains(dataTable[entry].Parts, matName) then
                         table.insert(dataTable[entry].Parts, matName)
                     end
-
+                    
                     if enabledMat then
                         if dataTable[entry].currentPresetIDX >= 1 or nil then
                             for k, _ in ipairs(dataTable[entry].Parts) do
-                                dataTable[entry].Enabled[k] = true
+                                if order == "playerBaseBodyOrder" then
+                                    dataTable[entry].Enabled[k] = false
+                                else
+                                    dataTable[entry].Enabled[k] = true
+                                end
                             end
                         end
                     end
@@ -482,6 +487,10 @@ local isPlayerLeftCamp = false
 local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
 local isWeaponDrawn = false
+local isPlayerBaseBodySetup = false
+local isFemale = false
+local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
+local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
 --Generic getters and checks
 local function get_PlayerManager_MHWS()
     if playerManager_MHWS == nil then playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager") end
@@ -617,7 +626,7 @@ if reframework.get_game_name() == "mhwilds" then
     )
 end
 --Material Param Getters
-local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFXLData, MDFXLSubData, MDFXLSaveData)
     if gameObject and gameObject:get_Valid() then
         if not MDFXLData[gameObjectID] then
             setup_MDFXLTable(MDFXLData, gameObjectID)
@@ -626,7 +635,7 @@ local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFX
         MDFXLData[gameObjectID].Parts = {}
         MDFXLData[gameObjectID].Enabled = {}
         MDFXLData[gameObjectID].Materials = {}
-        get_MaterialParams(gameObject, MDFXLData, gameObjectID, MDFXLSubData, order, MDFXLSaveDataChunks)
+        get_MaterialParams(gameObject, MDFXLData, gameObjectID, MDFXLSubData, order, MDFXLSaveData)
     elseif (not gameObject) or (not gameObject:get_Valid()) then
         MDFXLData[gameObjectID].isInScene = false
     end
@@ -636,6 +645,7 @@ local function get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
     MDFXLSubData.order = {}
     
     if playerCharacter then
+        isFemale = playerCharacter:get_IsFemale()
         local helm = playerCharacter:getParts(0)
         local body = playerCharacter:getParts(1)
         local arm = playerCharacter:getParts(2)
@@ -831,6 +841,17 @@ local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         end
     end
 end
+local function dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
+    for _, equipment in pairs(MDFXLData) do
+        if MDFXLData[equipment.MeshName].MeshName == "MDFXL_FPlayerBase" then
+            json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
+            
+            if MDFXLSettings.isDebug then
+                log.info("[MDF-XL-JSON] [" .. equipment.MeshName .. " Default Preset Dumped]")
+            end
+        end
+    end
+end
 local function clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
     for _, equipment in pairs(MDFXLData) do
         if (MDFXLData[equipment.MeshName].isUpdated) or (isUpdaterBypass) or (not isDefaultsDumped) or (isNowLoading and not isLoadingScreenUpdater) then
@@ -1013,6 +1034,9 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
 end
 local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
     for _, equipment in pairs(MDFXLData) do
+        if equipment.MeshName == "MDFXL_FPlayerBase" then
+            goto continue
+        end
         local presetTable = MDFXLData[equipment.MeshName].Presets
         
         for i, presetName in pairs(presetTable) do
@@ -1059,6 +1083,7 @@ local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
                 end
             end
         end
+        ::continue::
     end
     table.sort(tagTable._AuthorList)
     table.sort(tagTable._AuthorSearchList)
@@ -1368,32 +1393,86 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
 end
 
 local function spawn_PlayerFemaleBaseBody_MHWS()
+    local scene = func.get_CurrentScene()
     local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
     if not playerFemaleBaseBody then
         func.spawn_gameobj("MDFXL_FPlayerBase", Vector3f.new(0,0,0), Vector4f.new(0,0,0,1), 0, {"via.render.Mesh"})
+        isPlayerBaseBodySetup = true
     end
 end
-local function update_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+local function setup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+    local scene = func.get_CurrentScene()
     local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
 
     if playerFemaleBaseBody then
+        MDFXLSubData.playerBaseBodyOrder = {}
         local renderMesh = func.get_GameObjectComponent(playerFemaleBaseBody, renderComp)
         
-        local mesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
-        local mdf = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
         if renderMesh then
-            renderMesh:setMesh(mesh)
-            renderMesh:set_Material(mdf)
-            renderMesh:set_StencilValue(1)    
+            renderMesh:setMesh(femaleBaseMesh)
+            renderMesh:set_Material(femaleBaseMDF)
+            renderMesh:set_StencilValue(1)
+            renderMesh:set_BeautyMaskFlag(true)
+            
+            local matCount = renderMesh:get_MaterialNum()
+            for j = 0, matCount - 1 do
+                local matName = renderMesh:getMaterialName(j)
+                local matParam = renderMesh:getMaterialVariableNum(j)
+                
+                if matName and matParam then
+                    for k = 0, matParam - 1 do
+                        local matType = renderMesh:getMaterialVariableType(j, k)
+                        local matParamNames = renderMesh:getMaterialVariableName(j, k)
+                        if matParamNames == "AddColorUV" and matType == 4 then
+                            local vec4 = MDFXLSubData.playerSkinColorData[1]
+                            renderMesh:setMaterialFloat4(j, k, Vector4f.new(vec4[1], vec4[2], vec4[3], vec4[4]))
+                        end
+                    end
+                end
+            end
         end
 
         local playerFemaleBaseBodyID = playerFemaleBaseBody:get_Name()
-        help_GetMaterialParams_MHWS(playerFemaleBaseBody, playerFemaleBaseBodyID, "order", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        help_GetMaterialParams_MHWS(playerFemaleBaseBody, playerFemaleBaseBodyID, "playerBaseBodyOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         
         local playerFemaleBaseBodyTransforms = playerFemaleBaseBody:get_Transform()
         if playerFemaleBaseBodyTransforms then
             playerFemaleBaseBodyTransforms:setParent(masterPlayer:get_Object():get_Transform(), true)
             playerFemaleBaseBodyTransforms:set_SameJointsConstraint(true)
+        end
+    end
+end
+local function lateSetup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+    local scene = func.get_CurrentScene()
+    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+
+    if playerFemaleBaseBody then
+        local renderMesh = func.get_GameObjectComponent(playerFemaleBaseBody, renderComp)
+        
+        if renderMesh then
+            for v = 0, #MDFXLData["MDFXL_FPlayerBase"].Enabled do
+                renderMesh:setMaterialsEnable(v, MDFXLData["MDFXL_FPlayerBase"].Enabled[v + 1])
+            end
+        end
+    end
+    isPlayerBaseBodySetup = false
+end
+local function update_PlayerFemaleBaseBody(MDFXLData)
+    if not isPlayerInScene then return end
+    local scene = func.get_CurrentScene()
+    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+
+    if playerFemaleBaseBody then
+        for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSub.playerBaseBodyOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
+            if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
+                if equipment.MeshName == "MDFXL_FPlayerBase" then
+                    set_MaterialParams(playerFemaleBaseBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                end
+            end
+            :: continue ::
         end
     end
 end
@@ -1407,16 +1486,14 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerSkinData_MHWS(MDFXLSubData)
-        spawn_PlayerFemaleBaseBody_MHWS() --TODO
-
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-
-        update_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData) --TODO
-        
+        if isFemale then
+            spawn_PlayerFemaleBaseBody_MHWS()
+        end
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        dump_DefaultMaterialParamJSON_MHWS(MDFXLData) 
+        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         
@@ -1519,6 +1596,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        if isFemale then
+            spawn_PlayerFemaleBaseBody_MHWS()
+        end
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
@@ -1979,6 +2059,42 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if isPlayerInScene and isDefaultsDumped then
         update_PlayerArmamentVisibility_MHWS()
     end
+    --Base Body Updater
+    if isPlayerInScene and isDefaultsDumped and isPlayerBaseBodySetup then
+        if isFemale then
+            setup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            lateSetup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
+            end
+            for _, equipment in pairs(MDFXLData) do
+                if not func.table_contains(MDFXLSubData.playerBaseBodyOrder, MDFXLData[equipment.MeshName].MeshName) then
+                    goto continue
+                end
+                if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                    materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+                    MDFXLPresetTracker[equipment.MeshName] = {}
+                    MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
+                end
+                :: continue ::
+            end
+            log.info("[MDF-XL] [Female Base Body Updated.]")
+        end
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                chunk.wasUpdated = false
+            end
+        end
+        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+    end
 end
 local function update_MDFXLViaHotkeys_MHWS()
     local KBM_Controls = not MDFXLSettings.useModifier or hk.check_hotkey("Modifier", true)
@@ -2047,21 +2163,25 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 
                 imgui.text_colored("  " .. ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
                 imgui.indent(10)
-
-                if imgui.button("Reset to Defaults") then
-                    wc = true
-                    MDFXLData[entry.MeshName].isUpdated = true
-                    MDFXLData[entry.MeshName].Enabled = MDFXLDefaultsData[entry.MeshName].Enabled
-                    MDFXLData[entry.MeshName].Materials = MDFXLDefaultsData[entry.MeshName].Materials
-                    clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-                    cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-                    updateFunc(MDFXLData)
-                    json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                
+                if order ~= "playerBaseBodyOrder" then
+                    if imgui.button("Reset to Defaults") then
+                        wc = true
+                        MDFXLData[entry.MeshName].isUpdated = true
+                        MDFXLData[entry.MeshName].Enabled = MDFXLDefaultsData[entry.MeshName].Enabled
+                        MDFXLData[entry.MeshName].Materials = MDFXLDefaultsData[entry.MeshName].Materials
+                        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+                        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+                        updateFunc(MDFXLData)
+                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                    end
+                    func.tooltip("Reset all material and mesh parameters.")
                 end
-                func.tooltip("Reset all material and mesh parameters.")
 
                 if MDFXLSettingsData.showMeshName then
-                    imgui.same_line()
+                    if order ~= "playerBaseBodyOrder" then
+                        imgui.same_line()
+                    end
                     ui.textButton_ColoredValue("Mesh Name:", entry.MeshName, func.convert_rgba_to_ABGR(ui.colors.gold))
                 end
 
@@ -2111,9 +2231,15 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         if partsMatch then
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            
     
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[entry.MeshName][key] = value
+                                if order == "playerBaseBodyOrder" then
+                                    for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                    end
+                                end
                             end
                         else
                             log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
@@ -2331,10 +2457,23 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     
                     imgui.spacing()
 
+                    local sortedParts = {}
+
                     for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
-                        local enabledMeshPart =  MDFXLData[entry.MeshName].Enabled[i]
+                        table.insert(sortedParts, {index = i, name = partName})
+                    end
+
+                    table.sort(sortedParts, function(a, b)
+                        return a.name < b.name
+                    end)
+
+                    for _, entryData in ipairs(sortedParts) do
+                        local i = entryData.index
+                        local partName = entryData.name
+                    
+                        local enabledMeshPart = MDFXLData[entry.MeshName].Enabled[i]
                         local defaultEnabledMeshPart = MDFXLDefaultsData[entry.MeshName].Enabled[i]
-        
+                    
                         if enabledMeshPart == defaultEnabledMeshPart or enabledMeshPart ~= defaultEnabledMeshPart then
                             changed, enabledMeshPart = imgui.checkbox(partName, enabledMeshPart); wc = wc or changed
                             if imgui.begin_popup_context_item() then
@@ -2359,7 +2498,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 imgui.same_line()
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
                             end
-                            if func.table_contains(MDFXLSubData.matPartHighlights,partName) then
+                            if func.table_contains(MDFXLSubData.matPartHighlights, partName) then
                                 imgui.same_line()
                                 imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
                             end
@@ -2371,370 +2510,371 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 else
                     isMeshEditor = false
                 end
-                
-                if imgui.tree_node("Material Editor") then
-                    imgui.spacing()
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                    changed, searchQuery = imgui.input_text("Param Search", searchQuery); wc = wc or changed
-                    ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
-                    func.tooltip("Match Case")
-                    imgui.same_line()
-                    if imgui.button("Clear Search") then
-                        searchQuery = ""
-                    end
-                    imgui.same_line()
-                    if imgui.checkbox("Filter: Favorites", MDFXLSettingsData.isFilterFavorites) then
-                        MDFXLSettingsData.isFilterFavorites = not MDFXLSettingsData.isFilterFavorites
-                    end
-                    if MDFXLSettingsData.showMaterialFavoritesCount then
-                        imgui.same_line()
-                        local favCount = #MDFXLSubData.matParamFavorites
-                        ui.textButton_ColoredValue("", favCount .. " ", func.convert_rgba_to_ABGR(ui.colors.gold))
-                    end
-                    imgui.same_line()
-                    if imgui.button("Clear Favorites") then
-                        MDFXLSubData.matParamFavorites = {}
-                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                    end
-                    imgui.indent(5)
-
-                    for matName, matData in func.orderedPairs(MDFXLData[entry.MeshName].Materials) do
+                if order ~= "playerBaseBodyOrder" then
+                    if imgui.tree_node("Material Editor") then
                         imgui.spacing()
-                        for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
-                            if partName == matName then
-                                local meshPart = MDFXLData[entry.MeshName].Enabled[i]
-                                if not meshPart then
-                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white50))
-                                elseif func.table_contains(MDFXLSubData.matPartHighlights, partName) then
-                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.orange))
-                                else
-                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white))
+                        imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                        changed, searchQuery = imgui.input_text("Param Search", searchQuery); wc = wc or changed
+                        ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
+                        func.tooltip("Match Case")
+                        imgui.same_line()
+                        if imgui.button("Clear Search") then
+                            searchQuery = ""
+                        end
+                        imgui.same_line()
+                        if imgui.checkbox("Filter: Favorites", MDFXLSettingsData.isFilterFavorites) then
+                            MDFXLSettingsData.isFilterFavorites = not MDFXLSettingsData.isFilterFavorites
+                        end
+                        if MDFXLSettingsData.showMaterialFavoritesCount then
+                            imgui.same_line()
+                            local favCount = #MDFXLSubData.matParamFavorites
+                            ui.textButton_ColoredValue("", favCount .. " ", func.convert_rgba_to_ABGR(ui.colors.gold))
+                        end
+                        imgui.same_line()
+                        if imgui.button("Clear Favorites") then
+                            MDFXLSubData.matParamFavorites = {}
+                            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                        end
+                        imgui.indent(5)
+
+                        for matName, matData in func.orderedPairs(MDFXLData[entry.MeshName].Materials) do
+                            imgui.spacing()
+                            for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
+                                if partName == matName then
+                                    local meshPart = MDFXLData[entry.MeshName].Enabled[i]
+                                    if not meshPart then
+                                        imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white50))
+                                    elseif func.table_contains(MDFXLSubData.matPartHighlights, partName) then
+                                        imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.orange))
+                                    else
+                                        imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white))
+                                    end
                                 end
                             end
-                        end
-                        if imgui.tree_node(matName) then
-                            imgui.push_id(matName)
-                            imgui.pop_style_color(1)
-                            imgui.spacing()
-                            if imgui.begin_popup_context_item() then
-                                if imgui.menu_item("Reset") then
-                                    for paramName, _ in pairs(matData) do
-                                        MDFXLData[entry.MeshName].Materials[matName][paramName][1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
+                            if imgui.tree_node(matName) then
+                                imgui.push_id(matName)
+                                imgui.pop_style_color(1)
+                                imgui.spacing()
+                                if imgui.begin_popup_context_item() then
+                                    if imgui.menu_item("Reset") then
+                                        for paramName, _ in pairs(matData) do
+                                            MDFXLData[entry.MeshName].Materials[matName][paramName][1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
+                                            wc = true
+                                        end
+                                        changed = true
+                                    end
+                                    if imgui.menu_item("Copy") then
+                                        materialEditorParamHolder = func.deepcopy(MDFXLData[entry.MeshName].Materials[matName])
                                         wc = true
                                     end
-                                    changed = true
-                                end
-                                if imgui.menu_item("Copy") then
-                                    materialEditorParamHolder = func.deepcopy(MDFXLData[entry.MeshName].Materials[matName])
-                                    wc = true
-                                end
-                                if imgui.menu_item("Paste") then
-                                    local copiedParams = materialEditorParamHolder
-                                    local targetParams = MDFXLData[entry.MeshName].Materials[matName]
-                                    
-                                    for paramName, paramValue in pairs(copiedParams) do
-                                        if targetParams[paramName] ~= nil then
-                                            targetParams[paramName] = func.deepcopy(paramValue)
-                                            wc = true
-                                            isUpdaterBypass = true
+                                    if imgui.menu_item("Paste") then
+                                        local copiedParams = materialEditorParamHolder
+                                        local targetParams = MDFXLData[entry.MeshName].Materials[matName]
+                                        
+                                        for paramName, paramValue in pairs(copiedParams) do
+                                            if targetParams[paramName] ~= nil then
+                                                targetParams[paramName] = func.deepcopy(paramValue)
+                                                wc = true
+                                                isUpdaterBypass = true
+                                            end
                                         end
                                     end
+                                    
+                                    imgui.end_popup()
+                                end
+                                if MDFXLSettingsData.showMaterialParamCount then
+                                    ui.textButton_ColoredValue("Parameter Count:", entry.MaterialParamCount[matName], func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                end
+                                if MDFXLSettingsData.showTextureCount then
+                                    imgui.same_line()
+                                    ui.textButton_ColoredValue("Texture Count:", entry.TextureCount[matName], func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                 end
                                 
-                                imgui.end_popup()
-                            end
-                            if MDFXLSettingsData.showMaterialParamCount then
-                                ui.textButton_ColoredValue("Parameter Count:", entry.MaterialParamCount[matName], func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                            end
-                            if MDFXLSettingsData.showTextureCount then
-                                imgui.same_line()
-                                ui.textButton_ColoredValue("Texture Count:", entry.TextureCount[matName], func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                            end
-                            
-                            if entry.TextureCount[matName] ~= 0 then
-                                if imgui.tree_node("Textures") then
-                                    isTextureEditor = true
-                                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                if entry.TextureCount[matName] ~= 0 then
+                                    if imgui.tree_node("Textures") then
+                                        isTextureEditor = true
+                                        imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
 
-                                    changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
-                                    ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
-                                    func.tooltip("Match Case")
-                                    imgui.same_line()
-                                    if imgui.button("Clear Search") then
-                                        textureSearchQuery = ""
-                                    end
-                                    imgui.same_line()
-                                    imgui.text("Filters:")
-                                    imgui.same_line()
-                                    if imgui.button("[ ART ]") then
-                                        textureSearchQuery = "Art/"
-                                    end
-                                    imgui.same_line()
-                                    if imgui.button("[ MMTR ]") then
-                                        textureSearchQuery = "MasterMaterial/"
-                                    end
-                                    imgui.same_line()
-                                    if imgui.button("[ RELib ]") then
-                                        textureSearchQuery = "RE_ENGINE_LIBRARY/"
-                                    end
-                                    imgui.same_line()
-                                    if imgui.button("[ SYS ]") then
-                                        textureSearchQuery = "systems/"
-                                    end
-
-                                    imgui.spacing()
-                                    for texName, texData in func.orderedPairs(MDFXLData[entry.MeshName].Textures[matName]) do
-                                        local originalData = MDFXLDefaultsData[entry.MeshName].Textures[matName][texName]
-                                        local currentData = MDFXLData[entry.MeshName].Textures[matName][texName]
-                                        local filteredTextures = {}
-                                        local filteredIDX = nil
-
-                                        for _, texture in ipairs(MDFXLSubData.texturePaths) do
-                                            if textureSearchQuery == "" or (MDFXLSettings.isSearchMatchCase and texture:find(textureSearchQuery, 1, true)) or (not MDFXLSettings.isSearchMatchCase and texture:lower():find(textureSearchQuery:lower(), 1, true)) then
-                                                table.insert(filteredTextures, texture)
-                                            end
+                                        changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
+                                        ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
+                                        func.tooltip("Match Case")
+                                        imgui.same_line()
+                                        if imgui.button("Clear Search") then
+                                            textureSearchQuery = ""
+                                        end
+                                        imgui.same_line()
+                                        imgui.text("Filters:")
+                                        imgui.same_line()
+                                        if imgui.button("[ ART ]") then
+                                            textureSearchQuery = "Art/"
+                                        end
+                                        imgui.same_line()
+                                        if imgui.button("[ MMTR ]") then
+                                            textureSearchQuery = "MasterMaterial/"
+                                        end
+                                        imgui.same_line()
+                                        if imgui.button("[ RELib ]") then
+                                            textureSearchQuery = "RE_ENGINE_LIBRARY/"
+                                        end
+                                        imgui.same_line()
+                                        if imgui.button("[ SYS ]") then
+                                            textureSearchQuery = "systems/"
                                         end
 
-                                        for i, texture in ipairs(filteredTextures) do
-                                            if texture == MDFXLData[entry.MeshName].Textures[matName][texName] then
-                                                filteredIDX = i
-                                                break
-                                            end
-                                        end
-                                        filteredIDX = filteredIDX or 1
+                                        imgui.spacing()
+                                        for texName, texData in func.orderedPairs(MDFXLData[entry.MeshName].Textures[matName]) do
+                                            local originalData = MDFXLDefaultsData[entry.MeshName].Textures[matName][texName]
+                                            local currentData = MDFXLData[entry.MeshName].Textures[matName][texName]
+                                            local filteredTextures = {}
+                                            local filteredIDX = nil
 
-                                        if currentData == originalData or currentData ~= originalData then
-                                            imgui.begin_rect()
-                                            if currentData ~= originalData then
-                                                imgui.indent(35)
+                                            for _, texture in ipairs(MDFXLSubData.texturePaths) do
+                                                if textureSearchQuery == "" or (MDFXLSettings.isSearchMatchCase and texture:find(textureSearchQuery, 1, true)) or (not MDFXLSettings.isSearchMatchCase and texture:lower():find(textureSearchQuery:lower(), 1, true)) then
+                                                    table.insert(filteredTextures, texture)
+                                                end
                                             end
-                                            if imgui.button("[ " .. texName .. " ]") then
-                                                MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLDefaultsData[entry.MeshName].Textures[matName][texName]
-                                                wc = true
+
+                                            for i, texture in ipairs(filteredTextures) do
+                                                if texture == MDFXLData[entry.MeshName].Textures[matName][texName] then
+                                                    filteredIDX = i
+                                                    break
+                                                end
                                             end
-                                            if imgui.begin_popup_context_item() then
-                                                if imgui.menu_item("Reset") then
+                                            filteredIDX = filteredIDX or 1
+
+                                            if currentData == originalData or currentData ~= originalData then
+                                                imgui.begin_rect()
+                                                if currentData ~= originalData then
+                                                    imgui.indent(35)
+                                                end
+                                                if imgui.button("[ " .. texName .. " ]") then
                                                     MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLDefaultsData[entry.MeshName].Textures[matName][texName]
                                                     wc = true
                                                 end
-                                                if imgui.menu_item("Copy") then
-                                                textureEditorStringHolder = MDFXLData[entry.MeshName].Textures[matName][texName]
+                                                if imgui.begin_popup_context_item() then
+                                                    if imgui.menu_item("Reset") then
+                                                        MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLDefaultsData[entry.MeshName].Textures[matName][texName]
+                                                        wc = true
+                                                    end
+                                                    if imgui.menu_item("Copy") then
+                                                    textureEditorStringHolder = MDFXLData[entry.MeshName].Textures[matName][texName]
+                                                        wc = true
+                                                    end
+                                                    if textureEditorStringHolder ~= nil then
+                                                        if imgui.menu_item("Paste") then
+                                                            MDFXLData[entry.MeshName].Textures[matName][texName] = textureEditorStringHolder
+                                                            wc = true
+                                                        end
+                                                    end
+                                                    imgui.end_popup()
+                                                end
+                                                if currentData ~= originalData then
+                                                    imgui.same_line()
+                                                    imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                                    imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                                end
+                                                imgui.push_id(texName)
+                                                
+                                                changed, filteredIDX = imgui.combo("", filteredIDX, filteredTextures); wc = wc or changed
+                                                if changed then
+                                                    local selectedTexture = filteredTextures[filteredIDX]
+                                                    local realIDX = func.find_index(MDFXLSubData.texturePaths, selectedTexture)
+                                                    
+                                                    if realIDX then
+                                                        MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLSubData.texturePaths[realIDX]
+                                                    end
                                                     wc = true
                                                 end
-                                                if textureEditorStringHolder ~= nil then
-                                                    if imgui.menu_item("Paste") then
-                                                        MDFXLData[entry.MeshName].Textures[matName][texName] = textureEditorStringHolder
+                                                if currentData ~= originalData then
+                                                    imgui.indent(-35)
+                                                end
+                                                imgui.pop_id()
+                                                imgui.pop_style_color()
+                                                imgui.end_rect()
+                                                imgui.spacing()
+                                            end
+                                        end
+                                        imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                        imgui.tree_pop()
+                                    else
+                                        isTextureEditor = false
+                                    end
+                                    imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                end
+
+                                for paramName, paramValue in func.orderedPairs(matData) do
+                                    local originalData = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName]
+                                    local match
+                                    if searchQuery == "" and not MDFXLSettingsData.isFilterFavorites then
+                                        imgui.spacing()
+                                    end
+                                    
+                                    if MDFXLSettingsData.isSearchMatchCase then
+                                        match = string.find(paramName, searchQuery, 1, true)
+                                    else
+                                        match = string.find(paramName:lower(), searchQuery:lower(), 1, true)
+                                    end
+                                    
+                                    if (not MDFXLSettingsData.isFilterFavorites or func.table_contains(MDFXLSubData.matParamFavorites, paramName)) and match then
+                                        if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
+                                            imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(ui.colors.gold))
+                                        end
+                                        imgui.begin_rect()
+                                        if func.compareTables(paramValue, originalData) then
+                                            if imgui.button("[ " .. tostring(paramName) .. " ]") then
+                                                paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
+                                                wc = true
+                                            end
+                                            if imgui.is_item_hovered() then
+                                                lastMatParamName = paramName
+                                            end
+                                            if imgui.begin_popup_context_item() then
+                                                if imgui.menu_item("Reset") then
+                                                    paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
+                                                    wc = true
+                                                end
+                                                if imgui.menu_item("Copy") then
+                                                    if type(paramValue[1]) == "table" then
+                                                        materialEditorSubParamFloat4Holder = paramValue[1]
+                                                        materialEditorSubParamFloatHolder = nil
+                                                    else
+                                                        materialEditorSubParamFloat4Holder = nil
+                                                        materialEditorSubParamFloatHolder = paramValue[1]
+                                                    end
+                                                    wc = true
+                                                end
+                                                if imgui.menu_item("Paste") then
+                                                    wc = true
+                                                    if type(paramValue[1]) == "table" then
+                                                        if materialEditorSubParamFloat4Holder ~= nil then
+                                                            paramValue[1] = materialEditorSubParamFloat4Holder
+                                                        end
+                                                    else
+                                                        if materialEditorSubParamFloatHolder ~= nil then
+                                                            paramValue[1] = materialEditorSubParamFloatHolder
+                                                        end
+                                                    end
+                                                end
+                                                if not func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
+                                                    if imgui.menu_item("Add to Favorites") then
                                                         wc = true
+                                                        table.insert(MDFXLSubData.matParamFavorites, paramName)
+                                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                                    end
+                                                else
+                                                    if imgui.menu_item("Remove from Favorites") then
+                                                        local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
+                                                        if faveIDX then
+                                                            wc = true
+                                                            table.remove(MDFXLSubData.matParamFavorites, faveIDX)
+                                                            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                                        end
                                                     end
                                                 end
                                                 imgui.end_popup()
                                             end
-                                            if currentData ~= originalData then
+                                            if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
                                                 imgui.same_line()
-                                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                                                imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
                                             end
-                                            imgui.push_id(texName)
-                                            
-                                            changed, filteredIDX = imgui.combo("", filteredIDX, filteredTextures); wc = wc or changed
-                                            if changed then
-                                                local selectedTexture = filteredTextures[filteredIDX]
-                                                local realIDX = func.find_index(MDFXLSubData.texturePaths, selectedTexture)
-                                                
-                                                if realIDX then
-                                                    MDFXLData[entry.MeshName].Textures[matName][texName] = MDFXLSubData.texturePaths[realIDX]
-                                                end
-                                                wc = true
-                                            end
-                                            if currentData ~= originalData then
-                                                imgui.indent(-35)
-                                            end
-                                            imgui.pop_id()
-                                            imgui.pop_style_color()
-                                            imgui.end_rect()
-                                            imgui.spacing()
-                                        end
-                                    end
-                                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                                    imgui.tree_pop()
-                                else
-                                    isTextureEditor = false
-                                end
-                                imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                            end
-
-                            for paramName, paramValue in func.orderedPairs(matData) do
-                                local originalData = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName]
-                                local match
-                                if searchQuery == "" and not MDFXLSettingsData.isFilterFavorites then
-                                    imgui.spacing()
-                                end
-                                
-                                if MDFXLSettingsData.isSearchMatchCase then
-                                    match = string.find(paramName, searchQuery, 1, true)
-                                else
-                                    match = string.find(paramName:lower(), searchQuery:lower(), 1, true)
-                                end
-                                
-                                if (not MDFXLSettingsData.isFilterFavorites or func.table_contains(MDFXLSubData.matParamFavorites, paramName)) and match then
-                                    if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
-                                        imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(ui.colors.gold))
-                                    end
-                                    imgui.begin_rect()
-                                    if func.compareTables(paramValue, originalData) then
-                                        if imgui.button("[ " .. tostring(paramName) .. " ]") then
-                                            paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
-                                            wc = true
-                                        end
-                                        if imgui.is_item_hovered() then
-                                            lastMatParamName = paramName
-                                        end
-                                        if imgui.begin_popup_context_item() then
-                                            if imgui.menu_item("Reset") then
+                                        elseif not func.compareTables(paramValue, originalData) then
+                                            imgui.indent(35)
+                                            if imgui.button("[ " .. tostring(paramName) .. " ]") then
                                                 paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
                                                 wc = true
                                             end
-                                            if imgui.menu_item("Copy") then
-                                                if type(paramValue[1]) == "table" then
-                                                    materialEditorSubParamFloat4Holder = paramValue[1]
-                                                    materialEditorSubParamFloatHolder = nil
-                                                else
-                                                    materialEditorSubParamFloat4Holder = nil
-                                                    materialEditorSubParamFloatHolder = paramValue[1]
-                                                end
-                                                wc = true
-                                            end
-                                            if imgui.menu_item("Paste") then
-                                                wc = true
-                                                if type(paramValue[1]) == "table" then
-                                                    if materialEditorSubParamFloat4Holder ~= nil then
-                                                        paramValue[1] = materialEditorSubParamFloat4Holder
-                                                    end
-                                                else
-                                                    if materialEditorSubParamFloatHolder ~= nil then
-                                                        paramValue[1] = materialEditorSubParamFloatHolder
-                                                    end
-                                                end
-                                            end
-                                            if not func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
-                                                if imgui.menu_item("Add to Favorites") then
-                                                    wc = true
-                                                    table.insert(MDFXLSubData.matParamFavorites, paramName)
-                                                    json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                                                end
-                                            else
-                                                if imgui.menu_item("Remove from Favorites") then
-                                                    local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
-                                                    if faveIDX then
-                                                        wc = true
-                                                        table.remove(MDFXLSubData.matParamFavorites, faveIDX)
-                                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                                                    end
-                                                end
-                                            end
-                                            imgui.end_popup()
-                                        end
-                                        if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
-                                            imgui.same_line()
-                                            imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
-                                        end
-                                    elseif not func.compareTables(paramValue, originalData) then
-                                        imgui.indent(35)
-                                        if imgui.button("[ " .. tostring(paramName) .. " ]") then
-                                            paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
-                                            wc = true
-                                        end
-                                        if imgui.is_item_hovered() then
-                                            lastMatParamName = paramName
-                                        end
-                                        if imgui.begin_popup_context_item() then
-                                            if imgui.menu_item("Reset") then
-                                                paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
-                                                wc = true
-                                            end
-                                            if imgui.menu_item("Copy") then
-                                                if type(paramValue[1]) == "table" then
-                                                    materialEditorSubParamFloat4Holder = paramValue[1]
-                                                    materialEditorSubParamFloatHolder = nil
-                                                else
-                                                    materialEditorSubParamFloat4Holder = nil
-                                                    materialEditorSubParamFloatHolder = paramValue[1]
-                                                end
-                                                wc = true
-                                            end
-                                            if imgui.menu_item("Paste") then
-                                                wc = true
-                                                if type(paramValue[1]) == "table" then
-                                                    if materialEditorSubParamFloat4Holder ~= nil then
-                                                        paramValue[1] = materialEditorSubParamFloat4Holder
-                                                    end
-                                                else
-                                                    if materialEditorSubParamFloatHolder ~= nil then
-                                                        paramValue[1] = materialEditorSubParamFloatHolder
-                                                    end
-                                                end
-                                            end
-                                            if not func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
-                                                if imgui.menu_item("Add to Favorites") then
-                                                    wc = true
-                                                    table.insert(MDFXLSubData.matParamFavorites, paramName)
-                                                    json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                                                end
-                                            else
-                                                if imgui.menu_item("Remove from Favorites") then
-                                                    local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
-                                                    if faveIDX then
-                                                        wc = true
-                                                        table.remove(MDFXLSubData.matParamFavorites, faveIDX)
-                                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                                                    end
-                                                end
-                                            end
-                                            imgui.end_popup()
-                                        end
-                                        if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
-                                            imgui.same_line()
-                                            imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
-                                        end
-                                        imgui.same_line()
-                                        imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                                    end
-
-                                    if type(paramValue) == "table" then
-                                        if type(paramValue[1]) == "table" then
-                                            for i, value in ipairs(paramValue) do
-                                                imgui.push_id(tostring(paramName))
-                                                local newcolor = Vector4f.new(value[1], value[2], value[3], value[4])
-                                                changed, newcolor = imgui.color_edit4("", newcolor, nil); wc = wc or changed
-                                                if imgui.is_item_hovered() then
-                                                    lastMatParamName = paramName
-                                                end
-                                                paramValue[i] = {newcolor.x, newcolor.y, newcolor.z, newcolor.w}
-                                                imgui.pop_id()
-                                            end
-                                        else
-                                            imgui.push_id(tostring(paramName))
-                                            changed, paramValue[1] = imgui.drag_float("", paramValue[1], 0.001, 0.0, 100.0); wc = wc or changed
                                             if imgui.is_item_hovered() then
                                                 lastMatParamName = paramName
                                             end
-                                            imgui.pop_id()
+                                            if imgui.begin_popup_context_item() then
+                                                if imgui.menu_item("Reset") then
+                                                    paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
+                                                    wc = true
+                                                end
+                                                if imgui.menu_item("Copy") then
+                                                    if type(paramValue[1]) == "table" then
+                                                        materialEditorSubParamFloat4Holder = paramValue[1]
+                                                        materialEditorSubParamFloatHolder = nil
+                                                    else
+                                                        materialEditorSubParamFloat4Holder = nil
+                                                        materialEditorSubParamFloatHolder = paramValue[1]
+                                                    end
+                                                    wc = true
+                                                end
+                                                if imgui.menu_item("Paste") then
+                                                    wc = true
+                                                    if type(paramValue[1]) == "table" then
+                                                        if materialEditorSubParamFloat4Holder ~= nil then
+                                                            paramValue[1] = materialEditorSubParamFloat4Holder
+                                                        end
+                                                    else
+                                                        if materialEditorSubParamFloatHolder ~= nil then
+                                                            paramValue[1] = materialEditorSubParamFloatHolder
+                                                        end
+                                                    end
+                                                end
+                                                if not func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
+                                                    if imgui.menu_item("Add to Favorites") then
+                                                        wc = true
+                                                        table.insert(MDFXLSubData.matParamFavorites, paramName)
+                                                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                                    end
+                                                else
+                                                    if imgui.menu_item("Remove from Favorites") then
+                                                        local faveIDX = func.find_index(MDFXLSubData.matParamFavorites, paramName)
+                                                        if faveIDX then
+                                                            wc = true
+                                                            table.remove(MDFXLSubData.matParamFavorites, faveIDX)
+                                                            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+                                                        end
+                                                    end
+                                                end
+                                                imgui.end_popup()
+                                            end
+                                            if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
+                                                imgui.same_line()
+                                                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
+                                            end
+                                            imgui.same_line()
+                                            imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                         end
+
+                                        if type(paramValue) == "table" then
+                                            if type(paramValue[1]) == "table" then
+                                                for i, value in ipairs(paramValue) do
+                                                    imgui.push_id(tostring(paramName))
+                                                    local newcolor = Vector4f.new(value[1], value[2], value[3], value[4])
+                                                    changed, newcolor = imgui.color_edit4("", newcolor, nil); wc = wc or changed
+                                                    if imgui.is_item_hovered() then
+                                                        lastMatParamName = paramName
+                                                    end
+                                                    paramValue[i] = {newcolor.x, newcolor.y, newcolor.z, newcolor.w}
+                                                    imgui.pop_id()
+                                                end
+                                            else
+                                                imgui.push_id(tostring(paramName))
+                                                changed, paramValue[1] = imgui.drag_float("", paramValue[1], 0.001, 0.0, 100.0); wc = wc or changed
+                                                if imgui.is_item_hovered() then
+                                                    lastMatParamName = paramName
+                                                end
+                                                imgui.pop_id()
+                                            end
+                                        end
+                                        imgui.end_rect()
+                                        imgui.pop_style_color()
                                     end
-                                    imgui.end_rect()
-                                    imgui.pop_style_color()
                                 end
+                                imgui.pop_id()
+                                imgui.spacing()
+                                imgui.tree_pop()
                             end
-                            imgui.pop_id()
-                            imgui.spacing()
-                            imgui.tree_pop()
+                            imgui.pop_style_color(1)
                         end
-                        imgui.pop_style_color(1)
+                        
+                        imgui.indent(-5)
+                        imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
+                        imgui.tree_pop()
                     end
-                    
-                    imgui.indent(-5)
-                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
-                    imgui.tree_pop()
                 end
 
                 if changed or wc then
@@ -3143,6 +3283,18 @@ local function draw_MDFXLPaletteGUI_MHWS()
         imgui.end_window()
     end
 end
+local function draw_MDFXLBodyEditorGUI_MHWS()
+    if imgui.begin_window("MDF-XL: Body Editor") then
+        if isFemale then
+            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Female // ", func.convert_rgba_to_ABGR(ui.colors.gold))
+            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, ui.colors.gold)
+        else
+            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Male // ", func.convert_rgba_to_ABGR(ui.colors.gold))
+        end
+        
+        imgui.end_window()
+    end
+end
 local function draw_MDFXLEditorGUI_MHWS()
     if imgui.begin_window("MDF-XL: Editor") then
         imgui.begin_rect()
@@ -3174,6 +3326,20 @@ local function draw_MDFXLEditorGUI_MHWS()
             imgui.indent()
             
             draw_MDFXLPaletteGUI_MHWS()
+
+            imgui.unindent()
+            imgui.end_window()
+        end
+        imgui.same_line()
+        changed, isBodyEditor = imgui.checkbox("Body Editor", isBodyEditor); wc = wc or changed
+        func.tooltip("Show/Hide the Body Editor.")
+        if not isBodyEditor or imgui.begin_window("MDF-XL: Body Editor", true, 0) == false  then
+            isBodyEditor = false
+        else
+            imgui.spacing()
+            imgui.indent()
+            
+            draw_MDFXLBodyEditorGUI_MHWS()
 
             imgui.unindent()
             imgui.end_window()
@@ -3781,6 +3947,7 @@ local function draw_MDFXLGUI_MHWS()
             update_OtomoEquipmentMaterialParams_MHWS(MDFXL)
             update_OtomoArmamentMaterialParams_MHWS(MDFXL)
             update_PorterMaterialParams_MHWS(MDFXL)
+            update_PlayerFemaleBaseBody(MDFXL)
         end
 
         imgui.indent(10)

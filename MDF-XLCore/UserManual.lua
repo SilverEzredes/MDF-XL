@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/12/2025 |",
+        header = " [ USER MANUAL ] 02/15/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -43,7 +43,7 @@ local MDFXLUserManual = {
     },
     Credits = {
         header = "1.5 Credits",
-        [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nMembers of the Modding Haven Discord Server for testing and feedback.",
+        [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nRaq for his help.\n\nMembers of the Modding Haven Discord Server for testing and feedback.",
     },
     Usage = {
         header = "2. USAGE",
