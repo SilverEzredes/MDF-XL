@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/15/2025"
-local modVersion = "v1.4.80"
+local modUpdated = "02/16/2025"
+local modVersion = "v1.4.81"
 local modCredits = "alphaZomega; praydog; raq"
---todo auto loader for base body
+
 --/////////////////////////////////////--
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
@@ -113,6 +113,7 @@ local MDFXL_DefaultSettings = {
         showHunterArmament = true,
         showOtomoEquipment = true,
         showOtomoArmament = true,
+        showBaseBody = true,
         showPorter = true,
         showEquipmentName = true,
         showEquipmentType = true,
@@ -1391,7 +1392,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         :: continue ::
     end
 end
-
+--Base Body Managers
 local function spawn_PlayerFemaleBaseBody_MHWS()
     local scene = func.get_CurrentScene()
     local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
@@ -2083,6 +2084,64 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     MDFXLPresetTracker[equipment.MeshName] = {}
                     MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
                 end
+
+                local lastPresetIndex = func.find_index(MDFXLData[equipment.MeshName].Presets, MDFXLPresetTracker[equipment.MeshName].lastPresetName)
+                local selected_preset = MDFXLData[equipment.MeshName].Presets[lastPresetIndex]
+                if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
+                    wc = true
+                    local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
+                    local temp_parts = json.load_file(json_filepath)
+                    if #temp_parts.Parts ~= 0 then
+                        if MDFXLSettings.isDebug then
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
+                        end
+                        
+                        local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
+
+                        if partsMatch then
+                            for _, part in ipairs(temp_parts.Parts) do
+                                local found = false
+                                for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
+                                    if part == ogPart then
+                                        found = true
+                                        break
+                                    end
+                                end
+                
+                                if not found then
+                                    partsMatch = false
+                                    break
+                                end
+                            end
+                        end
+                
+                        if partsMatch then
+                            temp_parts.Presets = nil
+                            temp_parts.currentPresetIDX = nil
+
+                            for key, value in pairs(temp_parts) do
+                                MDFXLData[equipment.MeshName][key] = value
+                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
+                            MDFXLData[equipment.MeshName].isUpdated = true
+                            isUpdaterBypass = true
+                            if isFemale then
+                                update_PlayerFemaleBaseBody(MDFXLData)
+                            end
+                        else
+                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                            MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                        end
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
+                        end
+                    end
+                elseif selected_preset == nil or {} then
+                    MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                end
+                
                 :: continue ::
             end
             log.info("[MDF-XL] [Female Base Body Updated.]")
@@ -2094,6 +2153,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         end
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+        log.info("[MDF-XL] [Base Body Data Updated.]")
     end
 end
 local function update_MDFXLViaHotkeys_MHWS()
@@ -3068,6 +3128,11 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
 
                         for key, value in pairs(temp_parts) do
                             MDFXLData[entry.MeshName][key] = value
+                            if order == "playerBaseBodyOrder" then
+                                for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
                         end
                     else
                         log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
@@ -3285,13 +3350,22 @@ local function draw_MDFXLPaletteGUI_MHWS()
 end
 local function draw_MDFXLBodyEditorGUI_MHWS()
     if imgui.begin_window("MDF-XL: Body Editor") then
-        if isFemale then
-            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Female // ", func.convert_rgba_to_ABGR(ui.colors.gold))
-            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, ui.colors.gold)
-        else
-            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Male // ", func.convert_rgba_to_ABGR(ui.colors.gold))
-        end
+        imgui.begin_rect()
         
+        imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.indent(25)
+
+        if isFemale then
+            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Female // ", func.convert_rgba_to_ABGR(ui.colors.highContrast.purple))
+            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, ui.colors.highContrast.purple)
+        else
+            imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Male // ", func.convert_rgba_to_ABGR(ui.colors.highContrast.purple))
+        end
+
+        imgui.indent(-25)
+        imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
+
+        imgui.end_rect()
         imgui.end_window()
     end
 end
@@ -3484,6 +3558,9 @@ local function draw_MDFXLPresetGUI_MHWS()
         imgui.tree_pop()
     else
         isAdvancedSearch = false
+    end
+    if isFemale then
+        setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLSettings.presetManager.showBaseBody)
     end
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, "Hunter: Armor", ui.colors.gold, MDFXLSettings.presetManager.showHunterEquipment)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, "Hunter: Weapon", ui.colors.orange, MDFXLSettings.presetManager.showHunterArmament)
@@ -3825,6 +3902,7 @@ local function draw_MDFXLGUI_MHWS()
                 changed, MDFXLSettings.presetManager.showOutfitPreset = imgui.checkbox("Show Outfit Preset", MDFXLSettings.presetManager.showOutfitPreset); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterEquipment = imgui.checkbox("Show Hunter Armor Presets", MDFXLSettings.presetManager.showHunterEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterArmament = imgui.checkbox("Show Hunter Weapon Presets", MDFXLSettings.presetManager.showHunterArmament); wc = wc or changed
+                changed, MDFXLSettings.presetManager.showBaseBody = imgui.checkbox("Show Base Body Presets", MDFXLSettings.presetManager.showBaseBody); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoEquipment = imgui.checkbox("Show Palico Armor Presets", MDFXLSettings.presetManager.showOtomoEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoArmament = imgui.checkbox("Show Palico Weapon Presets", MDFXLSettings.presetManager.showOtomoArmament); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showPorter = imgui.checkbox("Show Seikret Presets", MDFXLSettings.presetManager.showPorter); wc = wc or changed

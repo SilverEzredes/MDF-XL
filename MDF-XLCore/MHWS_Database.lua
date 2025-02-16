@@ -1,5 +1,7 @@
 local MHWS_EquipmentData = {
     --[Types: 1A = Male A | 1B = Male B | 2A = Female A | 2B = Female B | 3 = Left-Handed Weapon | 4 = Right-Handed Weapon | 5 = Two-Handed Weapon | 6 = Weapon Accessory | 7 = Palico | 8 = Palico Weapon]
+    MDFXL_MPlayerBase = {Name = "Base Body",                Type = "1"},
+    MDFXL_FPlayerBase = {Name = "Base Body",                Type = "2"},
     ----------------------------------------------------------------------Hope
     ch02_001_0001 =     {Name = "Hope Vambraces",           Type = "1A"},
     ch02_001_0002 =     {Name = "Hope Mail",                Type = "1A"},
