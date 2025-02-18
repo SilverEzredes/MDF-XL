@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/16/2025 |",
+        header = " [ USER MANUAL ] 02/18/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -65,14 +65,14 @@ local MDFXLUserManual = {
     Editor = {
         header = "2.2 Editor",
         [100] = "This is where you can customize the currently equipped gear. It is also where you can save Presets and make Outfit Presets.\nThe layout is the same as the Preset Manager's, and there are several display settings available under 'MDF-XL > MDF-XL: Settings > Editor Settings'.",
-        [101] = "You have the option to change Presets here as well however, there's no Preset search function and presets are displayed using their full names.",
+        [101] = "You have the option to change Presets here as well however, there's no Preset search function and presets are displayed using their full names.\nIf you want your changes to the materials and submeshes to remain you must save them to a preset!",
         [102] = "- Name:\nThis is the field where you input the Preset's name.",
         [103] = "- Tags:\nThis is the field where you input tags for your Preset. Tags must be separated by commas, and you're limited to five tags per preset.\nLeaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
         [104] = "- Author:\nThis is the field where you input your name.",
         [105] = "- Save Preset:\nClicking this button saves your preset to its proper location. Hovering over the 'Save Preset' button will display this location.\nAlternatively, you can enable 'Show Preset Path' in the settings. Saving a preset will also update the preset list for the given equipment.\nNext to it, you can see the Finalized Preset Name, which is limited to 200 characters.",
         [106] = "- MESH/MDF Path:\nDisplays the location of the MESH and MDF files for the given equipment in the game files.",
         [107] = "Mesh Editor:",
-        [108] = "Allows you to hide or unhide parts of the equipment based on the materials. If a part has been changed, a blue asterisk will appear after the part name.",
+        [108] = "Allows you to hide or unhide parts of the equipment based on the materials. If a part has been changed, a blue asterisk will appear after the part name.\nRight-clicking on a submesh's name brings up a context menu that lets you highlight the submesh in the Material Editor.\nDisabled submeshes will appear grayed out in the Material Editor.",
         [109] = "Flags:",
         [110] = "Allows you to toggle different flags for the mesh, these affect all parts of the mesh.",
         [111] = "Material Editor:",

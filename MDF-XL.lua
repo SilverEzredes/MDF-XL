@@ -2,9 +2,9 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/16/2025"
-local modVersion = "v1.4.81"
-local modCredits = "alphaZomega; praydog; raq"
+local modUpdated = "02/18/2025"
+local modVersion = "v1.4.83"
+local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
 local func = require("_SharedCore/Functions")
@@ -173,6 +173,7 @@ local MDFXL_OutfitManager = {
     currentOutfitPresetIDX = 1,
     jsonPaths = [[MDF-XL\\Outfits\\.*.json]],
     Presets = {},
+    isBody = true,
     isHunterEquipment = true,
     isHunterArmament = true,
     isOtomoEquipment = true,
@@ -490,8 +491,12 @@ local isAppearanceEditorUpdater = false
 local isWeaponDrawn = false
 local isPlayerBaseBodySetup = false
 local isFemale = false
+local playerBaseBody = nil
 local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
 local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
+local maleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
+local maleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
+
 --Generic getters and checks
 local function get_PlayerManager_MHWS()
     if playerManager_MHWS == nil then playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager") end
@@ -1393,25 +1398,44 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
     end
 end
 --Base Body Managers
-local function spawn_PlayerFemaleBaseBody_MHWS()
+local function spawn_PlayerBaseBody_MHWS()
+    if not isPlayerInScene then return end
     local scene = func.get_CurrentScene()
-    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
-    if not playerFemaleBaseBody then
-        func.spawn_gameobj("MDFXL_FPlayerBase", Vector3f.new(0,0,0), Vector4f.new(0,0,0,1), 0, {"via.render.Mesh"})
+    if isFemale then
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    else
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_MPlayerBase")
+    end
+
+    if playerBaseBody == nil then
+        if isFemale then
+            func.spawn_gameobj("MDFXL_FPlayerBase", Vector3f.new(0,0,0), Vector4f.new(0,0,0,1), 0, {"via.render.Mesh"})
+        else
+            func.spawn_gameobj("MDFXL_MPlayerBase", Vector3f.new(0,0,0), Vector4f.new(0,0,0,1), 0, {"via.render.Mesh"})
+        end
         isPlayerBaseBodySetup = true
     end
 end
-local function setup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+local function setup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
     local scene = func.get_CurrentScene()
-    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    if isFemale then
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    else
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_MPlayerBase")
+    end
 
-    if playerFemaleBaseBody then
+    if playerBaseBody then
         MDFXLSubData.playerBaseBodyOrder = {}
-        local renderMesh = func.get_GameObjectComponent(playerFemaleBaseBody, renderComp)
+        local renderMesh = func.get_GameObjectComponent(playerBaseBody, renderComp)
         
         if renderMesh then
-            renderMesh:setMesh(femaleBaseMesh)
-            renderMesh:set_Material(femaleBaseMDF)
+            if isFemale then
+                renderMesh:setMesh(femaleBaseMesh)
+                renderMesh:set_Material(femaleBaseMDF)
+            else
+                renderMesh:setMesh(maleBaseMesh)
+                renderMesh:set_Material(maleBaseMDF)
+            end
             renderMesh:set_StencilValue(1)
             renderMesh:set_BeautyMaskFlag(true)
             
@@ -1433,44 +1457,63 @@ local function setup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
             end
         end
 
-        local playerFemaleBaseBodyID = playerFemaleBaseBody:get_Name()
-        help_GetMaterialParams_MHWS(playerFemaleBaseBody, playerFemaleBaseBodyID, "playerBaseBodyOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        local playerBaseBodyID = playerBaseBody:get_Name()
+        help_GetMaterialParams_MHWS(playerBaseBody, playerBaseBodyID, "playerBaseBodyOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         
-        local playerFemaleBaseBodyTransforms = playerFemaleBaseBody:get_Transform()
-        if playerFemaleBaseBodyTransforms then
-            playerFemaleBaseBodyTransforms:setParent(masterPlayer:get_Object():get_Transform(), true)
-            playerFemaleBaseBodyTransforms:set_SameJointsConstraint(true)
+        local playerBaseBodyTransforms = playerBaseBody:get_Transform()
+        if playerBaseBodyTransforms then
+            playerBaseBodyTransforms:setParent(masterPlayer:get_Object():get_Transform(), true)
+            playerBaseBodyTransforms:set_SameJointsConstraint(true)
         end
     end
 end
-local function lateSetup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
+local function lateSetup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
     local scene = func.get_CurrentScene()
-    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    if isFemale then
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    else
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_MPlayerBase")
+    end
 
-    if playerFemaleBaseBody then
-        local renderMesh = func.get_GameObjectComponent(playerFemaleBaseBody, renderComp)
+    if playerBaseBody then
+        local renderMesh = func.get_GameObjectComponent(playerBaseBody, renderComp)
         
         if renderMesh then
-            for v = 0, #MDFXLData["MDFXL_FPlayerBase"].Enabled do
-                renderMesh:setMaterialsEnable(v, MDFXLData["MDFXL_FPlayerBase"].Enabled[v + 1])
+            if isFemale then
+                for v = 0, #MDFXLData["MDFXL_FPlayerBase"].Enabled do
+                    renderMesh:setMaterialsEnable(v, MDFXLData["MDFXL_FPlayerBase"].Enabled[v + 1])
+                end
+            else
+                for v = 0, #MDFXLData["MDFXL_MPlayerBase"].Enabled do
+                    renderMesh:setMaterialsEnable(v, MDFXLData["MDFXL_MPlayerBase"].Enabled[v + 1])
+                end
             end
         end
     end
     isPlayerBaseBodySetup = false
 end
-local function update_PlayerFemaleBaseBody(MDFXLData)
-    if not isPlayerInScene then return end
+local function update_PlayerBaseBody(MDFXLData)
     local scene = func.get_CurrentScene()
-    local playerFemaleBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    if isFemale then
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_FPlayerBase")
+    else
+        playerBaseBody = scene:call("findGameObject(System.String)", "MDFXL_MPlayerBase")
+    end
 
-    if playerFemaleBaseBody then
+    if playerBaseBody then
         for _, equipment in pairs(MDFXLData) do
             if not func.table_contains(MDFXLSub.playerBaseBodyOrder, MDFXLData[equipment.MeshName].MeshName) then
                 goto continue
             end
             if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
-                if equipment.MeshName == "MDFXL_FPlayerBase" then
-                    set_MaterialParams(playerFemaleBaseBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                if isFemale then
+                    if equipment.MeshName == "MDFXL_FPlayerBase" then
+                        set_MaterialParams(playerBaseBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                else
+                    if equipment.MeshName == "MDFXL_MPlayerBase" then
+                        set_MaterialParams(playerBaseBody, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
                 end
             end
             :: continue ::
@@ -1490,9 +1533,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        if isFemale then
-            spawn_PlayerFemaleBaseBody_MHWS()
-        end
+        spawn_PlayerBaseBody_MHWS()
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
@@ -1597,9 +1638,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        if isFemale then
-            spawn_PlayerFemaleBaseBody_MHWS()
-        end
+        spawn_PlayerBaseBody_MHWS()
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
@@ -2062,89 +2101,91 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     end
     --Base Body Updater
     if isPlayerInScene and isDefaultsDumped and isPlayerBaseBodySetup then
-        if isFemale then
-            setup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
-            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-            dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
-            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-            lateSetup_PlayerFemaleBaseBody_MHWS(MDFXLData, MDFXLSubData)
-            for i, chunk in pairs(MDFXLSaveData) do
-                if chunk.wasUpdated then
-                    json.dump_file(chunk.fileName, chunk.data)
-                    chunk.wasUpdated = false
-                end
+        setup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
+        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+        dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
+        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+        lateSetup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
+        for i, chunk in pairs(MDFXLSaveData) do
+            if chunk.wasUpdated then
+                json.dump_file(chunk.fileName, chunk.data)
+                chunk.wasUpdated = false
             end
-            for _, equipment in pairs(MDFXLData) do
-                if not func.table_contains(MDFXLSubData.playerBaseBodyOrder, MDFXLData[equipment.MeshName].MeshName) then
-                    goto continue
-                end
-                if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                    materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
-                    MDFXLPresetTracker[equipment.MeshName] = {}
-                    MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-                end
+        end
+        for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSubData.playerBaseBodyOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
+            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+                MDFXLPresetTracker[equipment.MeshName] = {}
+                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
+            end
 
-                local lastPresetIndex = func.find_index(MDFXLData[equipment.MeshName].Presets, MDFXLPresetTracker[equipment.MeshName].lastPresetName)
-                local selected_preset = MDFXLData[equipment.MeshName].Presets[lastPresetIndex]
-                if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
-                    wc = true
-                    local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                    local temp_parts = json.load_file(json_filepath)
-                    if #temp_parts.Parts ~= 0 then
-                        if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
-                        end
-                        
-                        local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
+            local lastPresetIndex = func.find_index(MDFXLData[equipment.MeshName].Presets, MDFXLPresetTracker[equipment.MeshName].lastPresetName)
+            local selected_preset = MDFXLData[equipment.MeshName].Presets[lastPresetIndex]
+            if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
+                wc = true
+                local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
+                local temp_parts = json.load_file(json_filepath)
+                if #temp_parts.Parts ~= 0 then
+                    if MDFXLSettings.isDebug then
+                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
+                    end
+                    
+                    local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
 
-                        if partsMatch then
-                            for _, part in ipairs(temp_parts.Parts) do
-                                local found = false
-                                for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
-                                    if part == ogPart then
-                                        found = true
-                                        break
-                                    end
-                                end
-                
-                                if not found then
-                                    partsMatch = false
+                    if partsMatch then
+                        for _, part in ipairs(temp_parts.Parts) do
+                            local found = false
+                            for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
+                                if part == ogPart then
+                                    found = true
                                     break
                                 end
                             end
-                        end
-                
-                        if partsMatch then
-                            temp_parts.Presets = nil
-                            temp_parts.currentPresetIDX = nil
-
-                            for key, value in pairs(temp_parts) do
-                                MDFXLData[equipment.MeshName][key] = value
-                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
-                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                end
+            
+                            if not found then
+                                partsMatch = false
+                                break
                             end
-                            MDFXLData[equipment.MeshName].isUpdated = true
-                            isUpdaterBypass = true
-                            if isFemale then
-                                update_PlayerFemaleBaseBody(MDFXLData)
-                            end
-                        else
-                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
-                            MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
                         end
                     end
-                elseif selected_preset == nil or {} then
-                    MDFXLData[equipment.MeshName].currentPresetIDX = 1
+            
+                    if partsMatch then
+                        temp_parts.Presets = nil
+                        temp_parts.currentPresetIDX = nil
+
+                        for key, value in pairs(temp_parts) do
+                            MDFXLData[equipment.MeshName][key] = value
+                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                            end
+                        end
+                        MDFXLData[equipment.MeshName].isUpdated = true
+                        isUpdaterBypass = true
+                        if isFemale then
+                            update_PlayerBaseBody(MDFXLData)
+                        end
+                    else
+                        log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                        MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                    end
+                    if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                        log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
+                    end
                 end
-                
-                :: continue ::
+            elseif selected_preset == nil or {} then
+                MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
+            
+            :: continue ::
+        end
+        if isFemale then
             log.info("[MDF-XL] [Female Base Body Updated.]")
+        else
+            log.info("[MDF-XL] [Male Base Body Updated.]")
         end
         for i, chunk in pairs(MDFXLSaveData) do
             if chunk.wasUpdated then
@@ -2515,7 +2556,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                     end
                     
-                    imgui.spacing()
+                    imgui.same_line()
 
                     local sortedParts = {}
 
@@ -2526,6 +2567,24 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     table.sort(sortedParts, function(a, b)
                         return a.name < b.name
                     end)
+                    
+                    if imgui.button("Show All") then
+                        for _, entryData in ipairs(sortedParts) do
+                            MDFXLData[entry.MeshName].Enabled[entryData.index] = true
+                        end
+                        wc = true
+                    end
+                    
+                    imgui.same_line()
+                    
+                    if imgui.button("Hide All") then
+                        for _, entryData in ipairs(sortedParts) do
+                            MDFXLData[entry.MeshName].Enabled[entryData.index] = false
+                        end
+                        wc = true
+                    end
+                    
+                    imgui.spacing()
 
                     for _, entryData in ipairs(sortedParts) do
                         local i = entryData.index
@@ -3191,8 +3250,20 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         if imgui.button("Save Outfit Preset") then
             local MDFXLOutfitData = {}
             for i, equipment in pairs(MDFXL) do
+                if not func.table_contains(MDFXLSub.order, MDFXL[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSub.weaponOrder, MDFXL[equipment.MeshName].MeshName)
+                and not func.table_contains(MDFXLSub.otomoOrder, MDFXL[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSub.otomoWeaponOrder, MDFXL[equipment.MeshName].MeshName)
+                and not func.table_contains(MDFXLSub.porterOrder, MDFXL[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSub.playerBaseBodyOrder, MDFXL[equipment.MeshName].MeshName) then
+                    goto continue
+                end
+
                 if MDFXLPresetTracker[equipment.MeshName].lastPresetName ~= equipment.MeshName .. " Default" then
                     MDFXLOutfitData[equipment.MeshName] = {}
+                    if MDFXLOutfits.isBody then
+                        if func.table_contains(MDFXLSub.playerBaseBodyOrder, equipment.MeshName) then
+                            MDFXLOutfitData[equipment.MeshName].lastPresetName = ""
+                            MDFXLOutfitData[equipment.MeshName].lastPresetName = MDFXLPresetTracker[equipment.MeshName].lastPresetName
+                        end
+                    end
                     if MDFXLOutfits.isHunterEquipment then
                         if func.table_contains(MDFXLSub.order, equipment.MeshName) then
                             MDFXLOutfitData[equipment.MeshName].lastPresetName = ""
@@ -3224,18 +3295,25 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
                         end
                     end
                 end
+                :: continue ::
             end
             json.dump_file("MDF-XL/Outfits/" .. outfitName .. ".json", MDFXLOutfitData)
             cache_MDFXLJSONFiles_MHWS(MDFXL, MDFXLSub)
         end
 
         imgui.spacing()
+        changed, MDFXLOutfits.isBody = imgui.checkbox("Include Body", MDFXLOutfits.isBody); wc = wc or changed
         changed, MDFXLOutfits.isHunterEquipment = imgui.checkbox("Include Hunter: Armor", MDFXLOutfits.isHunterEquipment); wc = wc or changed
         changed, MDFXLOutfits.isHunterArmament = imgui.checkbox("Include Hunter: Weapon", MDFXLOutfits.isHunterArmament); wc = wc or changed
         changed, MDFXLOutfits.isOtomoEquipment = imgui.checkbox("Include Palico: Armor", MDFXLOutfits.isOtomoEquipment); wc = wc or changed
         changed, MDFXLOutfits.isOtomoArmament = imgui.checkbox("Include Palico: Weapon", MDFXLOutfits.isOtomoArmament); wc = wc or changed
         changed, MDFXLOutfits.isPorter = imgui.checkbox("Include Seikret", MDFXLOutfits.isPorter); wc = wc or changed
 
+        if isFemale then
+            setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLOutfits.isBody)
+        else
+            setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Male", ui.colors.highContrast.purple, MDFXLOutfits.isBody)
+        end
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, "Hunter: Armor", ui.colors.gold, MDFXLOutfits.isHunterEquipment)
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, "Hunter: Weapon", ui.colors.orange, MDFXLOutfits.isHunterArmament)
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, "Palico: Armor", ui.colors.cyan, MDFXLOutfits.isOtomoEquipment)
@@ -3357,7 +3435,7 @@ local function draw_MDFXLBodyEditorGUI_MHWS()
 
         if isFemale then
             imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Female // ", func.convert_rgba_to_ABGR(ui.colors.highContrast.purple))
-            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, ui.colors.highContrast.purple)
+            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, ui.colors.highContrast.purple)
         else
             imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Male // ", func.convert_rgba_to_ABGR(ui.colors.highContrast.purple))
         end
@@ -3560,7 +3638,7 @@ local function draw_MDFXLPresetGUI_MHWS()
         isAdvancedSearch = false
     end
     if isFemale then
-        setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerFemaleBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLSettings.presetManager.showBaseBody)
+        setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLSettings.presetManager.showBaseBody)
     end
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, "Hunter: Armor", ui.colors.gold, MDFXLSettings.presetManager.showHunterEquipment)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, "Hunter: Weapon", ui.colors.orange, MDFXLSettings.presetManager.showHunterArmament)
@@ -4025,7 +4103,7 @@ local function draw_MDFXLGUI_MHWS()
             update_OtomoEquipmentMaterialParams_MHWS(MDFXL)
             update_OtomoArmamentMaterialParams_MHWS(MDFXL)
             update_PorterMaterialParams_MHWS(MDFXL)
-            update_PlayerFemaleBaseBody(MDFXL)
+            update_PlayerBaseBody(MDFXL)
         end
 
         imgui.indent(10)
