@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/18/2025"
-local modVersion = "v1.4.83"
+local modUpdated = "02/19/2025"
+local modVersion = "v1.4.87"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -26,9 +26,9 @@ local isLoadingScreenUpdater = false
 local isAutoSaved = false
 local isOutfitManagerBypass = false
 local isMDFXL = false
-local isMeshEditor = false
-local isFlagEditor = false
-local isTextureEditor = false
+local isMeshEditor = {}
+local isFlagEditor = {}
+local isTextureEditor = {}
 local isBodyEditor = false
 local isUserManual = false
 local isAdvancedSearch = false
@@ -402,7 +402,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                             end
                         end
                     end
-                    if isUpdaterBypass or isTextureEditor then
+                    if isUpdaterBypass or isTextureEditor[entry.MeshName] then
                         for t = 0, textureCount - 1 do
                             local textureName = renderMesh:getMaterialTextureName(j, t)
                             local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
@@ -410,14 +410,14 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                         end
                     end
                 end
-                if isUpdaterBypass or isMeshEditor then
+                if isUpdaterBypass or isMeshEditor[entry.MeshName] then
                     for v = 0, #dataTable[entry.MeshName].Enabled do
                         renderMesh:setMaterialsEnable(v, dataTable[entry.MeshName].Enabled[v + 1])
                     end
                 end
             end
         end
-        if isUpdaterBypass or isFlagEditor then
+        if isUpdaterBypass or isFlagEditor[entry.MeshName] then
             renderMesh:set_ForceTwoSide(dataTable[entry.MeshName].Flags.isForceTwoSide)
             renderMesh:set_BeautyMaskFlag(dataTable[entry.MeshName].Flags.isBeautyMask)
             renderMesh:set_ReceiveSSSSSFlag(dataTable[entry.MeshName].Flags.isReceiveSSSSS)
@@ -494,8 +494,8 @@ local isFemale = false
 local playerBaseBody = nil
 local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
 local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
-local maleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
-local maleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
+local maleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/MaleBase/MDFXL_MPlayerBase.mesh")
+local maleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/MaleBase/MDFXL_MPlayerBase.mdf2")
 
 --Generic getters and checks
 local function get_PlayerManager_MHWS()
@@ -838,7 +838,7 @@ end
 --Preset Managers 
 local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
     for _, equipment in pairs(MDFXLData) do
-        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) then
+        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isNowLoading and isDefaultsDumped and #equipment.Presets == 0) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
             if MDFXLSettings.isDebug then
@@ -849,7 +849,7 @@ local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
 end
 local function dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
     for _, equipment in pairs(MDFXLData) do
-        if MDFXLData[equipment.MeshName].MeshName == "MDFXL_FPlayerBase" then
+        if (MDFXLData[equipment.MeshName].MeshName == "MDFXL_FPlayerBase") or (MDFXLData[equipment.MeshName].MeshName == "MDFXL_MPlayerBase") then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
             if MDFXLSettings.isDebug then
@@ -1040,7 +1040,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
 end
 local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
     for _, equipment in pairs(MDFXLData) do
-        if equipment.MeshName == "MDFXL_FPlayerBase" then
+        if (equipment.MeshName == "MDFXL_FPlayerBase") or (equipment.MeshName == "MDFXL_MPlayerBase") then
             goto continue
         end
         local presetTable = MDFXLData[equipment.MeshName].Presets
@@ -1526,7 +1526,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     check_IfOtomoIsInScene_MHWS()
     check_IfPorterIsInScene_MHWS()
     --Initial Loading Screen Updater
-    if isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater then
+    if isPlayerInScene and isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater then
         get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerSkinData_MHWS(MDFXLSubData)
@@ -1592,6 +1592,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[equipment.MeshName][key] = value
+                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                    if material["AddColorUV"] ~= nil then
+                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                    end
+                                end
                             end
                             MDFXLData[equipment.MeshName].isUpdated = true
                             isUpdaterBypass = true
@@ -1632,14 +1637,16 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         isLoadingScreenUpdater = true
     end
     --Subsequent Loading Screen Updater
-    if isNowLoading and isDefaultsDumped and not isLoadingScreenUpdater then
+    if isPlayerInScene and isNowLoading and isDefaultsDumped and not isLoadingScreenUpdater then
         get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+        get_PlayerSkinData_MHWS(MDFXLSubData)
         get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         spawn_PlayerBaseBody_MHWS()
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
@@ -1656,6 +1663,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName)
             and not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
                 goto continue
+            end
+            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
+                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
+                MDFXLPresetTracker[equipment.MeshName] = {}
+                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
             end
             if MDFXLData[equipment.MeshName].Presets ~= nil then
                 local selected_preset = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
@@ -1694,6 +1706,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[equipment.MeshName][key] = value
+                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                    if material["AddColorUV"] ~= nil then
+                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                    end
+                                end
                             end
                             MDFXLData[equipment.MeshName].isUpdated = true
                             isUpdaterBypass = true
@@ -1808,6 +1825,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                         for key, value in pairs(temp_parts) do
                             MDFXLData[equipment.MeshName][key] = value
+                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                if material["AddColorUV"] ~= nil then
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
                         end
                         MDFXLData[equipment.MeshName].isUpdated = true
                         isUpdaterBypass = true
@@ -1906,6 +1928,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                         for key, value in pairs(temp_parts) do
                             MDFXLData[equipment.MeshName][key] = value
+                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                if material["AddColorUV"] ~= nil then
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
                         end
                         MDFXLData[equipment.MeshName].isUpdated = true
                         isUpdaterBypass = true
@@ -2064,6 +2091,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
 
                         for key, value in pairs(temp_parts) do
                             MDFXLData[equipment.MeshName][key] = value
+                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                                if material["AddColorUV"] ~= nil then
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
                         end
                         MDFXLData[equipment.MeshName].currentPresetIDX = lastPresetIndex
                         MDFXLData[equipment.MeshName].isUpdated = true
@@ -2160,14 +2192,14 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         for key, value in pairs(temp_parts) do
                             MDFXLData[equipment.MeshName][key] = value
                             for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
-                                material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                if material["AddColorUV"] ~= nil then
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
                             end
                         end
                         MDFXLData[equipment.MeshName].isUpdated = true
                         isUpdaterBypass = true
-                        if isFemale then
-                            update_PlayerBaseBody(MDFXLData)
-                        end
+                        update_PlayerBaseBody(MDFXLData)
                     else
                         log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                         MDFXLData[equipment.MeshName].currentPresetIDX = 1
@@ -2336,8 +2368,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
     
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[entry.MeshName][key] = value
-                                if order == "playerBaseBodyOrder" then
-                                    for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                    if material["AddColorUV"] ~= nil then
                                         material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                     end
                                 end
@@ -2452,6 +2484,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
         
                                 for key, value in pairs(temp_parts) do
                                     MDFXLData[entry.MeshName][key] = value
+                                    for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                        if material["AddColorUV"] ~= nil then
+                                            material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                        end
+                                    end
                                 end
                             else
                                 log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
@@ -2511,12 +2548,12 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 end
 
                 if imgui.tree_node("Mesh Editor") then
-                    isMeshEditor = true
+                    isMeshEditor[entry.MeshName] = true
                     imgui.spacing()
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.indent(15)
                     if imgui.tree_node("Flags") then
-                        isFlagEditor = true
+                        isFlagEditor[entry.MeshName] = true
                         if MDFXLData[entry.MeshName].Flags.isForceTwoSide == MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide or MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
                             changed, MDFXLData[entry.MeshName].Flags.isForceTwoSide = imgui.checkbox("Force Two Side", MDFXLData[entry.MeshName].Flags.isForceTwoSide); wc = wc or changed
                             if MDFXLData[entry.MeshName].Flags.isForceTwoSide ~= MDFXLDefaultsData[entry.MeshName].Flags.isForceTwoSide then
@@ -2547,7 +2584,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         end
                         imgui.tree_pop()
                     else
-                        isFlagEditor = false
+                        isFlagEditor[entry.MeshName] = false
                     end
 
                     imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -2627,7 +2664,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.gold))
                     imgui.tree_pop()
                 else
-                    isMeshEditor = false
+                    isMeshEditor[entry.MeshName] = false
                 end
                 if order ~= "playerBaseBodyOrder" then
                     if imgui.tree_node("Material Editor") then
@@ -2711,7 +2748,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 
                                 if entry.TextureCount[matName] ~= 0 then
                                     if imgui.tree_node("Textures") then
-                                        isTextureEditor = true
+                                        isTextureEditor[entry.MeshName] = true
                                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
 
                                         changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
@@ -2816,7 +2853,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                         imgui.tree_pop()
                                     else
-                                        isTextureEditor = false
+                                        isTextureEditor[entry.MeshName] = false
                                     end
                                     imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                 end
@@ -3187,8 +3224,8 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
 
                         for key, value in pairs(temp_parts) do
                             MDFXLData[entry.MeshName][key] = value
-                            if order == "playerBaseBodyOrder" then
-                                for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                            for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
+                                if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                 end
                             end
@@ -3438,6 +3475,7 @@ local function draw_MDFXLBodyEditorGUI_MHWS()
             setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, ui.colors.highContrast.purple)
         else
             imgui.text_colored(ui.draw_line("=", MDFXLSettings.secondaryDividerLen) ..  " // Body: Male // ", func.convert_rgba_to_ABGR(ui.colors.highContrast.purple))
+            setup_MDFXLEditorGUI_MHWS(MDFXL, materialParamDefaultsHolder, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, ui.colors.highContrast.purple)
         end
 
         imgui.indent(-25)
@@ -3639,6 +3677,8 @@ local function draw_MDFXLPresetGUI_MHWS()
     end
     if isFemale then
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLSettings.presetManager.showBaseBody)
+    else
+        setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Male", ui.colors.highContrast.purple, MDFXLSettings.presetManager.showBaseBody)
     end
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "order", update_PlayerEquipmentMaterialParams_MHWS, "Hunter: Armor", ui.colors.gold, MDFXLSettings.presetManager.showHunterEquipment)
     setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "weaponOrder", update_PlayerArmamentMaterialParams_MHWS, "Hunter: Weapon", ui.colors.orange, MDFXLSettings.presetManager.showHunterArmament)
