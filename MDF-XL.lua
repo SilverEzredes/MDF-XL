@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/19/2025"
-local modVersion = "v1.4.87"
+local modUpdated = "02/20/2025"
+local modVersion = "v1.4.88"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -30,6 +30,8 @@ local isMeshEditor = {}
 local isFlagEditor = {}
 local isTextureEditor = {}
 local isBodyEditor = false
+local isUpperBodyToggle = true
+local isLowerBodyToggle = true
 local isUserManual = false
 local isAdvancedSearch = false
 local materialParamDefaultsHolder = {}
@@ -166,6 +168,65 @@ local MDFXL_Sub = {
     texturePaths = {},
     playerSkinColorData = {},
     playerBaseBodyOrder = {},
+    playerBaseBodyUpper = {
+        "ab1_left",
+        "ab1_left_back",
+        "ab1_right",
+        "ab1_right_back",
+        "ab2_left",
+        "ab2_left_back",
+        "ab2_right",
+        "ab2_right_back",
+        "ab3_left",
+        "ab3_right",
+        "ab3_right_back",
+        "ab4_left",
+        "ab4_left_back",
+        "ab4_right",
+        "arm_left",
+        "arm_right",
+        "back_left_up",
+        "back_right_up",
+        "breast_left",
+        "breast_left_back",
+        "breast_right",
+        "breast_right_back",
+        "chest",
+        "elbow_left",
+        "elbow_right",
+        "hip_left",
+        "hip_right",
+        "index_left",
+        "index_right",
+        "little_left",
+        "little_right",
+        "middle_left",
+        "middle_right",
+        "neck_left",
+        "neck_right",
+        "palm_left",
+        "palm_right",
+        "ring_left",
+        "ring_right",
+        "shoulder_left",
+        "shoulder_right",
+        "thumb_left",
+        "thumb_right",
+        "wrist_left",
+        "wrist_right",
+    },
+    playerBaseBodyLower = {
+        "foot_left",
+        "foot_right",
+        "knee_left",
+        "knee_right",
+        "shin_left",
+        "shin_right",
+        "thigh_hip_left",
+        "thigh_hip_right",
+        "thigh_left",
+        "thigh_right",
+    },
 }
 local MDFXL_OutfitManager = {
     showMDFXLOutfitEditor = false,
@@ -402,7 +463,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                             end
                         end
                     end
-                    if isUpdaterBypass or isTextureEditor[entry.MeshName] then
+                    if (isUpdaterBypass and matName ~= "skin") or (isTextureEditor[entry.MeshName] and matName ~= "skin") then
                         for t = 0, textureCount - 1 do
                             local textureName = renderMesh:getMaterialTextureName(j, t)
                             local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
@@ -2596,11 +2657,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.same_line()
 
                     local sortedParts = {}
-
                     for i, partName in ipairs(MDFXLData[entry.MeshName].Parts) do
                         table.insert(sortedParts, {index = i, name = partName})
                     end
-
                     table.sort(sortedParts, function(a, b)
                         return a.name < b.name
                     end)
@@ -2621,6 +2680,56 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         wc = true
                     end
                     
+                    if order == "playerBaseBodyOrder" then
+                        imgui.same_line()
+                        
+                        if isUpperBodyToggle then
+                            if imgui.button("Show Upper Body") then
+                                for _, entryData in ipairs(sortedParts) do
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyUpper, entryData.name) then
+                                        MDFXLData[entry.MeshName].Enabled[entryData.index] = true
+                                    end
+                                end
+                                wc = true
+                                isUpperBodyToggle = false
+                            end
+                        else
+                            if imgui.button("Hide Upper Body") then
+                                for _, entryData in ipairs(sortedParts) do
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyUpper, entryData.name) then
+                                        MDFXLData[entry.MeshName].Enabled[entryData.index] = false
+                                    end
+                                end
+                                wc = true
+                                isUpperBodyToggle = true
+                            end
+                        end
+
+                        imgui.same_line()
+                        
+                        if isLowerBodyToggle then
+                            if imgui.button("Show Lower Body") then
+                                for _, entryData in ipairs(sortedParts) do
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyLower, entryData.name) then
+                                        MDFXLData[entry.MeshName].Enabled[entryData.index] = true
+                                    end
+                                end
+                                wc = true
+                                isLowerBodyToggle = false
+                            end
+                        else
+                            if imgui.button("Hide Lower Body") then
+                                for _, entryData in ipairs(sortedParts) do
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyLower, entryData.name) then
+                                        MDFXLData[entry.MeshName].Enabled[entryData.index] = false
+                                    end
+                                end
+                                wc = true
+                                isLowerBodyToggle = true
+                            end
+                        end
+                    end
+
                     imgui.spacing()
 
                     for _, entryData in ipairs(sortedParts) do
@@ -2746,7 +2855,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                     ui.textButton_ColoredValue("Texture Count:", entry.TextureCount[matName], func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                 end
                                 
-                                if entry.TextureCount[matName] ~= 0 then
+                                if entry.TextureCount[matName] ~= 0 and matName ~= "skin" then
                                     if imgui.tree_node("Textures") then
                                         isTextureEditor[entry.MeshName] = true
                                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
