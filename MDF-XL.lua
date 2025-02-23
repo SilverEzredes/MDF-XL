@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/23/2025"
-local modVersion = "v1.4.90-GOLD"
+local modUpdated = "02/24/2025"
+local modVersion = "v1.4.92-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -956,17 +956,10 @@ local function get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
 
     MDFXLSubData.porterOrder = {}
     if porterCharacter then
-        --local porterBody = porterCharacter:get_EquipBody()
         local porterSaddle = porterCharacter:get_EquipSaddle()
         local porterRein = porterCharacter:get_EquipRein()
         local porterWeaponBag = porterCharacter:get_EquipWeaponBags()
 
-        -- if porterBody then
-        --     local renderMesh = func.get_GameObjectComponent(porterBody, renderComp)
-        --     local porterBodyID = renderMesh:getMesh():ToString()
-        --     porterBodyID = porterBodyID and porterBodyID:match(MDFXL_Cache.matchMesh)
-        --     help_GetMaterialParams_MHWS(porterBody, porterBodyID, "porterOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
-        -- end
         if porterSaddle then
             local renderMesh = func.get_GameObjectComponent(porterSaddle, renderComp)
             local porterSaddleID = renderMesh:getMesh():ToString()
@@ -1515,20 +1508,10 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         end
         if (MDFXLData[equipment.MeshName] and MDFXLData[equipment.MeshName].isUpdated) then
             if porterCharacter then
-                --local porterBody = porterCharacter:get_EquipBody()
                 local porterSaddle = porterCharacter:get_EquipSaddle()
                 local porterRein = porterCharacter:get_EquipRein()
                 local porterWeaponBag = porterCharacter:get_EquipWeaponBags()
                 
-                -- if porterBody then
-                --     local renderMesh = func.get_GameObjectComponent(porterBody, renderComp)
-                --     local porterBodyID = renderMesh:getMesh():ToString()
-                --     porterBodyID = porterBodyID and porterBodyID:match(MDFXL_Cache.matchMesh)
-
-                --     if porterBodyID == equipment.MeshName then
-                --         set_MaterialParams(porterBody, MDFXLData, equipment, MDFXLSaveDataChunks)
-                --     end
-                -- end
                 if porterSaddle then
                     local renderMesh = func.get_GameObjectComponent(porterSaddle, renderComp)
                     local porterSaddleID = renderMesh:getMesh():ToString()
@@ -1658,7 +1641,50 @@ local function lateSetup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
 end
 local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
-
+    local textureMap = {
+        ["BaseDielectricMap"] = {
+            skin = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.skin.ALBD,
+                m = MDFXLSub.mPlayerBaseBodyTextures.skin.ALBD,
+            },
+            underarmor = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.underarmor.ALBD,
+                m = MDFXLSub.mPlayerBaseBodyTextures.underarmor.ALBD,
+            },
+        },
+        ["ColorLayer_MaskMap"] = {
+            skin = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.skin.CLMM,
+                m = MDFXLSub.mPlayerBaseBodyTextures.skin.CLMM,
+            },
+            underarmor = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.underarmor.CLMM,
+                m = MDFXLSub.mPlayerBaseBodyTextures.underarmor.CLMM,
+            },
+        },
+        ["NormalRoughnessOcclusionMap"] = {
+            skin = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.skin.NRRO,
+                m = MDFXLSub.mPlayerBaseBodyTextures.skin.NRRO,
+            },
+            underarmor = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.underarmor.NRRO,
+                m = MDFXLSub.mPlayerBaseBodyTextures.underarmor.NRRO,
+            },
+        },
+        ["SkinMap"] = {
+            skin = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.skin.SALB,
+                m = MDFXLSub.mPlayerBaseBodyTextures.skin.SALB,
+            },
+            underarmor = {
+                f = MDFXLSub.fPlayerBaseBodyTextures.underarmor.SALB,
+                m = MDFXLSub.mPlayerBaseBodyTextures.underarmor.SALB,
+            },
+        },
+    }
+    local genderKey = isFemale and "f" or "m"
+    
     if renderComp then
         local matCount = renderMesh:get_MaterialNum()
         if matCount then
@@ -1668,156 +1694,24 @@ local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
                     local textureCount = renderMesh:getMaterialTextureNum(j)
                     for t = 0, textureCount - 1 do
                         local textureName = renderMesh:getMaterialTextureName(j, t)
-
-                        if isFemale then
-                            if func.table_contains(MDFXLSub.playerBaseBodyParts.upper, matName) then
-                                if not MDFXLSettings.isUpperBodyUnderArmor then
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                else
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                end
+                        
+                        if func.table_contains(MDFXLSub.playerBaseBodyParts.upper, matName) then
+                            local upper = MDFXLSettings.isUpperBodyUnderArmor and "underarmor" or "skin"
+                            local mapping = textureMap[textureName]
+                            if mapping then
+                                local resourceID = mapping[upper][genderKey]
+                                local textureResource = func.create_resource(texResourceComp, resourceID)
+                                renderMesh:setMaterialTexture(j, t, textureResource)
                             end
-                            if func.table_contains(MDFXLSub.playerBaseBodyParts.lower, matName) then
-                                if not MDFXLSettings.isLowerBodyUnderArmor then
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                else
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.underarmor.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                end
-                            end
-                        else
-                            if func.table_contains(MDFXLSub.playerBaseBodyParts.upper, matName) then
-                                if not MDFXLSettings.isUpperBodyUnderArmor then
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                else
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                end
-                            end
-                            if func.table_contains(MDFXLSub.playerBaseBodyParts.lower, matName) then
-                                if not MDFXLSettings.isLowerBodyUnderArmor then
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                else
-                                    if textureName == "BaseDielectricMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.ALBD)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "ColorLayer_MaskMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.CLMM)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "NormalRoughnessOcclusionMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.NRRO)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                    if textureName == "SkinMap" then
-                                        local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.underarmor.SALB)
-                                        renderMesh:setMaterialTexture(j, t, textureResource)
-                                    end
-                                end
+                        end
+    
+                        if func.table_contains(MDFXLSub.playerBaseBodyParts.lower, matName) then
+                            local lower = MDFXLSettings.isLowerBodyUnderArmor and "underarmor" or "skin"
+                            local mapping = textureMap[textureName]
+                            if mapping then
+                                local resourceID = mapping[lower][genderKey]
+                                local textureResource = func.create_resource(texResourceComp, resourceID)
+                                renderMesh:setMaterialTexture(j, t, textureResource)
                             end
                         end
                     end
@@ -1861,6 +1755,15 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     check_IfPlayerIsInScene_MHWS()
     check_IfOtomoIsInScene_MHWS()
     check_IfPorterIsInScene_MHWS()
+    if updaterCoroutine then
+        local success, errorMsg = coroutine.resume(updaterCoroutine)
+        if not success then
+            log.info("[MDF-XL] Updater coroutine error: " .. errorMsg)
+            updaterCoroutine = nil
+        elseif coroutine.status(updaterCoroutine) == "dead" then
+            updaterCoroutine = nil
+        end
+    end
     --Initial Loading Screen Updater
     if isPlayerInScene and isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater then
         get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
@@ -2222,6 +2125,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
         for _, equipment in pairs(MDFXLData) do
+            if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName)
+            and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName) then
+                goto continue
+            end
+
             if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
                 materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
                 MDFXLPresetTracker[equipment.MeshName] = {}
@@ -2287,6 +2195,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             elseif selected_preset == nil or {} then
                 MDFXLData[equipment.MeshName].currentPresetIDX = 1
             end
+            :: continue ::
         end
         for i, chunk in pairs(MDFXLSaveData) do
             if chunk.wasUpdated then
@@ -2385,83 +2294,110 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         isPlayerLeftCamp = false
     end
     --Outfit Preset Updater
-    if isOutfitManagerBypass then
-        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        
-        for _, equipment in pairs(MDFXLData) do
-            local lastPresetIndex = func.find_index(MDFXLData[equipment.MeshName].Presets, MDFXLPresetTracker[equipment.MeshName].lastPresetName)
-            local selected_preset = MDFXLData[equipment.MeshName].Presets[lastPresetIndex]
-            if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
-                wc = true
-                local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                local temp_parts = json.load_file(json_filepath)
-                if #temp_parts.Parts ~= 0 then
-                    if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
-                    end
-                    
-                    local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
+    if isOutfitManagerBypass and not updaterCoroutine then
+        updaterCoroutine = coroutine.create(function()
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+                if not ( 
+                    func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.porterOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.playerBaseBodyOrder, eqData.MeshName)
+                ) then
+                    goto continue
+                end
 
-                    if partsMatch then
-                        for _, part in ipairs(temp_parts.Parts) do
-                            local found = false
-                            for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
-                                if part == ogPart then
-                                    found = true
+                local presetTracker = MDFXLPresetTracker[meshName]
+                local presets = eqData.Presets
+                local lastPresetIndex = func.find_index(presets, presetTracker.lastPresetName)
+                local selected_preset = presets[lastPresetIndex]
+
+                if selected_preset and selected_preset ~= (meshName .. " Default") then
+                    wc = true
+                    local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                    local temp_parts = json.load_file(json_filepath)
+                    if #temp_parts.Parts ~= 0 then
+                        if MDFXLSettings.isDebug then
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                        end
+                        
+                        local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                        if partsMatch then
+                            for _, part in ipairs(temp_parts.Parts) do
+                                local found = false
+                                for _, ogPart in ipairs(eqData.Parts) do
+                                    if part == ogPart then
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if not found then
+                                    partsMatch = false
                                     break
                                 end
                             end
-            
-                            if not found then
-                                partsMatch = false
-                                break
-                            end
                         end
-                    end
-            
-                    if partsMatch then
-                        temp_parts.Presets = nil
-                        temp_parts.currentPresetIDX = nil
+                
+                        if partsMatch then
+                            temp_parts.Presets = nil
+                            temp_parts.currentPresetIDX = nil
 
-                        for key, value in pairs(temp_parts) do
-                            MDFXLData[equipment.MeshName][key] = value
-                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                            for key, value in pairs(temp_parts) do
+                                eqData[key] = value
+                            end
+                            for i, material in pairs(eqData.Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                 end
                             end
+                            eqData.currentPresetIDX = lastPresetIndex
+                            eqData.isUpdated = true
+                            isUpdaterBypass = true
+
+                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                            update_PlayerBaseBody(MDFXLData)
+                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                            update_PorterMaterialParams_MHWS(MDFXLData)
+                        else
+                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                            eqData.currentPresetIDX = 1
                         end
-                        MDFXLData[equipment.MeshName].currentPresetIDX = lastPresetIndex
-                        MDFXLData[equipment.MeshName].isUpdated = true
-                        isUpdaterBypass = true
-                        update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
-                        update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                        update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-                        update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
-                        update_PorterMaterialParams_MHWS(MDFXLData)
-                    else
-                        log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
-                        MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
+                        end
                     end
-                    if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                        log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                    end
+                else
+                    eqData.currentPresetIDX = 1
                 end
-            elseif selected_preset == nil or {} then
-                MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                ::continue::
             end
-        end
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                json.dump_file(chunk.fileName, chunk.data)
-                chunk.wasUpdated = false
+            
+            for _, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
             end
-        end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-        log.info("[MDF-XL] [Outfit Preset loaded, MDF-XL data updated.]")
-        isOutfitManagerBypass = false
+            
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            log.info("[MDF-XL] [Outfit Preset loaded, MDF-XL data updated.]")
+            isOutfitManagerBypass = false
+        end)
     end
     --Sheathed Weapon Visibility Updater
     if isPlayerInScene and isDefaultsDumped then
