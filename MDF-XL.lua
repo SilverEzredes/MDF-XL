@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/21/2025"
-local modVersion = "v1.4.89"
+local modUpdated = "02/23/2025"
+local modVersion = "v1.4.90-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -229,7 +229,7 @@ local MDFXL_Sub = {
         "thigh_left",
         "thigh_right",
     },
-    parts = {
+    playerBaseBodyParts = {
         upper = {
             "ab1_left",
             "ab1_left_back",
@@ -274,6 +274,20 @@ local MDFXL_Sub = {
             "thigh_hip_right",
             "thigh_left",
             "thigh_right",
+        },
+    },
+    playerUnderArmorColorData = {
+        upper = {
+            0.2,
+            0.2,
+            0.2,
+            1.0
+        },
+        lower = {
+            0.2,
+            0.2,
+            0.2,
+            1.0
         },
     },
     fPlayerBaseBodyTextures = {
@@ -1008,6 +1022,18 @@ local function clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         end
     end
 end
+local function clear_BaseBody_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+    for _, equipment in pairs(MDFXLData) do
+        if (MDFXLData[equipment.MeshName].MeshName == "MDFXL_FPlayerBase") or (MDFXLData[equipment.MeshName].MeshName == "MDFXL_MPlayerBase") then
+            local cacheKey = "MDF-XL/Equipment/" .. equipment.MeshName
+            MDFXLSubData.jsonPaths[cacheKey] = nil
+
+            if MDFXLSettings.isDebug then
+                log.info("[MDF-XL-JSON] [Preset path cache cleared for " .. equipment.MeshName .. " ]")
+            end
+        end
+    end
+end
 local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
     for _, equipment in pairs(MDFXLData) do
         local equipmentParams = MDFXL[equipment.MeshName]
@@ -1644,7 +1670,7 @@ local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
                         local textureName = renderMesh:getMaterialTextureName(j, t)
 
                         if isFemale then
-                            if func.table_contains(MDFXLSub.parts.upper, matName) then
+                            if func.table_contains(MDFXLSub.playerBaseBodyParts.upper, matName) then
                                 if not MDFXLSettings.isUpperBodyUnderArmor then
                                     if textureName == "BaseDielectricMap" then
                                         local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.ALBD)
@@ -1681,7 +1707,7 @@ local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
                                     end
                                 end
                             end
-                            if func.table_contains(MDFXLSub.parts.lower, matName) then
+                            if func.table_contains(MDFXLSub.playerBaseBodyParts.lower, matName) then
                                 if not MDFXLSettings.isLowerBodyUnderArmor then
                                     if textureName == "BaseDielectricMap" then
                                         local textureResource = func.create_resource(texResourceComp, MDFXLSub.fPlayerBaseBodyTextures.skin.ALBD)
@@ -1719,7 +1745,7 @@ local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
                                 end
                             end
                         else
-                            if func.table_contains(MDFXLSub.parts.upper, matName) then
+                            if func.table_contains(MDFXLSub.playerBaseBodyParts.upper, matName) then
                                 if not MDFXLSettings.isUpperBodyUnderArmor then
                                     if textureName == "BaseDielectricMap" then
                                         local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.ALBD)
@@ -1756,7 +1782,7 @@ local function update_PlayerBaseBodyUnderarmor_MHWS(gameObject)
                                     end
                                 end
                             end
-                            if func.table_contains(MDFXLSub.parts.lower, matName) then
+                            if func.table_contains(MDFXLSub.playerBaseBodyParts.lower, matName) then
                                 if not MDFXLSettings.isLowerBodyUnderArmor then
                                     if textureName == "BaseDielectricMap" then
                                         local textureResource = func.create_resource(texResourceComp, MDFXLSub.mPlayerBaseBodyTextures.skin.ALBD)
@@ -2446,7 +2472,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         setup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
-        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+        clear_BaseBody_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         lateSetup_PlayerBaseBody_MHWS(MDFXLData, MDFXLSubData)
         for i, chunk in pairs(MDFXLSaveData) do
@@ -2504,6 +2530,14 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                                if func.table_contains(MDFXLSubData.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                                    local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                    MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                end
+                                if func.table_contains(MDFXLSubData.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                                    local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                    MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
                                 end
                             end
                         end
@@ -2682,6 +2716,16 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                     if material["AddColorUV"] ~= nil then
                                         material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                     end
+                                    if order == "playerBaseBodyOrder" then
+                                        if func.table_contains(MDFXLSubData.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                                            local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                            MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                        end
+                                        if func.table_contains(MDFXLSubData.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                                            local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                            MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                        end
+                                    end
                                 end
                             end
                         else
@@ -2690,6 +2734,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         end
                         if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                             log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                        end
+                        if order == "playerBaseBodyOrder" then
+                            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                         end
                     end
 
@@ -2798,6 +2845,16 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                         if material["AddColorUV"] ~= nil then
                                             material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                         end
+                                        if order == "playerBaseBodyOrder" then
+                                            if func.table_contains(MDFXLSubData.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                                                local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                                MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                            end
+                                            if func.table_contains(MDFXLSubData.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                                                local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                                MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                            end
+                                        end
                                     end
                                 end
                             else
@@ -2806,6 +2863,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                             if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                                 log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                            end
+                            if order == "playerBaseBodyOrder" then
+                                json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                             end
                         end
     
@@ -2903,6 +2963,48 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         changed, MDFXLSettingsData.isUpperBodyUnderArmor = imgui.checkbox("Show Undershirt", MDFXLSettingsData.isUpperBodyUnderArmor); wc = wc or changed
                         imgui.same_line()
                         changed, MDFXLSettingsData.isLowerBodyUnderArmor = imgui.checkbox("Show Tights", MDFXLSettingsData.isLowerBodyUnderArmor); wc = wc or changed
+
+                        imgui.spacing()
+
+                        local newUpperColor = Vector4f.new(MDFXLSubData.playerUnderArmorColorData.upper[1], MDFXLSubData.playerUnderArmorColorData.upper[2], MDFXLSubData.playerUnderArmorColorData.upper[3], MDFXLSubData.playerUnderArmorColorData.upper[4])
+                        changed, newUpperColor = imgui.color_edit4("Undershirt Color", newUpperColor, nil); wc = wc or changed
+                        if changed then
+                            for matName, matData in pairs(MDFXLData[entry.MeshName].Materials) do
+                                if func.table_contains(MDFXLSubData.playerBaseBodyParts.upper, matName) then
+                                    for paramName, paramValue in pairs(matData) do
+                                        if type(paramValue) == "table" and type(paramValue[1]) == "table" and paramName == "ColorLayer_B" then
+                                            for i, value in ipairs(paramValue) do
+                                                paramValue[i] = {newUpperColor.x, newUpperColor.y, newUpperColor.z, newUpperColor.w}
+                                                lastMatParamName = "ColorLayer_B"
+                                            end
+                                            wc = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        MDFXLSubData.playerUnderArmorColorData.upper = {newUpperColor.x, newUpperColor.y, newUpperColor.z, newUpperColor.w}
+                        
+                        imgui.spacing()
+
+                        local newLowerColor = Vector4f.new(MDFXLSubData.playerUnderArmorColorData.lower[1], MDFXLSubData.playerUnderArmorColorData.lower[2], MDFXLSubData.playerUnderArmorColorData.lower[3], MDFXLSubData.playerUnderArmorColorData.lower[4])
+                        changed, newLowerColor = imgui.color_edit4("Tights Color", newLowerColor, nil); wc = wc or changed
+                        if changed then
+                            for matName, matData in pairs(MDFXLData[entry.MeshName].Materials) do
+                                if func.table_contains(MDFXLSubData.playerBaseBodyParts.lower, matName) then
+                                    for paramName, paramValue in pairs(matData) do
+                                        if type(paramValue) == "table" and type(paramValue[1]) == "table" and paramName == "ColorLayer_B" then
+                                            for i, value in ipairs(paramValue) do
+                                                paramValue[i] = {newLowerColor.x, newLowerColor.y, newLowerColor.z, newLowerColor.w}
+                                                lastMatParamName = "ColorLayer_B"
+                                            end
+                                            wc = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        MDFXLSubData.playerUnderArmorColorData.lower = {newLowerColor.x, newLowerColor.y, newLowerColor.z, newLowerColor.w}
                     end
 
                     imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.gold))
@@ -3594,6 +3696,16 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                 end
+                                if order == "playerBaseBodyOrder" then
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                    end
+                                    if func.table_contains(MDFXLSubData.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                                    end
+                                end
                             end
                         end
                     else
@@ -3602,6 +3714,9 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     end
                     if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                    end
+                    if order == "playerBaseBodyOrder" then
+                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                     end
                 end
 
