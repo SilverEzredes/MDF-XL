@@ -3,10 +3,11 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "02/24/2025"
-local modVersion = "v1.4.92-GOLD"
+local modVersion = "v1.4.93-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
+MDFXL = true
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
 local hk = require("Hotkeys/Hotkeys")
@@ -51,6 +52,7 @@ local lastTime = 0.0
 local tickInterval = 0.0
 local autoSaveProgress = 0
 local wasEditorShown = false
+local isFemale = false
 
 local MDFXL_Cache = {
     resourceOG = "Resource%[",
@@ -323,8 +325,10 @@ local MDFXL_OutfitManager = {
     showMDFXLOutfitEditor = false,
     isUpdated = false,
     currentOutfitPresetIDX = 1,
-    jsonPaths = [[MDF-XL\\Outfits\\.*.json]],
-    Presets = {},
+    jsonPathF = [[MDF-XL\\Outfits\\Female\\.*.json]],
+    jsonPathM = [[MDF-XL\\Outfits\\Male\\.*.json]],
+    FPresets = {},
+    MPresets = {},
     isBody = true,
     isHunterEquipment = true,
     isHunterArmament = true,
@@ -603,9 +607,21 @@ local function manage_SaveDataChunks(MDFXLData, saveDataTable)
     end
 end
 local function setup_OutfitChanger()
-    if #MDFXLOutfits.Presets > 0 then
-        local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
-        local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
+    local OutfitPresetTable
+    if isFemale then
+        OutfitPresetTable = MDFXLOutfits.FPresets
+    else
+        OutfitPresetTable = MDFXLOutfits.MPresets
+    end
+
+    if #OutfitPresetTable > 0 then
+        local selected_preset = OutfitPresetTable[MDFXLOutfits.currentOutfitPresetIDX]
+        local json_filepath = ""
+        if isFemale then
+            json_filepath = [[MDF-XL\\Outfits\\Female\\]] .. selected_preset .. [[.json]]
+        else
+            json_filepath = [[MDF-XL\\Outfits\\Male\\]] .. selected_preset .. [[.json]]
+        end
         local temp_parts = json.load_file(json_filepath)
         wc = true
         if temp_parts ~= nil then
@@ -616,6 +632,7 @@ local function setup_OutfitChanger()
             json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         end
     end
+    json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
 end
 --////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 --MARK: MHWilds
@@ -642,7 +659,8 @@ local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
 local isWeaponDrawn = false
 local isPlayerBaseBodySetup = false
-local isFemale = false
+
+local isCoroutinesDone = false
 local playerBaseBody = nil
 local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
 local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
@@ -1005,6 +1023,15 @@ local function dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
 end
 local function clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
     for _, equipment in pairs(MDFXLData) do
+        if not (
+            func.table_contains(MDFXLSubData.order, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.weaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.otomoOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.otomoWeaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.porterOrder, equipment.MeshName)
+        ) then
+            goto continue
+        end
         if (MDFXLData[equipment.MeshName].isUpdated) or (isUpdaterBypass) or (not isDefaultsDumped) or (isNowLoading and not isLoadingScreenUpdater) then
             local cacheKey = "MDF-XL/Equipment/" .. equipment.MeshName
             MDFXLSubData.jsonPaths[cacheKey] = nil
@@ -1013,6 +1040,7 @@ local function clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
                 log.info("[MDF-XL-JSON] [Preset path cache cleared for " .. equipment.MeshName .. " ]")
             end
         end
+        :: continue ::
     end
 end
 local function clear_BaseBody_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
@@ -1029,6 +1057,17 @@ local function clear_BaseBody_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
 end
 local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
     for _, equipment in pairs(MDFXLData) do
+        if not (
+            func.table_contains(MDFXLSubData.order, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.weaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.otomoOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.otomoWeaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSubData.porterOrder, equipment.MeshName) or
+            func.table_contains(MDFXLSubData.playerBaseBodyOrder, equipment.MeshName)
+        ) then
+            goto continue
+        end
+
         local equipmentParams = MDFXL[equipment.MeshName]
         
         if equipmentParams then
@@ -1103,6 +1142,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                 end
             end
         end
+        :: continue ::
     end
     if MDFXLPalettes.Presets then
         local json_names = MDFXLPalettes.Presets or {}
@@ -1149,9 +1189,20 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             end
         end
     end
-    if MDFXLOutfits.Presets then
-        local json_names = MDFXLOutfits.Presets or {}
-        local json_filepaths = fs.glob(MDFXLOutfits.jsonPaths)
+    if isFemale then
+        OutfitPresetTable = MDFXLOutfits.FPresets
+    else
+        OutfitPresetTable = MDFXLOutfits.MPresets
+    end
+
+    if OutfitPresetTable then
+        local json_names = OutfitPresetTable or {}
+        local json_filepaths = ""
+        if isFemale then
+            json_filepaths = fs.glob(MDFXLOutfits.jsonPathF)
+        else
+            json_filepaths = fs.glob(MDFXLOutfits.jsonPathM)
+        end
 
         if json_filepaths then
             for i, filepath in ipairs(json_filepaths) do
@@ -1483,7 +1534,7 @@ end
 local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
     if not isOtomoInScene then return end
     for _, weapon in pairs(MDFXLData) do
-        if not func.table_contains(MDFXLSub.otomoOrder, MDFXLData[weapon.MeshName].MeshName) then
+        if not func.table_contains(MDFXLSub.otomoWeaponOrder, MDFXLData[weapon.MeshName].MeshName) then
             goto continue
         end
         if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
@@ -1755,356 +1806,447 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     check_IfPlayerIsInScene_MHWS()
     check_IfOtomoIsInScene_MHWS()
     check_IfPorterIsInScene_MHWS()
-    if updaterCoroutine then
-        local success, errorMsg = coroutine.resume(updaterCoroutine)
+    if masterDataCoroutine then
+        local success, errorMsg = coroutine.resume(masterDataCoroutine)
         if not success then
-            log.info("[MDF-XL] Updater coroutine error: " .. errorMsg)
-            updaterCoroutine = nil
-        elseif coroutine.status(updaterCoroutine) == "dead" then
-            updaterCoroutine = nil
+            log.info("[MDF-XL-COR]  Master Data Coroutine error: " .. errorMsg)
+            masterDataCoroutine = nil
+        elseif coroutine.status(masterDataCoroutine) == "dead" then
+            masterDataCoroutine = nil
+        end
+    end
+    if loadingScreenCoroutine then
+        local success, errorMsg = coroutine.resume(loadingScreenCoroutine)
+        if not success then
+            log.info("[MDF-XL-COR] Loading Screen Coroutine error: " .. errorMsg)
+            loadingScreenCoroutine = nil
+        elseif coroutine.status(loadingScreenCoroutine) == "dead" then
+            loadingScreenCoroutine = nil
+        end
+    end
+    if equipmentMenuCoroutine then
+        local success, errorMsg = coroutine.resume(equipmentMenuCoroutine)
+        if not success then
+            log.info("[MDF-XL-COR] Equipment Menu Coroutine error: " .. errorMsg)
+            equipmentMenuCoroutine = nil
+        elseif coroutine.status(equipmentMenuCoroutine) == "dead" then
+            equipmentMenuCoroutine = nil
+        end
+    end
+    if outfitCoroutine then
+        local success, errorMsg = coroutine.resume(outfitCoroutine)
+        if not success then
+            log.info("[MDF-XL-COR] Updater coroutine error: " .. errorMsg)
+            outfitCoroutine = nil
+        elseif coroutine.status(outfitCoroutine) == "dead" then
+            outfitCoroutine = nil
         end
     end
     --Initial Loading Screen Updater
-    if isPlayerInScene and isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater then
-        get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PlayerSkinData_MHWS(MDFXLSubData)
-        get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        spawn_PlayerBaseBody_MHWS()
-        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        
-        json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                json.dump_file(chunk.fileName, chunk.data)
-                chunk.wasUpdated = false
-            end
-        end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-        materialParamDefaultsHolder = func.deepcopy(MDFXLData)
-
-        for _, equipment in pairs(MDFXLData) do
-            if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName)
-            and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName)
-            and not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
-                goto continue
-            end
-            if MDFXLData[equipment.MeshName].Presets ~= nil then
-                local selected_preset = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-                if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil and equipment.isInScene then
-                    wc = true
-                    local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                    local temp_parts = json.load_file(json_filepath)
-
-                    if temp_parts.Parts ~= nil then
-                        if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
-                        end
-                        
-                        local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
-
-                        if partsMatch then
-                            for _, part in ipairs(temp_parts.Parts) do
-                                local found = false
-                                for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
-                                    if part == ogPart then
-                                        found = true
-                                        break
-                                    end
-                                end
-                
-                                if not found then
-                                    partsMatch = false
-                                    break
-                                end
-                            end
-                        end
-                
-                        if partsMatch then
-                            temp_parts.Presets = nil
-                            temp_parts.currentPresetIDX = nil
-
-                            for key, value in pairs(temp_parts) do
-                                MDFXLData[equipment.MeshName][key] = value
-                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
-                                    if material["AddColorUV"] ~= nil then
-                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                    end
-                                end
-                            end
-                            MDFXLData[equipment.MeshName].isUpdated = true
-                            isUpdaterBypass = true
-                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
-                            update_PorterMaterialParams_MHWS(MDFXLData)
-                        else
-                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
-                            MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        end
-                    end
-                elseif selected_preset == nil or {} then
-                    MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                end
-                if not func.table_contains(MDFXLPresetTracker, equipment.MeshName) then
-                    MDFXLPresetTracker[equipment.MeshName] = {}
-                end
-                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-            end
-            :: continue ::
-        end
-        
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                chunk.wasUpdated = false
-            end
-        end
-        cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
-        json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        log.info("[MDF-XL] [Master Data defaults dumped.]")
-        isDefaultsDumped = true
-        isLoadingScreenUpdater = true
-    end
-    --Subsequent Loading Screen Updater
-    if isPlayerInScene and isNowLoading and isDefaultsDumped and not isLoadingScreenUpdater then
-        get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PlayerSkinData_MHWS(MDFXLSubData)
-        get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        spawn_PlayerBaseBody_MHWS()
-        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                json.dump_file(chunk.fileName, chunk.data)
-                chunk.wasUpdated = false
-            end
-        end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-
-        for _, equipment in pairs(MDFXLData) do
-            if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName)
-            and not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName)
-            and not func.table_contains(MDFXLSubData.porterOrder, MDFXLData[equipment.MeshName].MeshName) then
-                goto continue
-            end
-            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
-                MDFXLPresetTracker[equipment.MeshName] = {}
-                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-            end
-            if MDFXLData[equipment.MeshName].Presets ~= nil then
-                local selected_preset = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-                if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
-                    wc = true
-                    local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                    local temp_parts = json.load_file(json_filepath)
-
-                    if temp_parts.Parts ~= nil then
-                        if MDFXLSettings.isDebug then
-                            log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
-                        end
-                        
-                        local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
-
-                        if partsMatch then
-                            for _, part in ipairs(temp_parts.Parts) do
-                                local found = false
-                                for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
-                                    if part == ogPart then
-                                        found = true
-                                        break
-                                    end
-                                end
-                
-                                if not found then
-                                    partsMatch = false
-                                    break
-                                end
-                            end
-                        end
-                
-                        if partsMatch then
-                            temp_parts.Presets = nil
-                            temp_parts.currentPresetIDX = nil
-
-                            for key, value in pairs(temp_parts) do
-                                MDFXLData[equipment.MeshName][key] = value
-                                for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
-                                    if material["AddColorUV"] ~= nil then
-                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                    end
-                                end
-                            end
-                            MDFXLData[equipment.MeshName].isUpdated = true
-                            isUpdaterBypass = true
-                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
-                            update_PorterMaterialParams_MHWS(MDFXLData)
-                        else
-                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
-                            MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                        end
-                    end
-                elseif selected_preset == nil or {} then
-                    MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                end
-                if not func.table_contains(MDFXLPresetTracker, equipment.MeshName) then
-                    MDFXLPresetTracker[equipment.MeshName] = {}
-                end
-                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
-            end
-            :: continue ::
-        end
-        
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                chunk.wasUpdated = false
-            end
-        end
-        cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
-        json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
-        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        log.info("[MDF-XL] [Loading Screen detected, MDF-XL data updated.]")
-        isLoadingScreenUpdater = true
-    end
-    --Equipment Menu Updater
-    if isPlayerLeftEquipmentMenu and isDefaultsDumped then
-        if GUI090001DecideIDX == 1 then
+    if isPlayerInScene and isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater and not masterDataCoroutine then
+        masterDataCoroutine = coroutine.create(function()
             get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
             get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        elseif GUI090001DecideIDX == 2 then
+            get_PlayerSkinData_MHWS(MDFXLSubData)
+            coroutine.yield()
             get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
-        end
-        manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-        dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-        clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
-        cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
-        
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                json.dump_file(chunk.fileName, chunk.data)
-                chunk.wasUpdated = false
-            end
-        end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-
-        for _, equipment in pairs(MDFXLData) do
-            if GUI090001DecideIDX == 1 then
-                if not func.table_contains(MDFXLSubData.order, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.weaponOrder, MDFXLData[equipment.MeshName].MeshName) then
-                    goto continue
+            coroutine.yield()
+            get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            spawn_PlayerBaseBody_MHWS()
+            coroutine.yield()
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+            coroutine.yield()
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
+            for _, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
                 end
             end
-            if GUI090001DecideIDX == 2 then
-                if not func.table_contains(MDFXLSubData.otomoOrder, MDFXLData[equipment.MeshName].MeshName) and not func.table_contains(MDFXLSubData.otomoWeaponOrder, MDFXLData[equipment.MeshName].MeshName) then
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            materialParamDefaultsHolder = func.deepcopy(MDFXLData)
+            
+            coroutine.yield()
+
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+
+                if not (
+                    func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.porterOrder, eqData.MeshName)
+                ) then
                     goto continue
                 end
+
+                if eqData.Presets ~= nil then
+                    local selected_preset = eqData.Presets[eqData.currentPresetIDX]
+                    if selected_preset and selected_preset ~= (meshName .. " Default") and equipment.isInScene then
+                        wc = true
+                        local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                        local temp_parts = json.load_file(json_filepath)
+
+                        if temp_parts.Parts ~= nil then
+                            if MDFXLSettings.isDebug then
+                                log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                            end
+                            
+                            local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                            if partsMatch then
+                                for _, part in ipairs(temp_parts.Parts) do
+                                    local found = false
+                                    for _, ogPart in ipairs(eqData.Parts) do
+                                        if part == ogPart then
+                                            found = true
+                                            break
+                                        end
+                                    end
+                                    if not found then
+                                        partsMatch = false
+                                        break
+                                    end
+                                end
+                            end
+                            
+                            if partsMatch then
+                                temp_parts.Presets = nil
+                                temp_parts.currentPresetIDX = nil
+
+                                for key, value in pairs(temp_parts) do
+                                    eqData[key] = value
+                                end
+                                for i, material in pairs(eqData.Materials) do
+                                    if material["AddColorUV"] ~= nil then
+                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                    end
+                                end
+                                eqData.isUpdated = true
+                                isUpdaterBypass = true
+
+                                update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                                update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                                update_PorterMaterialParams_MHWS(MDFXLData)
+                            else
+                                log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                                eqData.currentPresetIDX = 1
+                            end
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
+                            end
+                        end
+                    else
+                        eqData.currentPresetIDX = 1
+                    end
+
+                    if not func.table_contains(MDFXLPresetTracker, meshName) then
+                        MDFXLPresetTracker[meshName] = {}
+                    end
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets and eqData.Presets[eqData.currentPresetIDX]
+                end
+
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                ::continue::
             end
 
-            if not func.table_contains(materialParamDefaultsHolder, MDFXLData[equipment.MeshName]) then
-                materialParamDefaultsHolder[equipment.MeshName] = func.deepcopy(MDFXLData[equipment.MeshName])
-                MDFXLPresetTracker[equipment.MeshName] = {}
-                MDFXLPresetTracker[equipment.MeshName].lastPresetName = MDFXLData[equipment.MeshName].Presets[MDFXLData[equipment.MeshName].currentPresetIDX]
+            for _, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    chunk.wasUpdated = false
+                end
             end
-
-            local lastPresetIndex = func.find_index(MDFXLData[equipment.MeshName].Presets, MDFXLPresetTracker[equipment.MeshName].lastPresetName)
-            local selected_preset = MDFXLData[equipment.MeshName].Presets[lastPresetIndex]
-            if selected_preset ~= equipment.MeshName .. " Default" and selected_preset ~= nil then
-                wc = true
-                local json_filepath = [[MDF-XL\\Equipment\\]] .. equipment.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                local temp_parts = json.load_file(json_filepath)
-                if #temp_parts.Parts ~= 0 then
-                    if MDFXLSettings.isDebug then
-                        log.info("[MDF-XL] [Auto Preset Loader: " .. equipment.MeshName  .. " ]")
+            cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
+            json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+            log.info("[MDF-XL] [Master Data defaults dumped.]")
+            isDefaultsDumped = true
+            isLoadingScreenUpdater = true
+            isCoroutinesDone = true
+        end)
+    end
+    --Subsequent Loading Screen Updater
+    if isPlayerInScene and isNowLoading and isDefaultsDumped and not isLoadingScreenUpdater and not loadingScreenCoroutine then
+        loadingScreenCoroutine = coroutine.create(function()
+            isCoroutinesDone = false
+            get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_PlayerSkinData_MHWS(MDFXLSubData)
+            coroutine.yield()
+            get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            spawn_PlayerBaseBody_MHWS()
+            coroutine.yield()
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+            coroutine.yield()
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
+            end
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            
+            coroutine.yield()
+            
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+                
+                if not (
+                    func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.porterOrder, eqData.MeshName)
+                ) then
+                    goto continue
+                end
+                
+                if not func.table_contains(materialParamDefaultsHolder, eqData) then
+                    materialParamDefaultsHolder[meshName] = func.deepcopy(eqData)
+                    MDFXLPresetTracker[meshName] = {}
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets[eqData.currentPresetIDX]
+                end
+                
+                if eqData.Presets ~= nil then
+                    local selected_preset = eqData.Presets[eqData.currentPresetIDX]
+                    if selected_preset and selected_preset ~= (meshName .. " Default") then
+                        wc = true
+                        local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                        local temp_parts = json.load_file(json_filepath)
+                        
+                        if temp_parts.Parts ~= nil then
+                            if MDFXLSettings.isDebug then
+                                log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                            end
+                            
+                            local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                            if partsMatch then
+                                for _, part in ipairs(temp_parts.Parts) do
+                                    local found = false
+                                    for _, ogPart in ipairs(eqData.Parts) do
+                                        if part == ogPart then
+                                            found = true
+                                            break
+                                        end
+                                    end
+                                    if not found then
+                                        partsMatch = false
+                                        break
+                                    end
+                                end
+                            end
+                            
+                            if partsMatch then
+                                temp_parts.Presets = nil
+                                temp_parts.currentPresetIDX = nil
+                                for key, value in pairs(temp_parts) do
+                                    eqData[key] = value
+                                end
+                                for i, material in pairs(eqData.Materials) do
+                                    if material["AddColorUV"] ~= nil then
+                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                    end
+                                end
+                                eqData.isUpdated = true
+                                isUpdaterBypass = true
+                                update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                                update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                                update_PorterMaterialParams_MHWS(MDFXLData)
+                            else
+                                log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                                eqData.currentPresetIDX = 1
+                            end
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
+                            end
+                        end
+                    elseif selected_preset == nil or {} then
+                        eqData.currentPresetIDX = 1
                     end
                     
-                    local partsMatch = #temp_parts.Parts == #MDFXLData[equipment.MeshName].Parts
-
-                    if partsMatch then
-                        for _, part in ipairs(temp_parts.Parts) do
-                            local found = false
-                            for _, ogPart in ipairs(MDFXLData[equipment.MeshName].Parts) do
-                                if part == ogPart then
-                                    found = true
+                    if not func.table_contains(MDFXLPresetTracker, meshName) then
+                        MDFXLPresetTracker[meshName] = {}
+                    end
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets[eqData.currentPresetIDX]
+                end
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                ::continue::
+            end
+            
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    chunk.wasUpdated = false
+                end
+            end
+            cache_MDFXLTags_MHWS(MDFXL, MDFXLTags)
+            json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+            log.info("[MDF-XL] [Loading Screen detected, MDF-XL data updated.]")
+            isLoadingScreenUpdater = true
+            isCoroutinesDone = true
+        end)
+    end
+    --Equipment Menu Updater
+    if isPlayerLeftEquipmentMenu and isDefaultsDumped and not equipmentMenuCoroutine then
+        equipmentMenuCoroutine = coroutine.create(function()
+            isCoroutinesDone = false
+            if GUI090001DecideIDX == 1 then
+                get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                coroutine.yield()
+            elseif GUI090001DecideIDX == 2 then
+                get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                coroutine.yield()
+            end
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+            coroutine.yield()
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
+            end
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            
+            coroutine.yield()
+            
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+                
+                if GUI090001DecideIDX == 1 then
+                    if not (func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
+                            func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName)) then
+                        goto continue
+                    end
+                elseif GUI090001DecideIDX == 2 then
+                    if not (func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
+                            func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName)) then
+                        goto continue
+                    end
+                end
+                
+                if not func.table_contains(materialParamDefaultsHolder, eqData) then
+                    materialParamDefaultsHolder[meshName] = func.deepcopy(eqData)
+                    MDFXLPresetTracker[meshName] = {}
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets[eqData.currentPresetIDX]
+                end
+                
+                local lastPresetIndex = func.find_index(eqData.Presets, MDFXLPresetTracker[meshName].lastPresetName)
+                local selected_preset = eqData.Presets[lastPresetIndex]
+                if selected_preset and selected_preset ~= (meshName .. " Default") then
+                    wc = true
+                    local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                    local temp_parts = json.load_file(json_filepath)
+                    if #temp_parts.Parts ~= 0 then
+                        if MDFXLSettings.isDebug then
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                        end
+                        local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                        if partsMatch then
+                            for _, part in ipairs(temp_parts.Parts) do
+                                local found = false
+                                for _, ogPart in ipairs(eqData.Parts) do
+                                    if part == ogPart then
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if not found then
+                                    partsMatch = false
                                     break
                                 end
                             end
-            
-                            if not found then
-                                partsMatch = false
-                                break
-                            end
                         end
-                    end
-            
-                    if partsMatch then
-                        temp_parts.Presets = nil
-                        temp_parts.currentPresetIDX = nil
-
-                        for key, value in pairs(temp_parts) do
-                            MDFXLData[equipment.MeshName][key] = value
-                            for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
+                        if partsMatch then
+                            temp_parts.Presets = nil
+                            temp_parts.currentPresetIDX = nil
+                            for key, value in pairs(temp_parts) do
+                                eqData[key] = value
+                            end
+                            for i, material in pairs(eqData.Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
                                 end
                             end
+                            eqData.isUpdated = true
+                            isUpdaterBypass = true
+                            if GUI090001DecideIDX == 1 then
+                                update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                            elseif GUI090001DecideIDX == 2 then
+                                update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                                update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                            end
+                        else
+                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                            eqData.currentPresetIDX = 1
                         end
-                        MDFXLData[equipment.MeshName].isUpdated = true
-                        isUpdaterBypass = true
-                        if GUI090001DecideIDX == 1 then
-                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                        elseif GUI090001DecideIDX == 2 then
-                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
-                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                         end
-                    else
-                        log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
-                        MDFXLData[equipment.MeshName].currentPresetIDX = 1
                     end
-                    if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                        log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
-                    end
+                elseif selected_preset == nil or {} then
+                    eqData.currentPresetIDX = 1
                 end
-            elseif selected_preset == nil or {} then
-                MDFXLData[equipment.MeshName].currentPresetIDX = 1
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                ::continue::
             end
-            ::continue::
-        end
-        
-        for i, chunk in pairs(MDFXLSaveData) do
-            if chunk.wasUpdated then
-                chunk.wasUpdated = false
+            
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    chunk.wasUpdated = false
+                end
             end
-        end
-        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        if GUI090001DecideIDX == 1 then
-            log.info("[MDF-XL] [Player left the Equipment Menu, MDF-XL data updated.]")
-        elseif GUI090001DecideIDX == 2 then
-            log.info("[MDF-XL] [Player left the Palico Equipment Menu, MDF-XL data updated.]")
-        end
-        isPlayerLeftEquipmentMenu = false
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+            if GUI090001DecideIDX == 1 then
+                log.info("[MDF-XL] [Player left the Equipment Menu, MDF-XL data updated.]")
+            elseif GUI090001DecideIDX == 2 then
+                log.info("[MDF-XL] [Player left the Palico Equipment Menu, MDF-XL data updated.]")
+            end
+            isPlayerLeftEquipmentMenu = false
+            isCoroutinesDone = true
+        end)
     end
     --Appearance Menu Updater
     if isAppearanceEditorUpdater and isDefaultsDumped then
@@ -2294,8 +2436,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         isPlayerLeftCamp = false
     end
     --Outfit Preset Updater
-    if isOutfitManagerBypass and not updaterCoroutine then
-        updaterCoroutine = coroutine.create(function()
+    if isOutfitManagerBypass and not outfitCoroutine then
+        outfitCoroutine = coroutine.create(function()
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
@@ -2395,6 +2537,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             end
             
             json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
             log.info("[MDF-XL] [Outfit Preset loaded, MDF-XL data updated.]")
             isOutfitManagerBypass = false
         end)
@@ -2516,7 +2659,13 @@ local function update_MDFXLViaHotkeys_MHWS()
     local PAD_Controls = not MDFXLSettings.useOutfitPadModifier or hk.check_hotkey("GamePad Modifier", true)
 
     if (KBM_OutfitChangeControls and hk.check_hotkey("Outfit Next")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Next") and not isWeaponDrawn) then
-        local outfitCount = func.countTableElements(MDFXLOutfits.Presets)
+        if isFemale then
+            OutfitPresetTable = MDFXLOutfits.FPresets
+        else
+            OutfitPresetTable = MDFXLOutfits.MPresets
+        end
+
+        local outfitCount = func.countTableElements(OutfitPresetTable)
         MDFXLOutfits.currentOutfitPresetIDX = math.min(MDFXLOutfits.currentOutfitPresetIDX + 1, outfitCount)
         setup_OutfitChanger()
     end
@@ -2580,6 +2729,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 if order ~= "playerBaseBodyOrder" then
                     if imgui.button("Reset to Defaults") then
                         wc = true
+                        isUpdaterBypass = true
                         MDFXLData[entry.MeshName].isUpdated = true
                         MDFXLData[entry.MeshName].Enabled = MDFXLDefaultsData[entry.MeshName].Enabled
                         MDFXLData[entry.MeshName].Materials = MDFXLDefaultsData[entry.MeshName].Materials
@@ -2736,6 +2886,9 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     json.dump_file("MDF-XL/Equipment/".. entry.MeshName .. "/" .. finalPresetName .. ".json", MDFXLData[entry.MeshName])
                     log.info("[MDF-XL] [Preset with the name: " .. finalPresetName .. " saved for " ..  entry.MeshName .. ".]")
                     MDFXLData[entry.MeshName].isUpdated = true
+                    if order == "playerBaseBodyOrder" then
+                        clear_BaseBody_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+                    end
                     clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
                     cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
                     json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
@@ -2744,7 +2897,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         local saved_preset_IDX = func.find_index(MDFXLData[entry.MeshName].Presets, finalPresetName)
                         local selected_preset = MDFXLData[entry.MeshName].Presets[saved_preset_IDX]
                         MDFXLData[entry.MeshName].currentPresetIDX = saved_preset_IDX
-                        local json_filepath = [[MDF-XL\\Equipment\\]] ..entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
+                        local json_filepath = [[MDF-XL\\Equipment\\]] .. entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
                         local temp_parts = json.load_file(json_filepath)
     
                         if temp_parts.Parts ~= nil then
@@ -2801,6 +2954,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
                             end
                             if order == "playerBaseBodyOrder" then
+                                json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettingsData)
                                 json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                             end
                         end
@@ -3450,8 +3604,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
     end
 end
 local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubData, order, updateFunc, displayText, color01, isDraw)
-    if not isDraw then return end
-
+    if (not isDraw) or (isPlayerLeftEquipmentMenu) or (not isCoroutinesDone) then return end
+    
     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.presetManager.secondaryDividerLen) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
     if order == "weaponOrder" then
@@ -3581,7 +3735,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 end
             end
             imgui.push_item_width(MDFXLSettingsData.presetManager.menuWidth)
-            if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
+            if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= nil and MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
                 imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
                 imgui.begin_rect()
                 changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
@@ -3684,10 +3838,21 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         imgui.spacing()
         imgui.indent(25)
         imgui.push_item_width(MDFXLSettings.presetManager.menuWidth)
-        changed, MDFXLOutfits.currentOutfitPresetIDX = imgui.combo("Outfit Preset", MDFXLOutfits.currentOutfitPresetIDX or 1, MDFXLOutfits.Presets); wc = wc or changed
+        if isFemale then
+            OutfitPresetTable = MDFXLOutfits.FPresets
+        else
+            OutfitPresetTable = MDFXLOutfits.MPresets
+        end
+
+        changed, MDFXLOutfits.currentOutfitPresetIDX = imgui.combo("Outfit Preset", MDFXLOutfits.currentOutfitPresetIDX or 1, OutfitPresetTable); wc = wc or changed
         if changed then
-            local selected_preset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
-            local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
+            local selected_preset = OutfitPresetTable[MDFXLOutfits.currentOutfitPresetIDX]
+            local json_filepath = ""
+            if isFemale then
+                json_filepath = [[MDF-XL\\Outfits\\Female\\]] .. selected_preset .. [[.json]]
+            else
+                json_filepath = [[MDF-XL\\Outfits\\Male\\]] .. selected_preset .. [[.json]]
+            end
             local temp_parts = json.load_file(json_filepath)
             wc = true
             if temp_parts ~= nil then
@@ -3697,6 +3862,7 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
                 isOutfitManagerBypass = true
                 json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
             end
+            json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
         end
         changed, outfitName = imgui.input_text("", outfitName); wc = wc or changed
         imgui.pop_item_width()
@@ -3751,7 +3917,12 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
                 end
                 :: continue ::
             end
-            json.dump_file("MDF-XL/Outfits/" .. outfitName .. ".json", MDFXLOutfitData)
+            if isFemale then
+                json.dump_file("MDF-XL/Outfits/Female/" .. outfitName .. ".json", MDFXLOutfitData)
+            else
+                json.dump_file("MDF-XL/Outfits/Male/" .. outfitName .. ".json", MDFXLOutfitData)
+            end
+            json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
             cache_MDFXLJSONFiles_MHWS(MDFXL, MDFXLSub)
         end
 
@@ -3762,7 +3933,9 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         changed, MDFXLOutfits.isOtomoEquipment = imgui.checkbox("Include Palico: Armor", MDFXLOutfits.isOtomoEquipment); wc = wc or changed
         changed, MDFXLOutfits.isOtomoArmament = imgui.checkbox("Include Palico: Weapon", MDFXLOutfits.isOtomoArmament); wc = wc or changed
         changed, MDFXLOutfits.isPorter = imgui.checkbox("Include Seikret", MDFXLOutfits.isPorter); wc = wc or changed
-
+        if wc or changed then
+            json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
+        end
         if isFemale then
             setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "playerBaseBodyOrder", update_PlayerBaseBody, "Body: Female", ui.colors.highContrast.purple, MDFXLOutfits.isBody)
         else
@@ -3773,7 +3946,8 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "otomoOrder", update_OtomoEquipmentMaterialParams_MHWS, "Palico: Armor", ui.colors.cyan, MDFXLOutfits.isOtomoEquipment)
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "otomoWeaponOrder", update_OtomoArmamentMaterialParams_MHWS, "Palico: Weapon", ui.colors.cerulean, MDFXLOutfits.isOtomoArmament)
         setup_MDFXLPresetGUI_MHWS(MDFXL, MDFXLSettings, MDFXLSub, "porterOrder", update_PorterMaterialParams_MHWS, "Seikret", ui.colors.lime, MDFXLOutfits.isPorter)
-    
+        
+       
         imgui.indent(-25)
         imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.end_rect(1)
@@ -3996,10 +4170,16 @@ local function draw_MDFXLPresetGUI_MHWS()
         imgui.text("Outfit Search")
 
         local filteredPresets = {}
-        local currentOutfitPreset = MDFXLOutfits.Presets[MDFXLOutfits.currentOutfitPresetIDX]
+        if isFemale then
+            OutfitPresetTable = MDFXLOutfits.FPresets
+        else
+            OutfitPresetTable = MDFXLOutfits.MPresets
+        end
+
+        local currentOutfitPreset = OutfitPresetTable[MDFXLOutfits.currentOutfitPresetIDX]
         local filteredIDX = nil
 
-        for _, preset in ipairs(MDFXLOutfits.Presets) do
+        for _, preset in ipairs(OutfitPresetTable) do
             if outfitPresetSearchQuery == "" then
                 table.insert(filteredPresets, preset)
             else
@@ -4026,14 +4206,25 @@ local function draw_MDFXLPresetGUI_MHWS()
         changed, filteredIDX = imgui.combo("Outfit Preset", filteredIDX or 1, filteredPresets); wc = wc or changed
         if changed then
             local selected_preset = filteredPresets[filteredIDX]
-            for i, preset in ipairs(MDFXLOutfits.Presets) do
+            if isFemale then
+                OutfitPresetTable = MDFXLOutfits.FPresets
+            else
+                OutfitPresetTable = MDFXLOutfits.MPresets
+            end
+
+            for i, preset in ipairs(OutfitPresetTable) do
                 if preset == selected_preset then
                     MDFXLOutfits.currentOutfitPresetIDX = i
                     break
                 end
             end
     
-            local json_filepath = [[MDF-XL\\Outfits\\]] .. selected_preset .. [[.json]]
+            local json_filepath = ""
+            if isFemale then
+                json_filepath = [[MDF-XL\\Outfits\\Female\\]] .. selected_preset .. [[.json]]
+            else
+                json_filepath = [[MDF-XL\\Outfits\\Male\\]] .. selected_preset .. [[.json]]
+            end
             local temp_parts = json.load_file(json_filepath)
             wc = true
             if temp_parts ~= nil then
@@ -4043,6 +4234,7 @@ local function draw_MDFXLPresetGUI_MHWS()
                 isOutfitManagerBypass = true
                 json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
             end
+            json.dump_file("MDF-XL/_Settings/MDF-XL_OutfitManagerSettings.json", MDFXLOutfits)
         end
         imgui.pop_item_width()
         imgui.indent(-10)
@@ -4105,6 +4297,7 @@ local function draw_MDFXLPresetGUI_MHWS()
     imgui.text_colored(ui.draw_line("-", MDFXLSettings.presetManager.primaryDividerLen), func.convert_rgba_to_ABGR(ui.colors.white))
 end
 local function load_MDFXLEditorAndPresetGUI_MHWS()
+    if not isCoroutinesDone then return end
     changed, MDFXLSettings.showMDFXLEditor = imgui.checkbox("Open MDF-XL: Editor", MDFXLSettings.showMDFXLEditor); wc = wc or changed
     func.tooltip("Show/Hide the MDF-XL Editor.")
     if not MDFXLSettings.showMDFXLEditor or imgui.begin_window("MDF-XL: Editor", true, 0) == false  then
@@ -4532,7 +4725,12 @@ local function draw_MDFXLGUI_MHWS()
                     MDFXLSettings.stats.equipmentDataVarCount = func.countTableElements(MDFXL)
                     MDFXLSettings.stats.textureCount = func.countTableElements(MDFXLSub.texturePaths)
                     MDFXLSettings.stats.presetCount = func.countTableElements(MDFXLSub.jsonPaths)
-                    MDFXLSettings.stats.outfitPresetCount = func.countTableElements(MDFXLOutfits.Presets)
+                    if isFemale then
+                        OutfitPresetTable = MDFXLOutfits.FPresets
+                    else
+                        OutfitPresetTable = MDFXLOutfits.MPresets
+                    end
+                    MDFXLSettings.stats.outfitPresetCount = func.countTableElements(OutfitPresetTable)
                     MDFXLSettings.stats.colorPaletteCount = func.countTableElements(MDFXLPalettes.Presets)
                 end
                 imgui.text("Material Data: " .. MDFXLSettings.stats.equipmentDataVarCount)
