@@ -1,5 +1,5 @@
 # MDF-XL
-MDF-XL is a runtime material editor. This tool aims to extend equipment and weapon customization without the need to leave the game. Built with a robust preset system, allowing a high level of compatibility without any file editing.
+MDF-XL is a runtime material editor. This tool aims to extend equipment and weapon customization. Built with a robust preset system, allowing a high level of compatibility without any file editing.
 ### Supported Games:
 - Monster Hunter Wilds
 
