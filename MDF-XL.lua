@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/24/2025"
-local modVersion = "v1.4.93-GOLD"
+local modUpdated = "02/25/2025"
+local modVersion = "v1.4.94-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -659,7 +659,6 @@ local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
 local isWeaponDrawn = false
 local isPlayerBaseBodySetup = false
-
 local isCoroutinesDone = false
 local playerBaseBody = nil
 local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
@@ -3608,6 +3607,27 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
     
     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.presetManager.secondaryDividerLen) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
+    if order == "playerBaseBodyOrder" then
+        changed, MDFXLSettingsData.isUpperBodyUnderArmor = imgui.checkbox("Show Undershirt", MDFXLSettingsData.isUpperBodyUnderArmor); wc = wc or changed
+        if changed then
+            if isFemale then
+                MDFXLData["MDFXL_FPlayerBase"].isUpdated = true
+            else
+                MDFXLData["MDFXL_MPlayerBase"].isUpdated = true
+            end
+            update_PlayerBaseBody(MDFXLData)
+        end
+        imgui.same_line()
+        changed, MDFXLSettingsData.isLowerBodyUnderArmor = imgui.checkbox("Show Tights", MDFXLSettingsData.isLowerBodyUnderArmor); wc = wc or changed
+        if changed then
+            if isFemale then
+                MDFXLData["MDFXL_FPlayerBase"].isUpdated = true
+            else
+                MDFXLData["MDFXL_MPlayerBase"].isUpdated = true
+            end
+            update_PlayerBaseBody(MDFXLData)
+        end
+    end
     if order == "weaponOrder" then
         changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon); wc = wc or changed
         ui.tooltip("Hides the currently equipped main weapon when sheathed.")
@@ -4352,6 +4372,7 @@ local function draw_MDFXLUserManual()
             --imgui.text(MDFXLUserManual.About[003])
             imgui.indent(-15)
             imgui.spacing()
+            imgui.text(MDFXLUserManual.About[098])
             imgui.text(MDFXLUserManual.About[099])
             imgui.push_id(0)
             imgui.push_item_width(500)
@@ -4510,7 +4531,6 @@ local function draw_MDFXLUserManual()
             imgui.spacing()
             imgui.indent(10)
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
-            
             imgui.text(MDFXLUserManual.Editor[100])
             imgui.spacing()
             imgui.text(MDFXLUserManual.Editor[101])
@@ -4533,7 +4553,26 @@ local function draw_MDFXLUserManual()
             imgui.text_colored(ui.draw_line("-", 50), func.convert_rgba_to_ABGR(ui.colors.white50))
             imgui.text_colored(MDFXLUserManual.Editor[111], func.convert_rgba_to_ABGR(ui.colors.orange))
             imgui.text(MDFXLUserManual.Editor[112])
-
+            imgui.text(MDFXLUserManual.Editor[113])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.Editor[114])
+            imgui.text(MDFXLUserManual.Editor[115])
+            imgui.text(MDFXLUserManual.Editor[116])
+            imgui.spacing()
+            imgui.text_colored(MDFXLUserManual.Editor[117], func.convert_rgba_to_ABGR(ui.colors.orange))
+            imgui.text(MDFXLUserManual.Editor[118])
+            imgui.text(MDFXLUserManual.Editor[119])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.BodyEditor.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.BodyEditor[150])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.BodyEditor[151])
             imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
             imgui.indent(-10)
             imgui.tree_pop()
