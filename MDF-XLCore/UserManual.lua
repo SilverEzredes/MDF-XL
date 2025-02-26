@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/25/2025 |",
+        header = " [ USER MANUAL ] 02/26/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -68,7 +68,7 @@ local MDFXLUserManual = {
         [100] = "This is where you can customize the currently equipped gear. It is also where you can save Presets and make Outfit Presets.\nThe layout is the same as the Preset Manager's, and there are several display settings available under 'MDF-XL > MDF-XL: Settings > Editor Settings'.",
         [101] = "You have the option to change Presets here as well however, there's no Preset search function and presets are displayed using their full names.\nIf you want your changes to the materials and submeshes to remain you must save them to a preset!",
         [102] = "- Name:\nThis is the field where you input the Preset's name.",
-        [103] = "- Tags:\nThis is the field where you input tags for your Preset (Optional). Tags must be separated by commas, and you're limited to five tags per preset.\nLeaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
+        [103] = "- Tags:\nThis is the field where you input tags for your Preset (Optional).\nTags must be separated by commas, and you're limited to five tags per preset. Leaving 'noTag' in the field will result in no tags being included in the Finalized Preset Name.",
         [104] = "- Author:\nThis is the field where you input your name (Optional).",
         [105] = "- Save Preset:\nClicking this button saves your preset to its proper location. Hovering over the 'Save Preset' button will display this location.\nAlternatively, you can enable 'Show Preset Path' in the settings. Saving a preset will also update the preset list for the given equipment.\nNext to it, you can see the Finalized Preset Name, which is limited to 200 characters.",
         [106] = "- MESH/MDF Path:\nDisplays the location of the MESH and MDF files for the given equipment in the game files.",
@@ -81,7 +81,7 @@ local MDFXLUserManual = {
         [113] = "To manage the large number of material parameters, MDF-XL includes built-in copy, paste, reset and filter functions.",
         [114] = "You can copy-paste on two different levels.\nThe first is at the material level, where right-clicking the material name allows you to copy and paste all material parameters.\nHere, you can also reset all material parameters for that material using the 'Reset' option.",
         [115] = "The second is at the material parameter level, where right-clicking the material parameter's name allows you to\ncopy, paste and reset the parameter value, you can also mark a parameter as favorite.",
-        [116] = "Parameters marked as favorites can be quickly accessed using the 'Filter: Favorites' option below the search bar.",
+        [116] = "Parameters marked as favorites will be highlighted in gold and can be quickly accessed using the 'Filter: Favorites' option below the search bar.",
         [117] = "Textures:",
         [118] = "Each material has its own Texture Menu, where you can change the textures used by that material.\nMost functions, such as copy, paste, and reset are also available for textures, along with a set of pre-made filters.\n(In a few cases, the Texture Menu might not be available for a material this is either done on purpose or the material doesn't use any textures.)",
         [119] = "The texture list is compiled from the textures MDF-XL encounters during its getter functions.\nThis means it doesn't include every texture in the game but will grow over time as you unlock new gear.",
@@ -89,15 +89,33 @@ local MDFXLUserManual = {
     BodyEditor = {
         header = "2.3 Body Editor",
         [150] = "Allows you to toggle different body parts to fill gaps created by hiding submeshes for a piece of equipment.\nIt uses a customized version of the Mesh Editor, and the Material Editor is not available here.",
-        [151] = "However, in the customized Mesh Editor you can opt to use Underclothes and change their color.\nThe Base Body is a fully custom game object included with MDF-XL, meaning the undercloth colors from the appearance editor or equipment appearance are not tracked."
+        [151] = "However, in the customized Mesh Editor you can opt to use Underclothes and change their color.\nThe Base Body is a fully custom game object included with MDF-XL, meaning the undercloth colors from the appearance editor or equipment appearance are not tracked.",
     },
     ColorPalettes = {
-        header = "2.4 Color Palettes",
+        header = "2.4 Color Palette Editor",
+        [155] = "A utility tool that lets you create color palettes and save them as presets. These colors can be copied for use in the Material Editor.\nRight click on the Color Name to access a context menu."
+    },
+    OutfitManager = {
+        header = "2.5 Outfit Manager",
+        [160] = "Allows you to create Outfit Presets.",
+        [161] = "Outfit Presets allow you to apply multiple presets at once. When building an Outfit Preset, you'll have access to a mirrored version of the Preset Manager.\nHowever, not everything you see will be saved; equipment with the Default Preset selected will be ignored, along with the current state of sheathed weapons and underclothes options.",
+        [162] = "You can customize what to include in the Outfit Preset by toggling the 'Include XYZ' options in the Outfit Manager.\nFor example, if you have presets loaded for your Palico and Seikret but don't want them included in the Outfit Preset, simply turn off the 'Include Palico' and 'Include Seikret' options.",
+        [163] = "Outfit Presets are grouped by the Hunter's gender.\nThis means you'll have access to a different list of Outfit Presets depending on whether you play as a male or female Hunter.",
+        [164] = "When loading an Outfit Preset, only the gear stored in the preset will be affected.\nFor example, if an Outfit Preset contains data for the Hunter's Armor but not for weapons, loading it won't override your current weapon presets since no weapon preset data was stored in the Outfit Preset."
+    },
+    PackagingPresets = {
+        header = "3. Packaging Presets as Mods",
+        [170] = "MDF-XL presets can be packaged into a mod for Fluffy Mod Manager without much work, as almost everything you need is generated through MDF-XL's UI in-game.",
+        [171] = "For example, if you have an Outfit Preset and two Presets you'd like to bundle into a mod your mod folder would look something like this:",
+        [172] = "ModName/\n|-- modinfo.ini\n|-- thumbnail.png\n  |__ reframework/\n    |__ data/\n      |__ MDF-XL/\n        |__ Outfits/\n          |__ Female/\n            |__ OutfitName-001.json\n        |__ Equipment/\n          |__ equipment_id_001/\n            |__ PresetName-001.json\n          |__ equipment_id_002/\n            |__ PresetName-002.json",
+        [173] = "If you're unsure of the exact paths of your presets, you can enable 'Show Preset Path' in the Editor settings.",
+        [174] = "More general information about packaging mods can be found on the RE Engine Modding Wiki:",
     },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
         [201] = "[Placeholder text for MHWS _ScriptCore link]",
         [202] = "https://www.nexusmods.com/dragonsdogma2/mods/30",
+        [297] = "https://github.com/Modding-Haven/REEngine-Modding-Documentation/wiki",
         [298] = "https://www.fluffyquack.com",
         [299] = "https://discord.gg/modding-haven-718224210270617702"
     },

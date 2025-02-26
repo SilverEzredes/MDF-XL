@@ -2,12 +2,13 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/25/2025"
-local modVersion = "v1.4.94-GOLD"
+local modUpdated = "02/26/2025"
+local modVersion = "v1.4.95-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
 MDFXL = true
+
 local func = require("_SharedCore/Functions")
 local ui = require("_SharedCore/Imgui")
 local hk = require("Hotkeys/Hotkeys")
@@ -4577,7 +4578,52 @@ local function draw_MDFXLUserManual()
             imgui.indent(-10)
             imgui.tree_pop()
         end
+        if imgui.tree_node(MDFXLUserManual.ColorPalettes.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.ColorPalettes[155])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
+        if imgui.tree_node(MDFXLUserManual.OutfitManager.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.OutfitManager[160])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.OutfitManager[161])
+            imgui.text(MDFXLUserManual.OutfitManager[162])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.OutfitManager[163])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.OutfitManager[164])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
         imgui.indent(-15)
+        imgui.spacing()
+        if imgui.tree_node(MDFXLUserManual.PackagingPresets.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.PackagingPresets[170])
+            imgui.text(MDFXLUserManual.PackagingPresets[171])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.PackagingPresets[172])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.PackagingPresets[173])
+            imgui.text(MDFXLUserManual.PackagingPresets[174])
+            imgui.push_id(175)
+            imgui.push_item_width(500)
+            imgui.input_text("", MDFXLUserManual.Links[297])
+            imgui.pop_id()
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
         imgui.indent(-20)
         
         imgui.spacing()
