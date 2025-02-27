@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/26/2025"
-local modVersion = "v1.4.95-GOLD"
+local modUpdated = "02/27/2025"
+local modVersion = "v1.4.97-GOLD"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -864,6 +864,7 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         local subWeaponInsect = playerCharacter:get_Wp10Insect()
         local reserveWeapon = playerCharacter:get_ReserveWeapon()
         local reserveSubWeapon = playerCharacter:get_ReserveSubWeapon()
+        local reserveSubWeaponInsect = playerCharacter:get_ReserveWp10Insect()
         local mainWeaponCharm = playerCharacter:get_WeaponCharm()
         local reserveWeaponCharm = playerCharacter:get_ReserveWeaponCharm()
 
@@ -891,6 +892,11 @@ local function get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             reserveSubWeapon = reserveSubWeapon:get_GameObject()
             local reserveSubWeaponID = reserveSubWeapon:get_Name()
             help_GetMaterialParams_MHWS(reserveSubWeapon, reserveSubWeaponID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
+        end
+        if reserveSubWeaponInsect then
+            reserveSubWeaponInsect = reserveSubWeaponInsect:get_GameObject()
+            local reserveSubWeaponInsectID = reserveSubWeaponInsect:get_Name()
+            help_GetMaterialParams_MHWS(reserveSubWeaponInsect, reserveSubWeaponInsectID, "weaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
         if mainWeaponCharm then
             mainWeaponCharm = mainWeaponCharm:get_GameObject()
@@ -1001,6 +1007,15 @@ end
 --Preset Managers 
 local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
     for _, equipment in pairs(MDFXLData) do
+        if not (
+            func.table_contains(MDFXLSub.order, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.weaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.otomoOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.otomoWeaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.porterOrder, equipment.MeshName)
+        ) then
+            goto continue
+        end
         if (equipment and equipment.isInScene and not isDefaultsDumped) or (isNowLoading and isDefaultsDumped and #equipment.Presets == 0) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
@@ -1008,6 +1023,7 @@ local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
                 log.info("[MDF-XL-JSON] [" .. equipment.MeshName .. " Default Preset Dumped]")
             end
         end
+        :: continue ::
     end
 end
 local function dump_BaseBodyMaterialParamJSON_MHWS(MDFXLData)
@@ -1067,8 +1083,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
         ) then
             goto continue
         end
-
-        local equipmentParams = MDFXL[equipment.MeshName]
+        local equipmentParams = MDFXLData[equipment.MeshName]
         
         if equipmentParams then
             local json_names = equipmentParams.Presets or {}
@@ -1189,6 +1204,7 @@ local function cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             end
         end
     end
+
     if isFemale then
         OutfitPresetTable = MDFXLOutfits.FPresets
     else
@@ -1251,8 +1267,17 @@ local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
         if (equipment.MeshName == "MDFXL_FPlayerBase") or (equipment.MeshName == "MDFXL_MPlayerBase") then
             goto continue
         end
+        if not (
+            func.table_contains(MDFXLSub.order, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.weaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.otomoOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.otomoWeaponOrder, equipment.MeshName) or 
+            func.table_contains(MDFXLSub.porterOrder, equipment.MeshName)
+        ) then
+            goto continue
+        end
         local presetTable = MDFXLData[equipment.MeshName].Presets
-        
+
         for i, presetName in pairs(presetTable) do
             if presetName ~= MDFXLData[equipment.MeshName].MeshName .. " Default" then
                 local name = MDFXLData[equipment.MeshName].MeshName
@@ -1303,6 +1328,7 @@ local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
     table.sort(tagTable._AuthorSearchList)
     table.sort(tagTable._TagList)
     table.sort(tagTable._TagSearchList)
+    json.dump_file("MDF-XL/_Holders/MDF-XL_Tags.json", tagTable)
 end
 --Material Param Setters
 local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
@@ -1374,6 +1400,7 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
                 local subWeaponInsect = playerCharacter:get_Wp10Insect()
                 local reserveWeapon = playerCharacter:get_ReserveWeapon()
                 local reserveSubWeapon = playerCharacter:get_ReserveSubWeapon()
+                local reserveSubWeaponInsect = playerCharacter:get_ReserveWp10Insect()
                 local mainWeaponCharm = playerCharacter:get_WeaponCharm()
                 local reserveWeaponCharm = playerCharacter:get_ReserveWeaponCharm()
 
@@ -1420,6 +1447,15 @@ local function update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
                     local reserveSubWeaponID = reserveSubWeapon:get_Name()
                     if reserveSubWeaponID == weapon.MeshName then
                         set_MaterialParams(reserveSubWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
+                    end
+                end
+                if reserveSubWeaponInsect then
+                    reserveSubWeaponInsect = reserveSubWeaponInsect:get_GameObject()
+                    if not (reserveSubWeaponInsect and reserveSubWeaponInsect:get_Valid()) then return end
+                    
+                    local reserveSubWeaponInsectID = reserveSubWeaponInsect:get_Name()
+                    if reserveSubWeaponInsectID == weapon.MeshName then
+                        set_MaterialParams(reserveSubWeaponInsect, MDFXLData, weapon, MDFXLSaveDataChunks)
                     end
                 end
                 if mainWeaponCharm then
@@ -1858,8 +1894,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             coroutine.yield()
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-            coroutine.yield()
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
             json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
@@ -1995,8 +2031,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             coroutine.yield()
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-            coroutine.yield()
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
             json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
@@ -2131,7 +2167,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             end
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
-            coroutine.yield()
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
