@@ -5,7 +5,7 @@ MDF-XL is a runtime material editor. This tool aims to extend equipment and weap
 
 ### Requirements:
 - [REFramework](https://github.com/praydog/REFramework-nightly/releases)
-- [_ScriptCore v1.1.93+](https://github.com/alphazolam/_ScriptCore/tree/SILVER-Dev)
+- [_ScriptCore v1.2.00+](https://github.com/alphazolam/_ScriptCore/tree/SILVER-Dev)
 
 ## Brief Overview
 - Toggle submeshes and mesh flags.
