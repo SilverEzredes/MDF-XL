@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "02/27/2025"
-local modVersion = "v1.4.97-GOLD"
+local modUpdated = "03/01/2025"
+local modVersion = "v1.4.99"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -111,6 +111,7 @@ local MDFXL_DefaultSettings = {
     isHideSubWeapon = false,
     isUpperBodyUnderArmor = false,
     isLowerBodyUnderArmor = false,
+    isHideTalismanEffect = false,
     version = modVersion,
     presetVersion = "v1.01",
     presetManager = {
@@ -651,13 +652,17 @@ local GUI080001 = nil
 local GUI090000 = nil
 local GUI090001MenuIDX = 0
 local GUI090001DecideIDX = 0
+local GUICharIDX = 0
+local GUI010300AppEditorIDX = 0
 local isOtomoInScene = false
 local isPorterInScene = false
 local isPlayerLeftEquipmentMenu = false
 local isPlayerOpenEquipmentMenu = false
 local isPlayerLeftCamp = false
+local isPlayerLeftSmithy = false
 local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
+local isAppearanceSeikretEditor = false
 local isWeaponDrawn = false
 local isPlayerBaseBodySetup = false
 local isCoroutinesDone = false
@@ -752,20 +757,35 @@ if reframework.get_game_name() == "mhwilds" then
         function(args)
             isPlayerOpenEquipmentMenu = true
             GUI080001 = sdk.to_managed_object(args[2])
+            GUICharIDX = GUI080001._EquipChangeType
         end
     )
-    --Camp GUI
+    --Equipment Appearance Menu GUI
+    sdk.hook(sdk.find_type_definition("app.GUI080200"):get_method("get_ID()"),
+        function(args)
+            local GUI080200 = sdk.to_managed_object(args[2])
+            GUICharIDX = GUI080200._CharacterType
+            
+            local onClose = sdk.to_int64(args[3])
+            if onClose == 5644419936 then
+                isPlayerLeftEquipmentMenu = true
+            end
+        end
+    )
+    --Camp and Smithy GUI
     sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("guiUpdate()"),
         function (args)
             local GUI090001 = sdk.to_managed_object(args[2])
-            GUI090001MenuIDX = sdk.to_int64(args[3])
+            GUI090001MenuIDX = GUI090001._CurrentMenu
             GUI090001DecideIDX = GUI090001._DecideCategory
         end
     )
-    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("closeRequest()"),
+    sdk.hook(sdk.find_type_definition("app.GUI090001"):get_method("onClose()"),
         function(args)
-            if (GUI090001MenuIDX == 6) or (GUI090001MenuIDX == 7) then
+            if (GUI090001MenuIDX == 0) or (GUI090001MenuIDX == 8) then
                 isPlayerLeftCamp = true
+            elseif GUI090001MenuIDX == 6 then
+                isPlayerLeftSmithy = true
             end
         end
     )
@@ -785,6 +805,19 @@ if reframework.get_game_name() == "mhwilds" then
         end,
         function(retval)
             return retval
+        end
+    )
+    sdk.hook(sdk.find_type_definition("app.GUI010300"):get_method("guiUpdate()"),
+        function(args)
+            local GUI010300 = sdk.to_managed_object(args[2])
+            GUI010300AppEditorIDX = GUI010300._SceneType
+        end
+    )
+    sdk.hook(sdk.find_type_definition("app.GUI010300"):get_method("onClose()"),
+        function(args)
+            if (GUI010300AppEditorIDX == 4) or (GUI010300AppEditorIDX == 5) then
+                isAppearanceSeikretEditor = true
+            end
         end
     )
     --Check if the currently equipped weapon is drawn or not
@@ -1016,7 +1049,8 @@ local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
         ) then
             goto continue
         end
-        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isNowLoading and isDefaultsDumped and #equipment.Presets == 0) or (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) then
+        if (equipment and equipment.isInScene and not isDefaultsDumped) or (isNowLoading and isDefaultsDumped and #equipment.Presets == 0) or 
+        (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) or (isPlayerLeftSmithy and #equipment.Presets == 0) then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
             if MDFXLSettings.isDebug then
@@ -1492,7 +1526,7 @@ local function update_PlayerArmamentVisibility_MHWS()
     if mainWeapon then
         if not mainWeapon then return end
         mainWeapon = mainWeapon:get_GameObject()
-        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 0 and GUI090001MenuIDX ~= 8 then
             if MDFXLSettings.isHideMainWeapon then
                 mainWeapon:set_DrawSelf(false)
             else
@@ -1507,7 +1541,7 @@ local function update_PlayerArmamentVisibility_MHWS()
         if not subWeapon then return end
         subWeapon = subWeapon:get_GameObject()
         
-        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 0 and GUI090001MenuIDX ~= 8 then
             if MDFXLSettings.isHideSubWeapon then
                 subWeapon:set_DrawSelf(false)
             else
@@ -1522,7 +1556,7 @@ local function update_PlayerArmamentVisibility_MHWS()
         if not subWeaponInsect then return end
         subWeaponInsect = subWeaponInsect:get_GameObject()
         
-        if not isWeaponDrawn and GUI090001MenuIDX ~= 6 and GUI090001MenuIDX ~= 7 then
+        if not isWeaponDrawn and GUI090001MenuIDX ~= 0 and GUI090001MenuIDX ~= 8 then
             if MDFXLSettings.isHideSubWeapon then
                 subWeaponInsect:set_DrawSelf(false)
             else
@@ -1537,6 +1571,19 @@ local function update_PlayerArmamentVisibility_MHWS()
         if not reserveWeapon then return end
         reserveWeapon = reserveWeapon:get_GameObject()
         reserveWeapon:set_DrawSelf(true)
+    end
+end
+local function update_PlayerTalismanEffectVisibility_MHWS()
+    if not masterPlayer then return end
+
+    local talismanObject = masterPlayer and masterPlayer:get_Valid() and masterPlayer:get_Object():get_Transform():find("no_name_effect")
+    if talismanObject then
+        talismanObject = talismanObject:get_GameObject()
+        if MDFXLSettings.isHideTalismanEffect then
+            talismanObject:set_DrawSelf(false)
+        else
+            talismanObject:set_DrawSelf(true)
+        end
     end
 end
 local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
@@ -1872,10 +1919,19 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if outfitCoroutine then
         local success, errorMsg = coroutine.resume(outfitCoroutine)
         if not success then
-            log.info("[MDF-XL-COR] Updater coroutine error: " .. errorMsg)
+            log.info("[MDF-XL-COR] Outfit coroutine error: " .. errorMsg)
             outfitCoroutine = nil
         elseif coroutine.status(outfitCoroutine) == "dead" then
             outfitCoroutine = nil
+        end
+    end
+    if smithyCoroutine then
+        local success, errorMsg = coroutine.resume(smithyCoroutine)
+        if not success then
+            log.info("[MDF-XL-COR] Smithy coroutine error: " .. errorMsg)
+            smithyCoroutine = nil
+        elseif coroutine.status(smithyCoroutine) == "dead" then
+            smithyCoroutine = nil
         end
     end
     --Initial Loading Screen Updater
@@ -2156,11 +2212,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if isPlayerLeftEquipmentMenu and isDefaultsDumped and not equipmentMenuCoroutine then
         equipmentMenuCoroutine = coroutine.create(function()
             isCoroutinesDone = false
-            if GUI090001DecideIDX == 1 then
+            if GUICharIDX == 0 then
                 get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 coroutine.yield()
-            elseif GUI090001DecideIDX == 2 then
+            elseif GUICharIDX == 1 then
                 get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 coroutine.yield()
@@ -2185,12 +2241,12 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 local meshName = equipment.MeshName
                 local eqData = MDFXLData[meshName]
                 
-                if GUI090001DecideIDX == 1 then
+                if GUICharIDX == 0 then
                     if not (func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
                             func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName)) then
                         goto continue
                     end
-                elseif GUI090001DecideIDX == 2 then
+                elseif GUICharIDX == 1 then
                     if not (func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
                             func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName)) then
                         goto continue
@@ -2242,10 +2298,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             eqData.isUpdated = true
                             isUpdaterBypass = true
-                            if GUI090001DecideIDX == 1 then
+                            if GUICharIDX == 0 then
                                 update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
                                 update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
-                            elseif GUI090001DecideIDX == 2 then
+                            elseif GUICharIDX == 1 then
                                 update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
                                 update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
                             end
@@ -2274,12 +2330,132 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 end
             end
             json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-            if GUI090001DecideIDX == 1 then
+            if GUICharIDX == 0 then
                 log.info("[MDF-XL] [Player left the Equipment Menu, MDF-XL data updated.]")
-            elseif GUI090001DecideIDX == 2 then
+            elseif GUICharIDX == 1 then
                 log.info("[MDF-XL] [Player left the Palico Equipment Menu, MDF-XL data updated.]")
             end
             isPlayerLeftEquipmentMenu = false
+            isCoroutinesDone = true
+        end)
+    end
+    --Smithy Menu Updater
+    if isPlayerLeftSmithy and isDefaultsDumped and not smithyCoroutine then
+        smithyCoroutine = coroutine.create(function()
+            isCoroutinesDone = false
+            get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            
+            get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
+            end
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            coroutine.yield()
+            
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+                if not (
+                    func.table_contains(MDFXLSubData.order, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoOrder, eqData.MeshName) or 
+                    func.table_contains(MDFXLSubData.otomoWeaponOrder, eqData.MeshName)
+                ) then
+                    goto continue
+                end
+                
+                if not func.table_contains(materialParamDefaultsHolder, eqData) then
+                    materialParamDefaultsHolder[meshName] = func.deepcopy(eqData)
+                    MDFXLPresetTracker[meshName] = {}
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets[eqData.currentPresetIDX]
+                end
+                
+                local lastPresetIndex = func.find_index(eqData.Presets, MDFXLPresetTracker[meshName].lastPresetName)
+                local selected_preset = eqData.Presets[lastPresetIndex]
+                if selected_preset and selected_preset ~= (meshName .. " Default") then
+                    wc = true
+                    local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                    local temp_parts = json.load_file(json_filepath)
+                    if #temp_parts.Parts ~= 0 then
+                        if MDFXLSettings.isDebug then
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                        end
+                        local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                        if partsMatch then
+                            for _, part in ipairs(temp_parts.Parts) do
+                                local found = false
+                                for _, ogPart in ipairs(eqData.Parts) do
+                                    if part == ogPart then
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if not found then
+                                    partsMatch = false
+                                    break
+                                end
+                            end
+                        end
+                        if partsMatch then
+                            temp_parts.Presets = nil
+                            temp_parts.currentPresetIDX = nil
+                            for key, value in pairs(temp_parts) do
+                                eqData[key] = value
+                            end
+                            for i, material in pairs(eqData.Materials) do
+                                if material["AddColorUV"] ~= nil then
+                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                                end
+                            end
+                            eqData.isUpdated = true
+                            isUpdaterBypass = true
+                            update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                            update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
+                            update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
+                        else
+                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                            eqData.currentPresetIDX = 1
+                        end
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
+                        end
+                    end
+                elseif selected_preset == nil or {} then
+                    eqData.currentPresetIDX = 1
+                end
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                :: continue ::
+            end
+            
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    chunk.wasUpdated = false
+                end
+            end
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+            log.info("[MDF-XL] [Player left the Smithy Menu, MDF-XL data updated.]")
+           
+            isPlayerLeftSmithy = false
             isCoroutinesDone = true
         end)
     end
@@ -2384,7 +2560,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         isAppearanceEditorUpdater = false
     end
     --Camp Menu Updater
-    if isPlayerLeftCamp and isDefaultsDumped and isPlayerInScene then
+    if (isPlayerLeftCamp) or (isAppearanceSeikretEditor) and isDefaultsDumped and isPlayerInScene then
         get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
         dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
@@ -2467,8 +2643,13 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             end
         end
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
-        log.info("[MDF-XL] [Player left the Camp Menu, MDF-XL data updated.]")
-        isPlayerLeftCamp = false
+        if isPlayerLeftCamp then
+            log.info("[MDF-XL] [Player left the Camp Menu, MDF-XL data updated.]")
+            isPlayerLeftCamp = false
+        elseif isAppearanceSeikretEditor then
+            log.info("[MDF-XL] [Player left the Seikret Appearance Menu, MDF-XL data updated.]")
+            isAppearanceSeikretEditor = false
+        end
     end
     --Outfit Preset Updater
     if isOutfitManagerBypass and not outfitCoroutine then
@@ -2577,9 +2758,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             isOutfitManagerBypass = false
         end)
     end
-    --Sheathed Weapon Visibility Updater
+    --Sheathed Weapon and TalismanEFX Visibility Updater
     if isPlayerInScene and isDefaultsDumped then
         update_PlayerArmamentVisibility_MHWS()
+        update_PlayerTalismanEffectVisibility_MHWS()
     end
     --Base Body Updater
     if isPlayerInScene and isDefaultsDumped and isPlayerBaseBodySetup then
@@ -3663,6 +3845,9 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
             end
             update_PlayerBaseBody(MDFXLData)
         end
+    end
+    if order == "order" then
+        changed, MDFXLSettingsData.isHideTalismanEffect = imgui.checkbox("Hide Talisman EFX", MDFXLSettingsData.isHideTalismanEffect); wc = wc or changed
     end
     if order == "weaponOrder" then
         changed, MDFXLSettingsData.isHideMainWeapon = imgui.checkbox("Hide Main Weapon", MDFXLSettingsData.isHideMainWeapon); wc = wc or changed
