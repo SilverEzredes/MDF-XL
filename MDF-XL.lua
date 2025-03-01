@@ -3,7 +3,7 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "03/01/2025"
-local modVersion = "v1.4.99"
+local modVersion = "v1.5.00"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--

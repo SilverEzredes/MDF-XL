@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 02/26/2025 |",
+        header = " [ USER MANUAL ] 03/01/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -13,7 +13,7 @@ local MDFXLUserManual = {
     },
     Install = {
         header = "1.1 Install",
-        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.1.93+)",
+        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.2.00+)",
         [011] = "Download the latest REF nightly build from here:",
         [012] = "If you are not using VR, only copy the 'dinput8.dll' into your game's root folder.",
         [013] = "Download the latest version of _ScriptCore from here:",
@@ -24,7 +24,7 @@ local MDFXLUserManual = {
     Troubleshooting = {
         header = "1.2 Troubleshooting",
         [020] = "I'm getting a ScriptRunner Error Message when I boot up the game. It mentions something about hotkeys.",
-        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.1.93+.",
+        [021] = "You're either missing _ScriptCore, or your version of _ScriptCore is outdated.\nMDF-XL requires _ScriptCore version 1.2.00+.",
         [022] = "MDF-XL used to work, but now I'm getting 1 FPS and ScriptRunner mentions something about a nil value.",
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n'[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL' and delete the '_Holders' folder.",
         [024] = "I've selected a preset but it loaded the default preset instead.",
@@ -40,7 +40,7 @@ local MDFXLUserManual = {
         header = "1.4 Update Loop",
         [040] = "Depending on the game MDF-XL updates during different game events. The first update is always passed on the initial loading screen.",
         [041] = "Update Events",
-        [042] = "Monster Hunter Wilds:\n - Loading Screens\n - Closing the Equipment Menu\n - Exiting a Pop-Up Camp\n - Leaving the Appearance Menu",
+        [042] = "Monster Hunter Wilds:\n - Loading Screens\n - Closing the Equipment Menu\n - Exiting a Pop-Up Camp\n - Leaving the Appearance Menu\n - Closing the Smithy Menu",
     },
     Credits = {
         header = "1.5 Credits",
@@ -88,7 +88,7 @@ local MDFXLUserManual = {
     },
     BodyEditor = {
         header = "2.3 Body Editor",
-        [150] = "Allows you to toggle different body parts to fill gaps created by hiding submeshes for a piece of equipment.\nIt uses a customized version of the Mesh Editor, and the Material Editor is not available here.",
+        [150] = "Allows you to toggle different body parts to fill gaps created by hiding submeshes.\nIt uses a customized version of the Mesh Editor, and the Material Editor is not available here.",
         [151] = "However, in the customized Mesh Editor you can opt to use Underclothes and change their color.\nThe Base Body is a fully custom game object included with MDF-XL, meaning the undercloth colors from the appearance editor or equipment appearance are not tracked.",
     },
     ColorPalettes = {
@@ -113,7 +113,7 @@ local MDFXLUserManual = {
     },
     Links = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
-        [201] = "[Placeholder text for MHWS _ScriptCore link]",
+        [201] = "https://www.nexusmods.com/monsterhunterwilds/mods/87",
         [202] = "https://www.nexusmods.com/dragonsdogma2/mods/30",
         [297] = "https://github.com/Modding-Haven/REEngine-Modding-Documentation/wiki",
         [298] = "https://www.fluffyquack.com",
