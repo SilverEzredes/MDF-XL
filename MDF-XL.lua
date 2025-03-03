@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/01/2025"
-local modVersion = "v1.5.00"
+local modUpdated = "03/03/2025"
+local modVersion = "v1.5.01"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -112,6 +112,12 @@ local MDFXL_DefaultSettings = {
     isUpperBodyUnderArmor = false,
     isLowerBodyUnderArmor = false,
     isHideTalismanEffect = false,
+    isUpdateGuildCard = false,
+    isHideGuildCardHunter = false,
+    isHideGuildCardOtomo = false,
+    isHideGuildCardPorter = false,
+    isHideGuildCardGUI = false,
+    isNullGuildCardBG01 = false,
     version = modVersion,
     presetVersion = "v1.01",
     presetManager = {
@@ -647,7 +653,11 @@ local masterPorter = nil
 local playerCharacter = nil
 local otomoCharacter = nil
 local porterCharacter = nil
+local GUI000008 = nil
+local GUI000013 = nil
 local GUI010000 = nil
+local GUI040200 = nil
+local GUI040202 = nil
 local GUI080001 = nil
 local GUI090000 = nil
 local GUI090001MenuIDX = 0
@@ -664,9 +674,14 @@ local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
 local isAppearanceSeikretEditor = false
 local isWeaponDrawn = false
+local isGuildCardDrawn = false
 local isPlayerBaseBodySetup = false
 local isCoroutinesDone = false
 local playerBaseBody = nil
+local guildCardHunter = nil
+local guildCardOtomo = nil
+local guildCardPorter = nil
+local guildCardLights = nil
 local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
 local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
 local maleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/MaleBase/MDFXL_MPlayerBase.mesh")
@@ -767,8 +782,8 @@ if reframework.get_game_name() == "mhwilds" then
             GUICharIDX = GUI080200._CharacterType
             
             local onClose = sdk.to_int64(args[3])
-            if onClose == 5644419936 then
-                isPlayerLeftEquipmentMenu = true
+            if onClose == 0 then
+                isPlayerLeftEquipmentMenu = true--TODO ASAP!
             end
         end
     )
@@ -833,7 +848,14 @@ if reframework.get_game_name() == "mhwilds" then
             return retval
         end
     )
+    --Hunter Profile GUI
+    sdk.hook(sdk.find_type_definition("app.GuildCardSceneController"):get_method("updateActive()"),
+        function (args)
+            isGuildCardDrawn = true            
+        end
+    )
 end
+
 --Material Param Getters
 local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFXLData, MDFXLSubData, MDFXLSaveData)
     if gameObject and gameObject:get_Valid() then
@@ -1677,6 +1699,127 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
         end
         :: continue ::
     end
+end
+local function update_GuildCardScene(MDFXLData)
+    local scene = func.get_CurrentScene()
+    if isFemale then
+        guildCardHunter = scene:call("findGameObject(System.String)", "GuildCard_HunterXX")
+    else
+        guildCardHunter = scene:call("findGameObject(System.String)", "GuildCard_HunterXY")
+    end
+    guildCardOtomo = scene:call("findGameObject(System.String)", "GuildCard_Palico")
+    guildCardPorter = scene:call("findGameObject(System.String)", "GuildCard_Porter")
+    guildCardLights = scene:call("findGameObject(System.String)", "guildcard_Lightset")
+    GUI000008 = scene:call("findGameObject(System.String)", "GUI000008")
+    GUI000013 = scene:call("findGameObject(System.String)", "GUI000013")
+    GUI040200 = scene:call("findGameObject(System.String)", "GUI040200")
+    GUI040202 = scene:call("findGameObject(System.String)", "GUI040202")
+    
+    if guildCardHunter then
+        if MDFXLSettings.isHideGuildCardHunter then
+            guildCardHunter:set_DrawSelf(false)
+        else
+            guildCardHunter:set_DrawSelf(true)
+        end
+
+        if not MDFXLSettings.isHideGuildCardHunter then
+            local playerTransforms = guildCardHunter and guildCardHunter:get_Valid() and guildCardHunter:get_Transform()
+            local playerChildren = func.get_children(playerTransforms)
+            
+            for _, equipment in pairs(MDFXLData) do
+                if not func.table_contains(MDFXLSub.order, MDFXLData[equipment.MeshName].MeshName) then
+                    goto continue
+                end
+                
+                for i, child in pairs(playerChildren) do
+                    local childStrings = child:ToString()
+                    local playerEquipment = childStrings:match("(ch[^@]+)")
+                    
+                    if playerEquipment == equipment.MeshName then
+                        local currentEquipment = playerTransforms:find(playerEquipment)
+                        local currentEquipmentID = currentEquipment:get_GameObject()
+
+                        if not (currentEquipmentID and currentEquipmentID:get_Valid()) then return end
+                        set_MaterialParams(currentEquipmentID, MDFXLData, equipment, MDFXLSaveDataChunks)
+                    end
+                end
+                :: continue ::
+            end
+        end
+    end
+    if guildCardOtomo then
+        if MDFXLSettings.isHideGuildCardOtomo then
+            guildCardOtomo:set_DrawSelf(false)
+        else
+            guildCardOtomo:set_DrawSelf(true)
+        end
+    end
+    if guildCardPorter then
+        if MDFXLSettings.isHideGuildCardPorter then
+            guildCardPorter:set_DrawSelf(false)
+        else
+            guildCardPorter:set_DrawSelf(true)
+        end
+    end
+    if guildCardLights then
+        local lightTransform = guildCardLights:get_Transform()
+        local lightChildren = func.get_children(lightTransform)
+
+        for i, child in pairs(lightChildren) do
+            local childStrings = child:ToString()
+            local event05_SpotLight = childStrings:match("Event_Other05_SpotLight")
+            
+            if event05_SpotLight then
+                local eventLight = lightTransform:find(event05_SpotLight)
+                local eventLightObject = eventLight:get_GameObject()
+
+                if eventLightObject then
+                    if MDFXLSettings.isNullGuildCardBG01 then
+                        eventLightObject:set_DrawSelf(false)
+                    else
+                        eventLightObject:set_DrawSelf(true)
+                    end
+                end
+            end
+        end 
+    end
+    if GUI000008 then
+        if MDFXLSettings.isHideGuildCardGUI then
+            GUI000008:set_UpdateSelf(false)
+            GUI000008:set_DrawSelf(false)
+        else
+            GUI000008:set_UpdateSelf(true)
+            GUI000008:set_DrawSelf(true)
+        end
+    end
+    if GUI000013 then
+        if MDFXLSettings.isHideGuildCardGUI then
+            GUI000013:set_UpdateSelf(false)
+            GUI000013:set_DrawSelf(false)
+        else
+            GUI000013:set_UpdateSelf(true)
+            GUI000013:set_DrawSelf(true)
+        end
+    end
+    if GUI040200 then
+        if MDFXLSettings.isHideGuildCardGUI then
+            GUI040200:set_UpdateSelf(false)
+            GUI040200:set_DrawSelf(false)
+        else
+            GUI040200:set_UpdateSelf(true)
+            GUI040200:set_DrawSelf(true)
+        end
+    end
+    if GUI040202 then
+        if MDFXLSettings.isHideGuildCardGUI then
+            GUI040202:set_UpdateSelf(false)
+            GUI040202:set_DrawSelf(false)
+        else
+            GUI040202:set_UpdateSelf(true)
+            GUI040202:set_DrawSelf(true)
+        end
+    end
+    isGuildCardDrawn = false
 end
 --Base Body Managers
 local function spawn_PlayerBaseBody_MHWS()
@@ -2867,6 +3010,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
         json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
         log.info("[MDF-XL] [Base Body Data Updated.]")
+    end
+    --Hunter Profile Updater
+    if isPlayerInScene and isDefaultsDumped and isGuildCardDrawn and MDFXLSettings.isUpdateGuildCard then
+        isUpdaterBypass = true
+        update_GuildCardScene(MDFXLData)
     end
 end
 local function update_MDFXLViaHotkeys_MHWS()
@@ -5023,7 +5171,22 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.text_colored("* Weapon must be sheathed!", func.convert_rgba_to_ABGR(ui.colors.orange))
                 imgui.tree_pop()
             end
-
+            if imgui.tree_node("Hunter Profile") then
+                imgui.indent(5)
+                if imgui.button("Update Hunter Profile Scene") then
+                    MDFXLSettings.isUpdateGuildCard = true
+                else
+                    MDFXLSettings.isUpdateGuildCard = false
+                end
+                changed, MDFXLSettings.isHideGuildCardGUI = imgui.checkbox("Hide GUI", MDFXLSettings.isHideGuildCardGUI);wc = wc or changed
+                changed, MDFXLSettings.isNullGuildCardBG01 = imgui.checkbox("Hide Scene-01 Background", MDFXLSettings.isNullGuildCardBG01);wc = wc or changed
+                imgui.spacing()
+                changed, MDFXLSettings.isHideGuildCardHunter = imgui.checkbox("Hide Hunter", MDFXLSettings.isHideGuildCardHunter);wc = wc or changed
+                changed, MDFXLSettings.isHideGuildCardOtomo = imgui.checkbox("Hide Palico", MDFXLSettings.isHideGuildCardOtomo);wc = wc or changed
+                changed, MDFXLSettings.isHideGuildCardPorter = imgui.checkbox("Hide Seikret", MDFXLSettings.isHideGuildCardPorter);wc = wc or changed
+                imgui.indent(-5)
+                imgui.tree_pop()
+            end
             if imgui.tree_node("Stats") then
                 imgui.indent(5)
                 if imgui.button("Refresh Stats") then
