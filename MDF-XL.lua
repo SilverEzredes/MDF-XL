@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/03/2025"
-local modVersion = "v1.5.03"
+local modUpdated = "03/04/2025"
+local modVersion = "v1.5.04"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -510,6 +510,7 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
                         if not dataTable[entry].Textures[matName][textureName] then
                             dataTable[entry].Textures[matName][textureName] = ""
                         end
+
                         dataTable[entry].Textures[matName][textureName] = formattedTexturePath
                     end
                 end
@@ -540,7 +541,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                             local matParamNames = renderMesh:getMaterialVariableName(j, k)
                             local matType = renderMesh:getMaterialVariableType(j, k)
                             
-                            if (matParamNames == lastMatParamName and matType) or isUpdaterBypass then
+                            if isUpdaterBypass or (matParamNames == lastMatParamName and matType) then
                                 if matType == 1 then
                                     renderMesh:setMaterialFloat(j, k, dataTable[entry.MeshName].Materials[matName][matParamNames][1])
                                 end
@@ -551,7 +552,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                             end
                         end
                     end
-                    if (isUpdaterBypass and matName ~= "skin") or (isTextureEditor[entry.MeshName] and matName ~= "skin") then
+                    if (isUpdaterBypass and matName ~= "skin") or (isTextureEditor[dataTable[entry.MeshName].Materials[matName]] and matName ~= "skin") then
                         for t = 0, textureCount - 1 do
                             local textureName = renderMesh:getMaterialTextureName(j, t)
                             local textureResource = func.create_resource(texResourceComp, dataTable[entry.MeshName].Textures[matName][textureName])
@@ -3597,7 +3598,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 
                                 if entry.TextureCount[matName] ~= 0 and matName ~= "skin" then
                                     if imgui.tree_node("Textures") then
-                                        isTextureEditor[entry.MeshName] = true
+                                        isTextureEditor[MDFXLData[entry.MeshName].Materials[matName]] = true
                                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
 
                                         changed, textureSearchQuery = imgui.input_text("Texture Search", textureSearchQuery); wc = wc or changed
@@ -3702,7 +3703,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                         imgui.tree_pop()
                                     else
-                                        isTextureEditor[entry.MeshName] = false
+                                        isTextureEditor[MDFXLData[entry.MeshName].Materials[matName]] = false
                                     end
                                     imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                                 end
