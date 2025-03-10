@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/04/2025"
-local modVersion = "v1.5.04"
+local modUpdated = "03/10/2025"
+local modVersion = "v1.5.15"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -17,9 +17,13 @@ local changed = false
 local wc = false
 
 local renderComp = "via.render.Mesh"
+local chain2Comp = "via.motion.Chain2"
 local texResourceComp = "via.render.TextureResource"
-local masterPlayer = nil
+local meshResourceComp = "via.render.MeshResource"
+local mdfResourceComp = "via.render.MeshMaterialResource"
+local chain2ResourceComp = "via.motion.Chain2Resource"
 
+local masterPlayer = nil
 local isPlayerInScene = false
 local isDefaultsDumped = false
 local isUpdaterBypass = false
@@ -41,6 +45,7 @@ local materialEditorParamHolder = {}
 local materialEditorSubParamFloatHolder = nil
 local materialEditorSubParamFloat4Holder = nil
 local textureEditorStringHolder = nil
+local lastLayeredWeaponStringHolder = nil
 local presetName = "[Enter Preset Name Here]"
 local paletteName = "[Enter Palette Name Here]"
 local outfitName = "[Enter Outfit Name Here]"
@@ -48,12 +53,14 @@ local searchQuery = ""
 local outfitPresetSearchQuery = ""
 local presetSearchQuery = ""
 local textureSearchQuery = ""
+local layeredWeaponSearchQuery = ""
 local lastMatParamName = ""
 local lastTime = 0.0
 local tickInterval = 0.0
 local autoSaveProgress = 0
 local wasEditorShown = false
 local isFemale = false
+local lastTransmogEntryKey = ""
 
 local MDFXL_Cache = {
     resourceOG = "Resource%[",
@@ -80,8 +87,8 @@ local MDFXL_DefaultSettings = {
     showFinalizedPresetName = true,
     showPresetPath = false,
     showPresetVersion = true,
-    showMeshPath = true,
-    showMDFPath = true,
+    showMeshPath = false,
+    showMDFPath = false,
     primaryDividerLen = 100,
     secondaryDividerLen = 75,
     tertiaryDividerLen = 90,
@@ -103,8 +110,9 @@ local MDFXL_DefaultSettings = {
     isHideGuildCardPorter = false,
     isHideGuildCardGUI = false,
     isNullGuildCardBG01 = false,
+    isLayeredWeaponShowOnlySelfType = true,
     version = modVersion,
-    presetVersion = "v1.01",
+    presetVersion = "v1.02",
     presetManager = {
         isTrimPresetNames = true,
         showOutfitPreset = true,
@@ -133,16 +141,19 @@ local MDFXL_DefaultSettings = {
         ["Toggle Filter Favorites"] = "F",
         ["Toggle Color Palettes"] = "P",
         ["Toggle Outfit Manager"] = "O",
-        ["Toggle Back Weapons"] = "B",
+        ["Toggle Main Weapon"] = "B",
+        ["Toggle Sub Weapon"] = "B",
         ["Toggle Case Sensitive Search"] = "C",
         ["Clear Outfit Search"] = "X",
+        ["Reset Last Layered Weapon"] = "Z",
         ["Outfit Change Modifier"] = "RShift",
         ["Outfit Next"] = "Next",
         ["Outfit Previous"] = "Prior",
         ["GamePad Modifier"] = "LT (L2)",
         ["GamePad Outfit Next"] = "RB (R1)",
         ["GamePad Outfit Previous"] = "LB (L1)",
-        ["GamePad Toggle Back Weapons"] = "LStickPush",
+        ["GamePad Toggle Main Weapon"] = "LStickPush",
+        ["GamePad Toggle Sub Weapon"] = "LStickPush",
     },
     stats = {
         equipmentDataVarCount = 0,
@@ -339,6 +350,7 @@ local MDFXL_ColorPalettes = {
     newColorIDX = 1,
 }
 local MDFXL_PresetTracker = {}
+local MDFXL_TransmogTracker = {}
 local MDFXLSaveDataChunks = {}
 local MDFXLTags = {
     _AuthorList = {},
@@ -356,6 +368,7 @@ MDFXLUserManual = require("MDF-XLCore/UserManual")
 
 local MDFXLSub = hk.merge_tables({}, MDFXL_Sub) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_SubData.json") or {}, MDFXL_Sub)
 local MDFXLPresetTracker = hk.merge_tables({}, MDFXL_PresetTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json") or {}, MDFXL_PresetTracker)
+local MDFXLTransmogTracker = hk.merge_tables({}, MDFXL_TransmogTracker) and hk.recurse_def_settings(json.load_file("MDF-XL/_Holders/MDF-XL_TransmogTracker.json") or {}, MDFXL_TransmogTracker)
 local MDFXLSettings = hk.merge_tables({}, MDFXL_DefaultSettings) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_Settings.json") or {}, MDFXL_DefaultSettings)
 MDFXLSettings.presetVersion = MDFXL_DefaultSettings.presetVersion
 local MDFXLPalettes = hk.merge_tables({}, MDFXL_ColorPalettes) and hk.recurse_def_settings(json.load_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json") or {}, MDFXL_ColorPalettes)
@@ -402,6 +415,17 @@ local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry].AuthorName = ""
     MDFXLData[entry].Tags = {
         "noTag"
+    }
+    MDFXLData[entry].Transmog = {
+        ID = "",
+        IDX = 0,
+        POS = {},
+        ROT = {},
+        Scale = {},
+        JointType = 0,
+    }
+    MDFXLData[entry].EFX = {
+        isEnabled = false
     }
     MDFXLData[entry].isUpdated = false
 end
@@ -666,16 +690,53 @@ local isWeaponChangedCallCount = 0
 local isGuildCardDrawn = false
 local isPlayerBaseBodySetup = false
 local isCoroutinesDone = false
+local isWeaponTransmogRequest = false
+local isTransmogBypass = false
 local playerBaseBody = nil
 local guildCardHunter = nil
 local guildCardOtomo = nil
 local guildCardPorter = nil
 local guildCardLights = nil
-local femaleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
-local femaleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
-local maleBaseMesh = func.create_resource("via.render.MeshResource", "MDF-XL/MaleBase/MDFXL_MPlayerBase.mesh")
-local maleBaseMDF = func.create_resource("via.render.MeshMaterialResource", "MDF-XL/MaleBase/MDFXL_MPlayerBase.mdf2")
-
+local femaleBaseMesh = func.create_resource(meshResourceComp, "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mesh")
+local femaleBaseMDF = func.create_resource(mdfResourceComp, "MDF-XL/FemaleBase/MDFXL_FPlayerBase.mdf2")
+local maleBaseMesh = func.create_resource(meshResourceComp, "MDF-XL/MaleBase/MDFXL_MPlayerBase.mesh")
+local maleBaseMDF = func.create_resource(mdfResourceComp, "MDF-XL/MaleBase/MDFXL_MPlayerBase.mdf2")
+local tmogResources = {}
+local weaponLists = {}
+local nullChain = "Art/Model/Item/it00/99/it0099_0000_0.chain2"
+for ID, weapon in pairs(MDFXLDatabase.MHWS) do
+    if weapon.WPType ~= nil then
+        if weapon.ChainPath == "" then
+            weapon.ChainPath = nullChain
+        end
+        tmogResources[ID] = {}
+        tmogResources[ID].mesh = func.create_resource(meshResourceComp, weapon.MeshPath)
+        tmogResources[ID].mdf = func.create_resource(mdfResourceComp, weapon.MeshPath:gsub("%.mesh", ".mdf2"))
+        tmogResources[ID].chain2 = func.create_resource(chain2ResourceComp, weapon.ChainPath)
+    end
+end
+for wpType = 0, 11 do
+    weaponLists[wpType] = {}
+    table.insert(weaponLists[wpType], {key = "", name = "None"})
+    
+    for key, weapon in pairs(MDFXLDatabase.MHWS) do
+        if weapon.WPType == wpType then
+            table.insert(weaponLists[wpType], {key = key, name = weapon.Name})
+        end
+    end
+    
+    local noneEntry = weaponLists[wpType][1]
+    local sortable = {}
+    for i = 2, #weaponLists[wpType] do
+        table.insert(sortable, weaponLists[wpType][i])
+    end
+    table.sort(sortable, function(a, b) return a.name < b.name end)
+    
+    weaponLists[wpType] = {noneEntry}
+    for _, weaponEntry in ipairs(sortable) do
+        table.insert(weaponLists[wpType], weaponEntry)
+    end
+end
 --Generic getters and checks
 local function get_PlayerManager_MHWS()
     if playerManager_MHWS == nil then playerManager_MHWS = sdk.get_managed_singleton("app.PlayerManager") end
@@ -843,7 +904,6 @@ if reframework.get_game_name() == "mhwilds" then
         end
     )
 end
-
 --Material Param Getters
 local function help_GetMaterialParams_MHWS(gameObject, gameObjectID, order, MDFXLData, MDFXLSubData, MDFXLSaveData)
     if gameObject and gameObject:get_Valid() then
@@ -1063,7 +1123,8 @@ local function dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
             goto continue
         end
         if (equipment and equipment.isInScene and not isDefaultsDumped) or (isNowLoading and isDefaultsDumped and #equipment.Presets == 0) or 
-        (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) or (isPlayerLeftSmithy and #equipment.Presets == 0) then
+        (isPlayerLeftEquipmentMenu and #equipment.Presets == 0) or (isPlayerLeftCamp and #equipment.Presets == 0) or (isAppearanceEditorUpdater and #equipment.Presets == 0) or 
+        (isPlayerLeftSmithy and #equipment.Presets == 0) or (isPlayerSwappedWeapons and #equipment.Presets == 0) or (isWeaponTransmogRequest and #equipment.Presets == 0) then
             json.dump_file("MDF-XL/Equipment/" .. equipment.MeshName .. "/" .. equipment.MeshName .. " Default.json", equipment)
             
             if MDFXLSettings.isDebug then
@@ -1095,7 +1156,7 @@ local function clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
         ) then
             goto continue
         end
-        if (MDFXLData[equipment.MeshName].isUpdated) or (isUpdaterBypass) or (not isDefaultsDumped) or (isNowLoading and not isLoadingScreenUpdater) then
+        if (MDFXLData[equipment.MeshName].isUpdated) or (isUpdaterBypass) or (not isDefaultsDumped) or (isNowLoading and not isLoadingScreenUpdater) or (isWeaponTransmogRequest) then
             local cacheKey = "MDF-XL/Equipment/" .. equipment.MeshName
             MDFXLSubData.jsonPaths[cacheKey] = nil
 
@@ -1376,6 +1437,89 @@ local function cache_MDFXLTags_MHWS(MDFXLData, tagTable)
     table.sort(tagTable._TagList)
     table.sort(tagTable._TagSearchList)
     json.dump_file("MDF-XL/_Holders/MDF-XL_Tags.json", tagTable)
+end
+--Weapon Transmog System
+local function help_TransmogPlayerArmament(weaponObj, weaponData, MDFXLDatabase, MDFXLTransmogTracker, transmogID, weaponID)
+    if not (weaponObj and weaponObj:get_Valid()) then 
+        return false
+    end
+    local renderMesh = func.get_GameObjectComponent(weaponObj, renderComp)
+    local chain2 = func.get_GameObjectComponent(weaponObj, chain2Comp)
+    local transmogComplete = false
+
+    local resources = tmogResources[transmogID]
+    if renderMesh then
+        if resources.mesh and resources.mdf then
+            renderMesh:setMesh(resources.mesh)
+            renderMesh:set_Material(resources.mdf)
+            renderMesh:set_Enabled(false)
+        end
+    end
+
+    if chain2 then
+        if resources.chain2 then
+            chain2:set_ChainAsset(resources.chain2)
+        end
+    end
+
+    transmogComplete = true
+
+    if transmogComplete then
+        local baseWeaponID = weaponID:match("^(.-)%-%-") or weaponID
+
+        if baseWeaponID == transmogID then
+            weaponObj:set_Name(baseWeaponID)
+            MDFXL[baseWeaponID].Transmog.ID = ""
+        else
+            weaponObj:set_Name(baseWeaponID .. "--" .. transmogID)
+            lastLayeredWeaponStringHolder = baseWeaponID .. "--" .. transmogID
+        end
+        renderMesh:set_Enabled(true)
+        log.info("[MDF-XL] [Transmog Complete for " .. baseWeaponID .. " ]")
+    end
+
+    if not MDFXLTransmogTracker[weaponData.MeshName] then
+        MDFXLTransmogTracker[weaponData.MeshName] = {}
+    end
+    MDFXLTransmogTracker[weaponData.MeshName].lastTransmogID = transmogID
+    isUpdaterBypass = true
+    return true
+end
+local function transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, validWeaponIDs)
+    if not isPlayerInScene then return end
+
+    for _, weaponData in pairs(MDFXLData) do
+        if not func.table_contains(MDFXLSub.weaponOrder, MDFXLData[weaponData.MeshName].MeshName) then
+            goto continue
+        end
+
+        if playerCharacter then
+            local weaponSlots = {
+                {slot = "mainWeapon", obj = playerCharacter:get_Weapon()},
+                {slot = "subWeapon", obj = playerCharacter:get_SubWeapon()},
+                {slot = "reserveWeapon", obj = playerCharacter:get_ReserveWeapon()},
+                {slot = "reserveSubWeapon", obj = playerCharacter:get_ReserveSubWeapon()},
+                {slot = "subWeaponInsect", obj = playerCharacter:get_Wp10Insect()},
+                {slot = "reserveSubWeaponInsect", obj = playerCharacter:get_ReserveWp10Insect()}
+            }
+
+            local transmogID = MDFXLData[weaponData.MeshName].Transmog.ID
+            if transmogID == "" then goto continue end
+
+            for _, weaponEntry in ipairs(weaponSlots) do
+                if weaponEntry.obj then
+                    weaponEntry.obj = weaponEntry.obj:get_GameObject()
+                    local weaponID = weaponEntry.obj:get_Name()
+                    if func.table_contains(validWeaponIDs, weaponID) and weaponID == weaponData.MeshName and (isTransmogBypass or weaponID == lastTransmogEntryKey) then
+                        help_TransmogPlayerArmament(weaponEntry.obj, weaponData, MDFXLDatabase, MDFXLTransmogTracker, transmogID, weaponID)
+                        get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSub)
+                    end
+                end
+            end
+        end
+        ::continue::
+    end
+    json.dump_file("MDF-XL/_Holders/MDF-XL_TransmogTracker.json", MDFXLTransmogTracker)
 end
 --Material Param Setters
 local function update_PlayerEquipmentMaterialParams_MHWS(MDFXLData)
@@ -2077,13 +2221,25 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             campCoroutine = nil
         end
     end
+    if transmogCoroutine then
+        local success, errorMsg = coroutine.resume(transmogCoroutine)
+        if not success then
+            log.info("[MDF-XL-COR] Transmog coroutine error: " .. errorMsg)
+            transmogCoroutine = nil
+        elseif coroutine.status(transmogCoroutine) == "dead" then
+            transmogCoroutine = nil
+        end
+    end
     --Initial Loading Screen Updater
     if isPlayerInScene and isNowLoading and not isDefaultsDumped and not isLoadingScreenUpdater and not masterDataCoroutine then
         masterDataCoroutine = coroutine.create(function()
+            isTransmogBypass = true
             get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
             get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_PlayerSkinData_MHWS(MDFXLSubData)
+            coroutine.yield()
+            transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, MDFXLSubData.weaponOrder)
             coroutine.yield()
             get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
@@ -2154,6 +2310,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             
                             if partsMatch then
+                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                    temp_parts.Transmog = {}
+                                    temp_parts.Transmog = {
+                                        ID = "",
+                                        IDX = 0,
+                                        POS = {},
+                                        ROT = {},
+                                        Scale = {},
+                                        JointType = 0,
+                                    }
+                                    temp_parts.EFX = {}
+                                    temp_parts.EFX = {
+                                        isEnabled = false
+                                    }
+                                end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
 
@@ -2191,7 +2362,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets and eqData.Presets[eqData.currentPresetIDX]
                 end
 
-                
                 counter = counter + 1
                 if counter % 1 == 0 then
                     coroutine.yield()
@@ -2210,6 +2380,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             log.info("[MDF-XL] [Master Data defaults dumped.]")
             isDefaultsDumped = true
             isLoadingScreenUpdater = true
+            isTransmogBypass = false
             isCoroutinesDone = true
         end)
     end
@@ -2217,10 +2388,13 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if isPlayerInScene and isNowLoading and isDefaultsDumped and not isLoadingScreenUpdater and not loadingScreenCoroutine then
         loadingScreenCoroutine = coroutine.create(function()
             isCoroutinesDone = false
+            isTransmogBypass = true
             get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
             get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_PlayerSkinData_MHWS(MDFXLSubData)
+            coroutine.yield()
+            transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, MDFXLSubData.weaponOrder)
             coroutine.yield()
             get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
@@ -2296,6 +2470,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             
                             if partsMatch then
+                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                    temp_parts.Transmog = {}
+                                    temp_parts.Transmog = {
+                                        ID = "",
+                                        IDX = 0,
+                                        POS = {},
+                                        ROT = {},
+                                        Scale = {},
+                                        JointType = 0,
+                                    }
+                                    temp_parts.EFX = {}
+                                    temp_parts.EFX = {
+                                        isEnabled = false
+                                    }
+                                end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
                                 for key, value in pairs(temp_parts) do
@@ -2347,6 +2536,7 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             json.dump_file("MDF-XL/_Settings/MDF-XL_ColorPalettesSettings.json", MDFXLPalettes)
             json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
             log.info("[MDF-XL] [Loading Screen detected, MDF-XL data updated.]")
+            isTransmogBypass = false
             isLoadingScreenUpdater = true
             isCoroutinesDone = true
         end)
@@ -2355,6 +2545,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if ((isPlayerLeftEquipmentMenu) or (isAppearanceEditorUpdater) or (isPlayerSwappedWeapons)) and isDefaultsDumped and not equipmentMenuCoroutine then
         equipmentMenuCoroutine = coroutine.create(function()
             isCoroutinesDone = false
+            if not isPlayerSwappedWeapons then
+                isTransmogBypass = true
+            end
             if GUICharIDX == 0 then
                 get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
@@ -2364,6 +2557,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 coroutine.yield()
             end
+            transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, MDFXLSubData.weaponOrder)
+            coroutine.yield()
+
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
@@ -2429,6 +2625,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                         end
                         if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
                             for key, value in pairs(temp_parts) do
@@ -2484,6 +2695,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             elseif GUICharIDX == 1 then
                 log.info("[MDF-XL] [Player left the Palico Equipment or Palico Equipment Appearance Menu, MDF-XL data updated.]")
             end
+            if not isPlayerSwappedWeapons then
+                isTransmogBypass = false
+            end
             isPlayerSwappedWeapons = false
             isAppearanceEditorUpdater = false
             isPlayerLeftEquipmentMenu = false
@@ -2498,7 +2712,9 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
-            
+            isTransmogBypass = true
+            transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, MDFXLSubData.weaponOrder)
+            coroutine.yield()
             get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
@@ -2564,6 +2780,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                         end
                         if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
                             for key, value in pairs(temp_parts) do
@@ -2677,6 +2908,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                 
                         if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
 
@@ -2724,6 +2970,8 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     --Outfit Preset Updater
     if isOutfitManagerBypass and not outfitCoroutine then
         outfitCoroutine = coroutine.create(function()
+            isTransmogBypass = true
+            isWeaponTransmogRequest = true
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
@@ -2775,6 +3023,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                 
                         if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
 
@@ -2888,6 +3151,21 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     end
             
                     if partsMatch then
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            temp_parts.Transmog = {}
+                            temp_parts.Transmog = {
+                                ID = "",
+                                IDX = 0,
+                                POS = {},
+                                ROT = {},
+                                Scale = {},
+                                JointType = 0,
+                            }
+                            temp_parts.EFX = {}
+                            temp_parts.EFX = {
+                                isEnabled = false
+                            }
+                        end
                         temp_parts.Presets = nil
                         temp_parts.currentPresetIDX = nil
 
@@ -2943,6 +3221,121 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         isUpdaterBypass = true
         update_GuildCardScene(MDFXLData)
     end
+    --Weapon Transmog Updater
+    if isPlayerInScene and isDefaultsDumped and isWeaponTransmogRequest and not transmogCoroutine then
+        transmog_PlayerArmament_MHWS(MDFXLData, MDFXLDatabase, MDFXLTransmogTracker, MDFXLSubData.weaponOrder)
+        transmogCoroutine = coroutine.create(function()
+            isCoroutinesDone = false
+            manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
+            dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
+            coroutine.yield()
+            clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
+            cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
+            coroutine.yield()
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    json.dump_file(chunk.fileName, chunk.data)
+                    chunk.wasUpdated = false
+                end
+            end
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+            coroutine.yield()
+            local counter = 0
+            for _, equipment in pairs(MDFXLData) do
+                local meshName = equipment.MeshName
+                local eqData = MDFXLData[meshName]
+                
+                if not string.find(eqData.MeshName, "--") then goto continue end
+                if not func.table_contains(MDFXLSubData.weaponOrder, eqData.MeshName) then goto continue end
+                
+                if not func.table_contains(materialParamDefaultsHolder, eqData) then
+                    materialParamDefaultsHolder[meshName] = func.deepcopy(eqData)
+                    MDFXLPresetTracker[meshName] = {}
+                    MDFXLPresetTracker[meshName].lastPresetName = eqData.Presets[eqData.currentPresetIDX]
+                end
+                
+                local lastPresetIndex = func.find_index(eqData.Presets, MDFXLPresetTracker[meshName].lastPresetName)
+                local selected_preset = eqData.Presets[lastPresetIndex]
+                if selected_preset and selected_preset ~= (meshName .. " Default") then
+                    wc = true
+                    local json_filepath = "MDF-XL\\Equipment\\" .. meshName .. "\\" .. selected_preset .. ".json"
+                    local temp_parts = json.load_file(json_filepath)
+                    if #temp_parts.Parts ~= 0 then
+                        if MDFXLSettings.isDebug then
+                            log.info("[MDF-XL] [Auto Preset Loader: " .. meshName .. " ]")
+                        end
+                        local partsMatch = (#temp_parts.Parts == #eqData.Parts)
+                        if partsMatch then
+                            for _, part in ipairs(temp_parts.Parts) do
+                                local found = false
+                                for _, ogPart in ipairs(eqData.Parts) do
+                                    if part == ogPart then
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if not found then
+                                    partsMatch = false
+                                    break
+                                end
+                            end
+                        end
+                        if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
+                            temp_parts.Presets = nil
+                            temp_parts.currentPresetIDX = nil
+                            for key, value in pairs(temp_parts) do
+                                eqData[key] = value
+                            end
+                            eqData.isUpdated = true
+                            isUpdaterBypass = true
+                            update_PlayerArmamentMaterialParams_MHWS(MDFXLData)
+                        else
+                            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+                            eqData.currentPresetIDX = 1
+                        end
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
+                        end
+                    end
+                elseif selected_preset == nil or {} then
+                    eqData.currentPresetIDX = 1
+                end
+                
+                counter = counter + 1
+                if counter % 1 == 0 then
+                    coroutine.yield()
+                end
+                ::continue::
+            end
+            
+            for i, chunk in pairs(MDFXLSaveData) do
+                if chunk.wasUpdated then
+                    chunk.wasUpdated = false
+                end
+            end
+            coroutine.yield()
+            json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+            log.info("[MDF-XL] [Weapon Transmog Request Complete.]")
+            isWeaponTransmogRequest = false
+            isTransmogBypass = false
+            isCoroutinesDone = true
+        end)
+    end
 end
 local function update_MDFXLViaHotkeys_MHWS()
     local KBM_Controls = not MDFXLSettings.useModifier or hk.check_hotkey("Modifier", true)
@@ -2965,11 +3358,16 @@ local function update_MDFXLViaHotkeys_MHWS()
         MDFXLOutfits.currentOutfitPresetIDX = math.max(MDFXLOutfits.currentOutfitPresetIDX - 1, 1)
         setup_OutfitChanger()
     end
-    if (KBM_Controls and hk.check_hotkey("Toggle Back Weapons")) or (PAD_Controls and hk.check_hotkey("GamePad Toggle Back Weapons") and not isWeaponDrawn) then
+    if (KBM_Controls and hk.check_hotkey("Toggle Main Weapon")) or (PAD_Controls and hk.check_hotkey("GamePad Toggle Main Weapon") and not isWeaponDrawn) then
         MDFXLSettings.isHideMainWeapon = not MDFXLSettings.isHideMainWeapon
+        json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
+    end
+    
+    if (KBM_Controls and hk.check_hotkey("Toggle Sub Weapon")) or (PAD_Controls and hk.check_hotkey("GamePad Toggle Sub Weapon") and not isWeaponDrawn) then
         MDFXLSettings.isHideSubWeapon = not MDFXLSettings.isHideSubWeapon
         json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
     end
+
     if KBM_Controls and hk.check_hotkey("Toggle MDF-XL Editor") and isMDFXL then
         MDFXLSettings.showMDFXLEditor = not MDFXLSettings.showMDFXLEditor
     end
@@ -2993,6 +3391,21 @@ local function update_MDFXLViaHotkeys_MHWS()
     if KBM_Controls and hk.check_hotkey("Toggle Color Palettes") then
         MDFXLPalettes.showMDFXLPaletteEditor = not MDFXLPalettes.showMDFXLPaletteEditor
     end
+
+    if KBM_Controls and hk.check_hotkey("Reset Last Layered Weapon") then
+        for _, entryName in pairs(MDFXLSub["weaponOrder"]) do
+            local entry = MDFXL[entryName]
+
+            if entry.MeshName == lastLayeredWeaponStringHolder and not string.find(entry.MeshName, "Charm") and not string.find(entry.MeshName, "it12") and not string.find(entry.MeshName, "it13") then
+                isTransmogBypass = true
+                isWeaponTransmogRequest = true
+                changed = true
+                wc = true
+                MDFXL[entry.MeshName].Transmog.ID = lastLayeredWeaponStringHolder:match("^(.-)%-%-")
+                lastLayeredWeaponStringHolder = ""
+            end
+        end
+    end
 end
 --Imgui Functions
 local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSettingsData, MDFXLSubData, order, updateFunc, color01)
@@ -3002,13 +3415,20 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
         if entry then
             imgui.indent(15)
             local displayName = nil
+            local baseName = entry.MeshName:match("^(.-)%-%-") or entry.MeshName
+            local transmogID = entry.MeshName:match(".*%-%-(.+)$") or nil
+
             if MDFXLSettings.showEquipmentName and MDFXLDatabase.MHWS[entry.MeshName] then
                 displayName = MDFXLDatabase.MHWS[entry.MeshName].Name
                 if MDFXLSettings.showEquipmentType then
-                    displayName = MDFXLDatabase.MHWS[entry.MeshName].Name .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
+                    displayName = displayName .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
                 end
             else
-                displayName = entry.MeshName
+                displayName = MDFXLDatabase.MHWS[baseName] and MDFXLDatabase.MHWS[baseName].Name or baseName
+            end
+
+            if transmogID and MDFXLDatabase.MHWS[transmogID] then
+                displayName = displayName .. " > " .. MDFXLDatabase.MHWS[transmogID].Name
             end
 
             if imgui.tree_node(displayName) then
@@ -3084,6 +3504,21 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         end
                 
                         if partsMatch then
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                temp_parts.Transmog = {}
+                                temp_parts.Transmog = {
+                                    ID = "",
+                                    IDX = 0,
+                                    POS = {},
+                                    ROT = {},
+                                    Scale = {},
+                                    JointType = 0,
+                                }
+                                temp_parts.EFX = {}
+                                temp_parts.EFX = {
+                                    isEnabled = false
+                                }
+                            end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
                             
@@ -3217,6 +3652,21 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                     
                             if partsMatch then
+                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                    temp_parts.Transmog = {}
+                                    temp_parts.Transmog = {
+                                        ID = "",
+                                        IDX = 0,
+                                        POS = {},
+                                        ROT = {},
+                                        Scale = {},
+                                        JointType = 0,
+                                    }
+                                    temp_parts.EFX = {}
+                                    temp_parts.EFX = {
+                                        isEnabled = false
+                                    }
+                                end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
         
@@ -3298,7 +3748,133 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.input_text("MDF Path", MDFXLData[entry.MeshName].MDFPath)
                     imgui.pop_id()
                 end
-                
+
+                if order == "weaponOrder" and not string.find(entry.MeshName, "Charm") and not string.find(entry.MeshName, "it12") and not string.find(entry.MeshName, "it13") then
+                    imgui.text_colored("[ Layered Weapon ] " .. ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 30), func.convert_rgba_to_ABGR(ui.colors.orange))
+                        if not entry.MeshName:match("^(.-)%-%-") then
+                            changed, layeredWeaponSearchQuery = imgui.input_text("Weapon Search", layeredWeaponSearchQuery); wc = wc or changed
+                            ui.button_CheckboxStyle("[ Aa ]", MDFXLSettings, "isSearchMatchCase", func.convert_rgba_to_ABGR(ui.colors.REFgray), func.convert_rgba_to_ABGR(ui.colors.gold), func.convert_rgba_to_ABGR(ui.colors.gold))
+                            func.tooltip("Match Case")
+                            imgui.same_line()
+                            if imgui.button("Clear Search") then
+                                layeredWeaponSearchQuery = ""
+                            end
+                            imgui.same_line()
+                            imgui.text("Filters:")
+                            imgui.same_line()
+                            if imgui.button("[ Left ]") then
+                                layeredWeaponSearchQuery = "(L)"
+                            end
+                            imgui.same_line()
+                            if imgui.button("[ Right ]") then
+                                layeredWeaponSearchQuery = "(R)"
+                            end
+                            imgui.same_line()
+                            if imgui.button("[ Scabbard ]") then
+                                layeredWeaponSearchQuery = "(Scabbard)"
+                            end
+                            imgui.same_line()
+                            if imgui.button("[ Shield ]") then
+                                layeredWeaponSearchQuery = "(Shield)"
+                            end
+                            imgui.same_line()
+                            if imgui.button("[ Quiver ]") then
+                                layeredWeaponSearchQuery = "(Quiver)"
+                            end
+                            
+                            imgui.text_colored(ui.draw_line("-", math.floor(MDFXLSettingsData.primaryDividerLen / 2)), func.convert_rgba_to_ABGR(ui.colors.orange))
+
+                            if MDFXLData[entry.MeshName].Transmog.ID ~= "" then
+                                imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.orange))
+                                if imgui.button("[ Apply Layered Weapon ]") then
+                                    isWeaponTransmogRequest = true
+                                    lastTransmogEntryKey = entry.MeshName
+                                end
+                                imgui.pop_style_color()
+                            else
+                                imgui.push_style_color(ui.ImGuiCol.Text, func.convert_rgba_to_ABGR(ui.colors.white50))
+                                imgui.button("[ Select a Weapon to Apply ]")
+                                imgui.pop_style_color()
+                            end
+                            imgui.same_line()
+                            changed, MDFXLSettingsData.isLayeredWeaponShowOnlySelfType = imgui.checkbox("Show Only Same Type", MDFXLSettingsData.isLayeredWeaponShowOnlySelfType); wc = wc or changed
+                                    
+                            imgui.spacing()
+                            
+                            local combos = {
+                                {label = "Great Sword",         wpType = 0},
+                                {label = "Sword and Shield",    wpType = 1},
+                                {label = "Dual Blades",         wpType = 2},
+                                {label = "Long Sword",          wpType = 3},
+                                {label = "Hammer",              wpType = 4},
+                                {label = "Hunting Horn",        wpType = 5},
+                                {label = "Lance",               wpType = 6},
+                                {label = "Gunlance",            wpType = 7},
+                                {label = "Switch Axe",          wpType = 8},
+                                {label = "Charge Blade",        wpType = 9},
+                                {label = "Insect Glaive",       wpType = 10},
+                                {label = "Bow",                 wpType = 11},
+                            }
+                            
+                            local currentID = MDFXLData[entry.MeshName].Transmog.ID or ""
+                            
+                            for _, combo in ipairs(combos) do
+                                if not MDFXLSettingsData.isLayeredWeaponShowOnlySelfType or (MDFXLSettingsData.isLayeredWeaponShowOnlySelfType and combo.wpType == MDFXLDatabase.MHWS[entry.MeshName].WPType) then
+                                    local filteredWeapons = {}
+                                    local weapons = weaponLists[combo.wpType]
+                                    for i, w in ipairs(weapons) do
+                                        if layeredWeaponSearchQuery == "" then
+                                            table.insert(filteredWeapons, w)
+                                        else
+                                            local match = false
+                                            if MDFXLSettingsData.isSearchMatchCase then
+                                                match = string.find(w.name, layeredWeaponSearchQuery, 1, true) ~= nil
+                                            else
+                                                match = string.find(w.name:lower(), layeredWeaponSearchQuery:lower(), 1, true) ~= nil
+                                            end
+                                            if match then
+                                                table.insert(filteredWeapons, w)
+                                            end
+                                        end
+                                    end
+
+
+                                    local names = {}
+                                    for i, w in ipairs(filteredWeapons) do
+                                        names[i] = w.name
+                                    end
+                                                
+                                    local selectedIndex = 1
+                                    for i, w in ipairs(filteredWeapons) do
+                                        if w.key == currentID then
+                                            selectedIndex = i
+                                            break
+                                        end
+                                    end
+                                                
+                                    changed, newIDX = imgui.combo(combo.label, selectedIndex, names); wc = wc or changed
+                                    if changed then
+                                        local selectedWeapon = filteredWeapons[newIDX]
+                                        MDFXLData[entry.MeshName].Transmog.ID = selectedWeapon.key
+                                        currentID = selectedWeapon.key
+                                    end
+                                    imgui.spacing()
+                                end
+                            end
+                        else
+                            imgui.spacing()
+                            if imgui.button("Reset to Default Weapon") then
+                                isTransmogBypass = true
+                                isWeaponTransmogRequest = true
+                                changed = true
+                                wc = true
+                                MDFXLData[entry.MeshName].Transmog.ID = entry.MeshName:match("^(.-)%-%-")
+                                lastTransmogEntryKey = entry.MeshName:match("^(.-)%-%-")
+                            end
+                        end
+                    imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.orange))    
+                end
+                               
                 if imgui.tree_node("Mesh Editor") then
                     isMeshEditor[entry.MeshName] = true
                     imgui.spacing()
@@ -3896,7 +4472,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
     end
 end
 local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubData, order, updateFunc, displayText, color01, isDraw)
-    if (not isDraw) or (isPlayerLeftEquipmentMenu) or (not isCoroutinesDone) then return end
+    if (not isDraw) or (isPlayerLeftEquipmentMenu) or (not isCoroutinesDone) or (isWeaponTransmogRequest) then return end
     
     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.presetManager.secondaryDividerLen) ..  " // " .. displayText .. " // ", func.convert_rgba_to_ABGR(color01))
     imgui.indent(10)
@@ -3934,6 +4510,8 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
     for _, entryName in pairs(MDFXLSubData[order]) do
         local entry = MDFXLData[entryName]
         local displayName = nil
+        local baseName = entry.MeshName:match("^(.-)%-%-") or entry.MeshName
+        local transmogID = entry.MeshName:match(".*%-%-(.+)$") or nil
         local filteredPresets = {}
         local presetIndexMap = {}
         local activeAuthors = {}
@@ -3960,10 +4538,14 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
         if MDFXLSettings.presetManager.showEquipmentName and MDFXLDatabase.MHWS[entry.MeshName] then
             displayName = MDFXLDatabase.MHWS[entry.MeshName].Name
             if MDFXLSettings.presetManager.showEquipmentType then
-                displayName = MDFXLDatabase.MHWS[entry.MeshName].Name .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
+                displayName = displayName .. " | " .. MDFXLDatabase.MHWS[entry.MeshName].Type .. " |"
             end
         else
-            displayName = entry.MeshName
+            displayName = MDFXLDatabase.MHWS[baseName] and MDFXLDatabase.MHWS[baseName].Name or baseName
+        end
+
+        if transmogID and MDFXLDatabase.MHWS[transmogID] then
+            displayName = displayName .. " > " .. MDFXLDatabase.MHWS[transmogID].Name
         end
         
         if entry then
@@ -4054,10 +4636,34 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
             if MDFXLPresetTracker[entry.MeshName].lastPresetName ~= nil and MDFXLPresetTracker[entry.MeshName].lastPresetName ~= entry.MeshName .. " Default" then
                 imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(color01))
                 imgui.begin_rect()
+                if order == "weaponOrder" and string.find(entry.MeshName, "--", 1, true) then
+                    if imgui.arrow_button(_, 0) then
+                        isWeaponTransmogRequest = true
+                        MDFXLData[entry.MeshName].Transmog.ID = entry.MeshName:match("^(.-)%-%-")
+                    end
+                    if imgui.is_item_hovered() then
+                        lastTransmogEntryKey = entry.MeshName
+                    end
+                    ui.tooltip("Reset to Default Weapon")
+                    imgui.push_item_width(MDFXLSettingsData.presetManager.menuWidth - 30)
+                    imgui.same_line()
+                end
                 changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
                 imgui.end_rect()
                 imgui.pop_style_color(1)
             else
+                if order == "weaponOrder" and string.find(entry.MeshName, "--", 1, true) then
+                    if imgui.arrow_button(_, 0) then
+                        isWeaponTransmogRequest = true
+                        MDFXLData[entry.MeshName].Transmog.ID = entry.MeshName:match("^(.-)%-%-")
+                    end
+                    if imgui.is_item_hovered() then
+                        lastTransmogEntryKey = entry.MeshName
+                    end
+                    ui.tooltip("Reset to Default Weapon")
+                    imgui.push_item_width(MDFXLSettingsData.presetManager.menuWidth - 30)
+                    imgui.same_line()
+                end
                 changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
             end
             imgui.pop_item_width()
@@ -4070,7 +4676,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 
                 if temp_parts.Parts ~= nil then
                     if MDFXLSettingsData.isDebug then
-                        log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
+                        log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " ]")
                     end
                     
                     local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
@@ -4093,6 +4699,21 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     end
             
                     if partsMatch then
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            temp_parts.Transmog = {}
+                            temp_parts.Transmog = {
+                                ID = "",
+                                IDX = 0,
+                                POS = {},
+                                ROT = {},
+                                Scale = {},
+                                JointType = 0,
+                            }
+                            temp_parts.EFX = {}
+                            temp_parts.EFX = {
+                                isEnabled = false
+                            }
+                        end
                         temp_parts.Presets = nil
                         temp_parts.currentPresetIDX = nil
 
@@ -4121,6 +4742,11 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                         log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
                     end
+                    if order == "weaponOrder" and temp_parts.Transmog.ID ~= "" then
+                        lastTransmogEntryKey = temp_parts.Transmog.ID
+                        isTransmogBypass = true
+                        isWeaponTransmogRequest = true
+                    end
                     if order == "playerBaseBodyOrder" then
                         json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
                     end
@@ -4135,6 +4761,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 end
                 MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
                 isUpdaterBypass = true
+                
                 updateFunc(MDFXLData)
                 local chunkID = entry.MeshName:sub(1, 4)
                 if (chunkID == "ch02") or (chunkID == "ch03") then
@@ -4898,6 +5525,17 @@ local function draw_MDFXLUserManual()
             imgui.indent(-10)
             imgui.tree_pop()
         end
+        if imgui.tree_node(MDFXLUserManual.LayeredWeapons.header) then
+            imgui.spacing()
+            imgui.indent(10)
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.text(MDFXLUserManual.LayeredWeapons[165])
+            imgui.spacing()
+            imgui.text(MDFXLUserManual.LayeredWeapons[166])
+            imgui.text_colored(ui.draw_line("-", 100), func.convert_rgba_to_ABGR(ui.colors.gold))
+            imgui.indent(-10)
+            imgui.tree_pop()
+        end
         imgui.indent(-15)
         imgui.spacing()
         if imgui.tree_node(MDFXLUserManual.PackagingPresets.header) then
@@ -5048,10 +5686,24 @@ local function draw_MDFXLGUI_MHWS()
 
                 changed = hk.hotkey_setter("Toggle MDF-XL Editor", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
                 changed = hk.hotkey_setter("Toggle Outfit Manager", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
                 changed = hk.hotkey_setter("Toggle Color Palettes", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
                 changed = hk.hotkey_setter("Toggle Filter Favorites", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
-                changed = hk.hotkey_setter("Toggle Back Weapons", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
+                changed = hk.hotkey_setter("Toggle Main Weapon", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
+                changed = hk.hotkey_setter("Toggle Sub Weapon", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
                 changed = hk.hotkey_setter("Clear Outfit Search", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                changed = hk.hotkey_setter("Reset Last Layered Weapon", MDFXLSettings.useModifier and "Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.gold))
 
                 imgui.spacing()
 
@@ -5085,17 +5737,25 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.pop_id()
                 changed = hk.hotkey_setter("GamePad Outfit Previous", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
                 imgui.same_line()
-                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
                 changed = hk.hotkey_setter("GamePad Outfit Next", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
                 imgui.same_line()
-                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
-                changed = hk.hotkey_setter("GamePad Toggle Back Weapons", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
+                changed = hk.hotkey_setter("GamePad Toggle Main Weapon", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
                 imgui.same_line()
-                imgui.text_colored("*", func.convert_rgba_to_ABGR(ui.colors.orange))
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
+                changed = hk.hotkey_setter("GamePad Toggle Sub Weapon", MDFXLSettings.useOutfitPadModifier and "GamePad Modifier"); wc = wc or changed
+                imgui.same_line()
+                imgui.text_colored("**", func.convert_rgba_to_ABGR(ui.colors.orange))
                 
                 imgui.spacing()
+
+                imgui.text_colored("[ Legend ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                imgui.spacing()
+
+                imgui.text_colored("* MDF-XL Editor must be open.", func.convert_rgba_to_ABGR(ui.colors.gold))
+                imgui.text_colored("** Weapon must be sheathed.", func.convert_rgba_to_ABGR(ui.colors.orange))
                 
-                imgui.text_colored("* Weapon must be sheathed!", func.convert_rgba_to_ABGR(ui.colors.orange))
                 imgui.tree_pop()
             end
             if imgui.tree_node("Hunter Profile") then
@@ -5138,6 +5798,7 @@ local function draw_MDFXLGUI_MHWS()
             end
 
             if changed or wc then
+                hk.update_hotkey_table(MDFXLSettings.hotkeys)
                 json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettings)
             end
 

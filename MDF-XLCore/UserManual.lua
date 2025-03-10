@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 03/01/2025 |",
+        header = " [ USER MANUAL ] 03/10/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -102,6 +102,11 @@ local MDFXLUserManual = {
         [162] = "You can customize what to include in the Outfit Preset by toggling the 'Include XYZ' options in the Outfit Manager.\nFor example, if you have presets loaded for your Palico and Seikret but don't want them included in the Outfit Preset, simply turn off the 'Include Palico' and 'Include Seikret' options.",
         [163] = "Outfit Presets are grouped by the Hunter's gender.\nThis means you'll have access to a different list of Outfit Presets depending on whether you play as a male or female Hunter.",
         [164] = "When loading an Outfit Preset, only the gear stored in the preset will be affected.\nFor example, if an Outfit Preset contains data for the Hunter's Armor but not for weapons, loading it won't override your current weapon presets since no weapon preset data was stored in the Outfit Preset."
+    },
+    LayeredWeapons = {
+        header = "2.6 Layered Weapons",
+        [165] = "Added in MDF-XL verison 1.5.15. Currently not available for Light Bowguns, Heavy Bowguns and Palico Weapons.",
+        [166] = "Layered Weapons work as a sort of 'Sub-Preset' for a Preset.\nTo allow the Auto-Preset Loader to work with these Sub-Presets, you must first save a preset for the original weapon,\nafter selecting a weapon in the Layered Weapon menus but before actually applying it."
     },
     PackagingPresets = {
         header = "3. Packaging Presets as Mods",
