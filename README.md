@@ -47,7 +47,7 @@ https://github.com/user-attachments/assets/58366cf0-e0b4-4dc6-b13e-0aa8e6f9f11a
 
 - Layered Weapon System.
 
-https://github.com/user-attachments/assets/cc9169fa-f984-4c48-a67c-1d10e036d942
+https://github.com/user-attachments/assets/d91fc0a7-1afb-4d0c-a9f8-c1b331f17aed
 
 ### Credits:
 - [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
