@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 03/10/2025 |",
+        header = " [ USER MANUAL ] 03/13/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -105,7 +105,7 @@ local MDFXLUserManual = {
     },
     LayeredWeapons = {
         header = "2.6 Layered Weapons",
-        [165] = "Added in MDF-XL verison 1.5.15. Currently not available for Light Bowguns, Heavy Bowguns and Palico Weapons.",
+        [165] = "Added in MDF-XL version 1.5.15. Currently not available for Light Bowguns, Heavy Bowguns and Palico Weapons.",
         [166] = "Layered Weapons work as a sort of 'Sub-Preset' for a Preset.\nTo allow the Auto-Preset Loader to work with these Sub-Presets, you must first save a preset for the original weapon,\nafter selecting a weapon in the Layered Weapon menus but before actually applying it."
     },
     PackagingPresets = {

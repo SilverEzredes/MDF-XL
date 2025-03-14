@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/10/2025"
-local modVersion = "v1.5.15"
+local modUpdated = "03/14/2025"
+local modVersion = "v1.5.16"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -18,6 +18,7 @@ local wc = false
 
 local renderComp = "via.render.Mesh"
 local chain2Comp = "via.motion.Chain2"
+local weaponComp = "app.Weapon"
 local texResourceComp = "via.render.TextureResource"
 local meshResourceComp = "via.render.MeshResource"
 local mdfResourceComp = "via.render.MeshMaterialResource"
@@ -61,7 +62,28 @@ local autoSaveProgress = 0
 local wasEditorShown = false
 local isFemale = false
 local lastTransmogEntryKey = ""
-
+local defaultTransmog = {
+    ID = "",
+    IDX = 0,
+    POS = {
+        x = 0.0,
+        y = 0.0,
+        z = 0.0
+    },
+    ROT = {
+        x = 0.0,
+        y = 0.0,
+        z = 0.0
+    },
+    Scale = {
+        x = 1.0,
+        y = 1.0,
+        z = 1.0
+    },
+    JointType = 0,
+    isOverride = false,
+    isUseBaseParams = false,
+}
 local MDFXL_Cache = {
     resourceOG = "Resource%[",
     nativesSTM = "natives/stm/",
@@ -112,7 +134,7 @@ local MDFXL_DefaultSettings = {
     isNullGuildCardBG01 = false,
     isLayeredWeaponShowOnlySelfType = true,
     version = modVersion,
-    presetVersion = "v1.02",
+    presetVersion = "v1.03",
     presetManager = {
         isTrimPresetNames = true,
         showOutfitPreset = true,
@@ -390,6 +412,21 @@ for _, path in ipairs(MDFXL_Cache.SaveDataPaths) do
     local data = json.load_file(path) or {}
     MDFXL = hk.recurse_def_settings(data, MDFXL)
 end
+-- Update MDFXL Master Data
+for i, entry in pairs(MDFXL) do
+    entry.presetVersion = MDFXL_DefaultSettings.presetVersion
+    if entry.MeshName and string.find(entry.MeshName, "^it") then
+        if not entry.Transmog then
+            entry.Transmog = {}
+        end
+        
+        for key, defaultValue in pairs(defaultTransmog) do
+            if entry.Transmog[key] == nil then
+                entry.Transmog[key] = defaultValue
+            end
+        end
+    end
+end
 --////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 --MARK:Shared Functions
 local function setup_MDFXLTable(MDFXLData, entry)
@@ -416,6 +453,7 @@ local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry].Tags = {
         "noTag"
     }
+    MDFXLData[entry].Transmog = {}
     MDFXLData[entry].Transmog = {
         ID = "",
         IDX = 0,
@@ -423,6 +461,8 @@ local function setup_MDFXLTable(MDFXLData, entry)
         ROT = {},
         Scale = {},
         JointType = 0,
+        isOverride = false,
+        isUseBaseParams = false,
     }
     MDFXLData[entry].EFX = {
         isEnabled = false
@@ -546,10 +586,43 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
         dataTable[entry].Flags.isShadowCastEnable = renderMesh:get_DrawShadowCast()
         table.sort(subDataTable.texturePaths)
     end
+
+    if order == "weaponOrder" then
+        local weaponData = func.get_GameObjectComponent(gameObject, weaponComp)
+
+        if weaponData then
+            local visualParam = weaponData._VisualParam
+            local attachInfo = visualParam._AttachInfo
+
+            if attachInfo then
+                dataTable[entry].Transmog.isOverride = false
+                dataTable[entry].Transmog.isUseBaseParams = attachInfo._UseBaseParam
+                dataTable[entry].Transmog.POS = {}
+                dataTable[entry].Transmog.POS = {
+                    x = attachInfo._Position.x,
+                    y = attachInfo._Position.y,
+                    z = attachInfo._Position.z
+                }
+                dataTable[entry].Transmog.ROT = {}
+                dataTable[entry].Transmog.ROT = {
+                    x = attachInfo._Rotation.x,
+                    y = attachInfo._Rotation.y,
+                    z = attachInfo._Rotation.z
+                }
+                dataTable[entry].Transmog.Scale = {}
+                dataTable[entry].Transmog.Scale = {
+                    x = attachInfo._Scale.x,
+                    y = attachInfo._Scale.y,
+                    z = attachInfo._Scale.z
+                }
+            end
+        end
+    end
 end
 local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
-                                
+    local weaponData = func.get_GameObjectComponent(gameObject, weaponComp)
+    
     if renderMesh then
         local matCount = renderMesh:get_MaterialNum()
         if matCount then
@@ -603,6 +676,21 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
         end
         if saveDataTable[chunkID] then
             saveDataTable[chunkID].wasUpdated = true
+        end
+    end
+
+    if weaponData then
+        local visualParam = weaponData._VisualParam
+        local attachInfo = visualParam._AttachInfo
+
+        if attachInfo then
+            attachInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                attachInfo._UseBaseParam = false
+                attachInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                attachInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                attachInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
         end
     end
 end
@@ -2315,10 +2403,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                     temp_parts.Transmog = {
                                         ID = "",
                                         IDX = 0,
-                                        POS = {},
-                                        ROT = {},
-                                        Scale = {},
+                                        POS = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        ROT = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        Scale = {
+                                            x = 1.0,
+                                            y = 1.0,
+                                            z = 1.0
+                                        },
                                         JointType = 0,
+                                        isOverride = false,
+                                        isUseBaseParams = false,
                                     }
                                     temp_parts.EFX = {}
                                     temp_parts.EFX = {
@@ -2327,6 +2429,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
+                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                    log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                    temp_parts.presetVersion = MDFXLSettings.presetVersion
+                                end
 
                                 for key, value in pairs(temp_parts) do
                                     eqData[key] = value
@@ -2347,9 +2453,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             else
                                 log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                                 eqData.currentPresetIDX = 1
-                            end
-                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                                log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                             end
                         end
                     else
@@ -2475,10 +2578,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                     temp_parts.Transmog = {
                                         ID = "",
                                         IDX = 0,
-                                        POS = {},
-                                        ROT = {},
-                                        Scale = {},
+                                        POS = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        ROT = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        Scale = {
+                                            x = 1.0,
+                                            y = 1.0,
+                                            z = 1.0
+                                        },
                                         JointType = 0,
+                                        isOverride = false,
+                                        isUseBaseParams = false,
                                     }
                                     temp_parts.EFX = {}
                                     temp_parts.EFX = {
@@ -2487,6 +2604,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
+                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                    log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                    temp_parts.presetVersion = MDFXLSettings.presetVersion
+                                end
                                 for key, value in pairs(temp_parts) do
                                     eqData[key] = value
                                 end
@@ -2505,9 +2626,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             else
                                 log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                                 eqData.currentPresetIDX = 1
-                            end
-                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                                log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                             end
                         end
                     elseif selected_preset == nil or {} then
@@ -2630,10 +2748,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -2642,9 +2774,15 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettings.presetVersion
+                            end
+
                             for key, value in pairs(temp_parts) do
                                 eqData[key] = value
                             end
+                            
                             for i, material in pairs(eqData.Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
@@ -2662,9 +2800,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         else
                             log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                             eqData.currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -2785,10 +2920,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -2797,9 +2946,16 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettings.presetVersion
+                            end
+                            
                             for key, value in pairs(temp_parts) do
                                 eqData[key] = value
                             end
+                            
                             for i, material in pairs(eqData.Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
@@ -2814,9 +2970,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         else
                             log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                             eqData.currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -2913,10 +3066,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -2925,6 +3092,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettings.presetVersion
+                            end
 
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[equipment.MeshName][key] = value
@@ -2935,9 +3107,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         else
                             log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                             MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -3028,10 +3197,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -3040,10 +3223,15 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettings.presetVersion
+                            end
 
                             for key, value in pairs(temp_parts) do
                                 eqData[key] = value
                             end
+
                             for i, material in pairs(eqData.Materials) do
                                 if material["AddColorUV"] ~= nil then
                                     material["AddColorUV"] = MDFXLSubData.playerSkinColorData
@@ -3062,9 +3250,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         else
                             log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                             eqData.currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                         end
                     end
                 else
@@ -3156,10 +3341,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             temp_parts.Transmog = {
                                 ID = "",
                                 IDX = 0,
-                                POS = {},
-                                ROT = {},
-                                Scale = {},
+                                POS = {
+                                    x = 0.0,
+                                    y = 0.0,
+                                    z = 0.0
+                                },
+                                ROT = {
+                                    x = 0.0,
+                                    y = 0.0,
+                                    z = 0.0
+                                },
+                                Scale = {
+                                    x = 1.0,
+                                    y = 1.0,
+                                    z = 1.0
+                                },
                                 JointType = 0,
+                                isOverride = false,
+                                isUseBaseParams = false,
                             }
                             temp_parts.EFX = {}
                             temp_parts.EFX = {
@@ -3168,7 +3367,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         end
                         temp_parts.Presets = nil
                         temp_parts.currentPresetIDX = nil
-
+                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
+                            temp_parts.presetVersion = MDFXLSettings.presetVersion
+                        end
                         for key, value in pairs(temp_parts) do
                             MDFXLData[equipment.MeshName][key] = value
                             for i, material in pairs(MDFXLData[equipment.MeshName].Materials) do
@@ -3191,9 +3393,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                     else
                         log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                         MDFXLData[equipment.MeshName].currentPresetIDX = 1
-                    end
-                    if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                        log.info("[MDF-XL] [WARNING-000] [" .. equipment.MeshName .. " Preset Version is outdated.]")
                     end
                 end
             elseif selected_preset == nil or {} then
@@ -3286,10 +3485,24 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -3298,6 +3511,10 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                             end
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
+                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. eqData.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettings.presetVersion
+                            end
                             for key, value in pairs(temp_parts) do
                                 eqData[key] = value
                             end
@@ -3307,9 +3524,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                         else
                             log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
                             eqData.currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. meshName .. " Preset Version is outdated.]")
                         end
                     end
                 elseif selected_preset == nil or {} then
@@ -3504,15 +3718,29 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         end
                 
                         if partsMatch then
-                            if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                                 temp_parts.Transmog = {}
                                 temp_parts.Transmog = {
                                     ID = "",
                                     IDX = 0,
-                                    POS = {},
-                                    ROT = {},
-                                    Scale = {},
+                                    POS = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    ROT = {
+                                        x = 0.0,
+                                        y = 0.0,
+                                        z = 0.0
+                                    },
+                                    Scale = {
+                                        x = 1.0,
+                                        y = 1.0,
+                                        z = 1.0
+                                    },
                                     JointType = 0,
+                                    isOverride = false,
+                                    isUseBaseParams = false,
                                 }
                                 temp_parts.EFX = {}
                                 temp_parts.EFX = {
@@ -3522,7 +3750,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             temp_parts.Presets = nil
                             temp_parts.currentPresetIDX = nil
                             
-    
+                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
+                                log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                                temp_parts.presetVersion = MDFXLSettingsData.presetVersion
+                            end
                             for key, value in pairs(temp_parts) do
                                 MDFXLData[entry.MeshName][key] = value
                                 for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
@@ -3544,9 +3775,6 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                         else
                             log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                             MDFXLData[entry.MeshName].currentPresetIDX = 1
-                        end
-                        if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
                         end
                         if order == "playerBaseBodyOrder" then
                             json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
@@ -3652,15 +3880,29 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                     
                             if partsMatch then
-                                if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                                if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                                     temp_parts.Transmog = {}
                                     temp_parts.Transmog = {
                                         ID = "",
                                         IDX = 0,
-                                        POS = {},
-                                        ROT = {},
-                                        Scale = {},
+                                        POS = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        ROT = {
+                                            x = 0.0,
+                                            y = 0.0,
+                                            z = 0.0
+                                        },
+                                        Scale = {
+                                            x = 1.0,
+                                            y = 1.0,
+                                            z = 1.0
+                                        },
                                         JointType = 0,
+                                        isOverride = false,
+                                        isUseBaseParams = false,
                                     }
                                     temp_parts.EFX = {}
                                     temp_parts.EFX = {
@@ -3669,7 +3911,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 end
                                 temp_parts.Presets = nil
                                 temp_parts.currentPresetIDX = nil
-        
+                                if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
+                                    log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                                    temp_parts.presetVersion = MDFXLSettingsData.presetVersion
+                                end
                                 for key, value in pairs(temp_parts) do
                                     MDFXLData[entry.MeshName][key] = value
                                     for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
@@ -3691,9 +3936,6 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             else
                                 log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                                 MDFXLData[entry.MeshName].currentPresetIDX = 1
-                            end
-                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                                log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
                             end
                             if order == "playerBaseBodyOrder" then
                                 json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettingsData)
@@ -3871,7 +4113,34 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 MDFXLData[entry.MeshName].Transmog.ID = entry.MeshName:match("^(.-)%-%-")
                                 lastTransmogEntryKey = entry.MeshName:match("^(.-)%-%-")
                             end
+                            imgui.spacing()
                         end
+                        imgui.text_colored("[ Attach Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
+                        imgui.spacing()
+                        changed, MDFXLData[entry.MeshName].Transmog.isUseBaseParams = imgui.checkbox("Use Base Parameters", MDFXLData[entry.MeshName].Transmog.isUseBaseParams); wc = wc or changed
+                        imgui.same_line()
+                        changed, MDFXLData[entry.MeshName].Transmog.isOverride = imgui.checkbox("Override", MDFXLData[entry.MeshName].Transmog.isOverride); wc = wc or changed
+                        if MDFXLData[entry.MeshName].Transmog.isOverride then
+                            MDFXLData[entry.MeshName].Transmog.isUseBaseParams = false
+                        end
+                        
+                        local POS = Vector3f.new(MDFXLData[entry.MeshName].Transmog.POS.x, MDFXLData[entry.MeshName].Transmog.POS.y, MDFXLData[entry.MeshName].Transmog.POS.z)
+                        changed, POS = imgui.drag_float3("Position", POS, 0.0001, -180.0, 180.0); wc = wc or changed
+                        MDFXLData[entry.MeshName].Transmog.POS.x = POS.x
+                        MDFXLData[entry.MeshName].Transmog.POS.y = POS.y
+                        MDFXLData[entry.MeshName].Transmog.POS.z = POS.z
+                        
+                        local ROT = Vector3f.new(MDFXLData[entry.MeshName].Transmog.ROT.x, MDFXLData[entry.MeshName].Transmog.ROT.y, MDFXLData[entry.MeshName].Transmog.ROT.z)
+                        changed, ROT = imgui.drag_float3("Rotation", ROT, 0.01, -360.0, 360.0); wc = wc or changed
+                        MDFXLData[entry.MeshName].Transmog.ROT.x = ROT.x
+                        MDFXLData[entry.MeshName].Transmog.ROT.y = ROT.y
+                        MDFXLData[entry.MeshName].Transmog.ROT.z = ROT.z
+
+                        local Scale = Vector3f.new(MDFXLData[entry.MeshName].Transmog.Scale.x, MDFXLData[entry.MeshName].Transmog.Scale.y, MDFXLData[entry.MeshName].Transmog.Scale.z)
+                        changed, Scale = imgui.drag_float3("Scale", Scale, 0.001, 0.0, 100.0); wc = wc or changed
+                        MDFXLData[entry.MeshName].Transmog.Scale.x = Scale.x
+                        MDFXLData[entry.MeshName].Transmog.Scale.y = Scale.y
+                        MDFXLData[entry.MeshName].Transmog.Scale.z = Scale.z
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.orange))    
                 end
                                
@@ -4699,15 +4968,29 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                     end
             
                     if partsMatch then
-                        if temp_parts.presetVersion ~= MDFXLSettings.presetVersion then
+                        if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
                             temp_parts.Transmog = {}
                             temp_parts.Transmog = {
                                 ID = "",
                                 IDX = 0,
-                                POS = {},
-                                ROT = {},
-                                Scale = {},
+                                POS = {
+                                    x = 0.0,
+                                    y = 0.0,
+                                    z = 0.0
+                                },
+                                ROT = {
+                                    x = 0.0,
+                                    y = 0.0,
+                                    z = 0.0
+                                },
+                                Scale = {
+                                    x = 1.0,
+                                    y = 1.0,
+                                    z = 1.0
+                                },
                                 JointType = 0,
+                                isOverride = false,
+                                isUseBaseParams = false,
                             }
                             temp_parts.EFX = {}
                             temp_parts.EFX = {
@@ -4716,7 +4999,10 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                         end
                         temp_parts.Presets = nil
                         temp_parts.currentPresetIDX = nil
-
+                        if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
+                            log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
+                            temp_parts.presetVersion = MDFXLSettingsData.presetVersion
+                        end
                         for key, value in pairs(temp_parts) do
                             MDFXLData[entry.MeshName][key] = value
                             for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
@@ -4739,9 +5025,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                         log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
                         MDFXLData[entry.MeshName].currentPresetIDX = 1
                     end
-                    if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                        log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                    end
+                    
                     if order == "weaponOrder" and temp_parts.Transmog.ID ~= "" then
                         lastTransmogEntryKey = temp_parts.Transmog.ID
                         isTransmogBypass = true
