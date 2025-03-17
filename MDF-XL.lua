@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/16/2025"
-local modVersion = "v1.5.19"
+local modUpdated = "03/17/2025"
+local modVersion = "v1.5.20"
 local modCredits = "alphaZomega; praydog; Raq"
---TODO Update Manual Preset Loaders for Editor/PresetManager
+
 --/////////////////////////////////////--
 MDFXL = true
 
@@ -282,8 +282,13 @@ local MDFXL_DefaultSettings = {
     isHideGuildCardOtomo = false,
     isHideGuildCardPorter = false,
     isHideGuildCardGUI = false,
+    isHideGuildCardOverlayGUI = false,
     isNullGuildCardBG01 = false,
     isLayeredWeaponShowOnlySelfType = true,
+    isUniformScale = false,
+    attachPosIncrement = 0.01,
+    attachRotIncrement = 0.01,
+    attachScaleIncrement = 0.1,
     version = modVersion,
     presetVersion = "v1.03",
     presetManager = {
@@ -699,6 +704,12 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
     if weaponData then
         local visualParam = weaponData._VisualParam
         local attachInfo = visualParam._AttachInfo
+        local squatInfo = visualParam._SquatttachInfo
+        local porterRideInfo = visualParam._PorterRideAttachInfo
+        local porterRideDashInfo = visualParam._PorterRideDashAttachInfo
+        local porterRideTopSpeedInfo = visualParam._PorterRideTopSpeedAttachInfo
+        local porterRideTiltLeftInfo = visualParam._PorterRideTiltLeftAttachInfo
+        local porterRideTiltRightInfo = visualParam._PorterRideTiltRightAttachInfo
 
         if attachInfo then
             attachInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
@@ -707,6 +718,60 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
                 attachInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
                 attachInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
                 attachInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if squatInfo then
+            squatInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                squatInfo._UseBaseParam = false
+                squatInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                squatInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                squatInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if porterRideInfo then
+            porterRideInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                porterRideInfo._UseBaseParam = false
+                porterRideInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                porterRideInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                porterRideInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if porterRideDashInfo then
+            porterRideDashInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                porterRideDashInfo._UseBaseParam = false
+                porterRideDashInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                porterRideDashInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                porterRideDashInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if porterRideTopSpeedInfo then
+            porterRideTopSpeedInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                porterRideTopSpeedInfo._UseBaseParam = false
+                porterRideTopSpeedInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                porterRideTopSpeedInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                porterRideTopSpeedInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if porterRideTiltLeftInfo then
+            porterRideTiltLeftInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                porterRideTiltLeftInfo._UseBaseParam = false
+                porterRideTiltLeftInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                porterRideTiltLeftInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                porterRideTiltLeftInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+            end
+        end
+        if porterRideTiltRightInfo then
+            porterRideTiltRightInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+            if dataTable[entry.MeshName].Transmog.isOverride then 
+                porterRideTiltRightInfo._UseBaseParam = false
+                porterRideTiltRightInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+                porterRideTiltRightInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+                porterRideTiltRightInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
             end
         end
     end
@@ -1590,7 +1655,12 @@ local function help_TransmogPlayerArmament(weaponObj, weaponData, MDFXLDatabase,
             lastLayeredWeaponStringHolder = baseWeaponID .. "--" .. transmogID
         end
         renderMesh:set_Enabled(true)
-        log.info("[MDF-XL] [Transmog Complete for " .. baseWeaponID .. " ]")
+        if MDFXL[baseWeaponID].currentPresetIDX == 1 then
+            for v = 0, #MDFXL[baseWeaponID].Enabled do
+                renderMesh:setMaterialsEnable(v, true)
+            end
+        end
+        log.info("[MDF-XL] [Transmog Complete for " .. baseWeaponID .. "]")
     end
 
     if not MDFXLTransmogTracker[weaponData.MeshName] then
@@ -2034,7 +2104,7 @@ local function update_GuildCardScene(MDFXLData)
         end 
     end
     if GUI000008 then
-        if MDFXLSettings.isHideGuildCardGUI then
+        if(MDFXLSettings.isHideGuildCardGUI) or (MDFXLSettings.isHideGuildCardOverlayGUI) then
             GUI000008:set_UpdateSelf(false)
             GUI000008:set_DrawSelf(false)
         else
@@ -2043,7 +2113,7 @@ local function update_GuildCardScene(MDFXLData)
         end
     end
     if GUI000013 then
-        if MDFXLSettings.isHideGuildCardGUI then
+        if(MDFXLSettings.isHideGuildCardGUI) or (MDFXLSettings.isHideGuildCardOverlayGUI) then
             GUI000013:set_UpdateSelf(false)
             GUI000013:set_DrawSelf(false)
         else
@@ -2052,7 +2122,7 @@ local function update_GuildCardScene(MDFXLData)
         end
     end
     if GUI040200 then
-        if MDFXLSettings.isHideGuildCardGUI then
+        if(MDFXLSettings.isHideGuildCardGUI) or (MDFXLSettings.isHideGuildCardOverlayGUI) then
             GUI040200:set_UpdateSelf(false)
             GUI040200:set_DrawSelf(false)
         else
@@ -2296,7 +2366,7 @@ local function check_IfPartsMatch(presetParts, entryParts)
     end
     return true
 end
-local function ensure_DefaultOptions(preset, defaultPreset)
+local function check_DefaultOptions(preset, defaultPreset)
     for key, defaultValue in pairs(defaultPreset) do
         if preset[key] == nil then
             preset[key] = defaultValue
@@ -2323,7 +2393,7 @@ local function presetLoader_Type1(MDFXLData, MDFXLSubData, MDFXLSettingsData, en
             
             if check_IfPartsMatch(temp.Parts, entry.Parts) then
                 if temp.presetVersion ~= MDFXLSettingsData.presetVersion then
-                    temp = ensure_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
+                    temp = check_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
                     log.info("[MDF-XL] [WARNING-000] [" .. entryID .. " Preset Version is outdated.]")
                     temp.presetVersion = MDFXLSettingsData.presetVersion
                 end
@@ -2339,6 +2409,14 @@ local function presetLoader_Type1(MDFXLData, MDFXLSubData, MDFXLSettingsData, en
                     end
                     if material["Enable_VFXMaterialBlend"] ~= nil then
                         material["Enable_VFXMaterialBlend"] = {0.0}
+                    end
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
                     end
                 end
                 entry.isUpdated = true
@@ -2372,7 +2450,7 @@ local function presetLoader_Type2(MDFXLData, MDFXLSubData, MDFXLSettingsData, en
             
             if check_IfPartsMatch(temp.Parts, entry.Parts) then
                 if temp.presetVersion ~= MDFXLSettingsData.presetVersion then
-                    temp = ensure_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
+                    temp = check_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
                     log.info("[MDF-XL] [WARNING-000] [" .. entryID .. " Preset Version is outdated.]")
                     temp.presetVersion = MDFXLSettingsData.presetVersion
                 end
@@ -2404,7 +2482,7 @@ local function presetLoader_Type2(MDFXLData, MDFXLSubData, MDFXLSettingsData, en
                     end
                 end
                 if isOutfitManagerBypass then
-                    MDFXLData[entry.MeshName].currentPresetIDX = lastPresetIDX
+                    entry.currentPresetIDX = lastPresetIDX
                 end
                 entry.isUpdated = true
                 isUpdaterBypass = true
@@ -2422,6 +2500,201 @@ local function presetLoader_Type2(MDFXLData, MDFXLSubData, MDFXLSettingsData, en
     else
         entry.currentPresetIDX = 1
     end
+end
+local function presetLoader_Type3(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entryID, updateFunc, order)
+    local selectedPreset = entry.Presets[entry.currentPresetIDX]
+    local jsonPath = "MDF-XL\\Equipment\\" .. entryID .. "\\" .. selectedPreset .. ".json"
+    local temp = json.load_file(jsonPath)
+    if temp.Parts ~= nil then
+        if MDFXLSettingsData.isDebug then
+            log.info("[MDF-XL] [Manual Preset Loader Type-1: " .. entryID .. "]")
+        end
+        
+        if check_IfPartsMatch(temp.Parts, entry.Parts) then
+            if temp.presetVersion ~= MDFXLSettingsData.presetVersion then
+                temp = check_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
+                log.info("[MDF-XL] [WARNING-000] [" .. entryID .. " Preset Version is outdated.]")
+                temp.presetVersion = MDFXLSettingsData.presetVersion
+            end
+            temp.Presets = nil
+            temp.currentPresetIDX = nil
+
+            for key, value in pairs(temp) do
+                entry[key] = value
+            end
+            for i, material in pairs(entry.Materials) do
+                if material["AddColorUV"] ~= nil then
+                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                end
+                if material["Enable_VFXMaterialBlend"] ~= nil then
+                    material["Enable_VFXMaterialBlend"] = {0.0}
+                end
+                if order == "playerBaseBodyOrder" then
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                end
+            end
+        else
+            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+            entry.currentPresetIDX = 1
+        end
+        if order == "playerBaseBodyOrder" then
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+        end
+    end
+
+    if MDFXLSettingsData.isInheritPresetName then
+        local trimmedName = selectedPreset:match("^(.-)__TAG") or selectedPreset:match("^(.-)__BY") or selectedPreset
+        presetName = trimmedName
+    end
+    MDFXLPresetTracker[entryID].lastPresetName = selectedPreset
+    isUpdaterBypass = true
+    updateFunc(MDFXLData)
+    local chunkID = entryID:sub(1, 4)
+    if (chunkID == "ch02") or (chunkID == "ch03") then
+        chunkID = entryID:sub(1, 8)
+    end
+    json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
+    json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+end
+local function presetLoader_Type4(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entryID, updateFunc, order, finalPresetID)
+    local savedPresetIDX = func.find_index(entry.Presets, finalPresetID)
+    local selectedPreset = entry.Presets[savedPresetIDX]
+    entry.currentPresetIDX = savedPresetIDX
+    local jsonPath = [[MDF-XL\\Equipment\\]] .. entryID .. [[\\]] .. selectedPreset .. [[.json]]
+    local temp = json.load_file(jsonPath)
+    if temp.Parts ~= nil then
+        if MDFXLSettingsData.isDebug then
+            log.info("[MDF-XL] [Auto Preset Loader Type-3: " .. entryID .. "]")
+        end
+        
+        if check_IfPartsMatch(temp.Parts, entry.Parts) then
+            if temp.presetVersion ~= MDFXLSettingsData.presetVersion then
+                temp = check_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
+                log.info("[MDF-XL] [WARNING-000] [" .. entryID .. " Preset Version is outdated.]")
+                temp.presetVersion = MDFXLSettingsData.presetVersion
+            end
+            temp.Presets = nil
+            temp.currentPresetIDX = nil
+
+            for key, value in pairs(temp) do
+                entry[key] = value
+            end
+            for i, material in pairs(entry.Materials) do
+                if material["AddColorUV"] ~= nil then
+                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                end
+                if material["Enable_VFXMaterialBlend"] ~= nil then
+                    material["Enable_VFXMaterialBlend"] = {0.0}
+                end
+                if order == "playerBaseBodyOrder" then
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                end
+            end
+        else
+            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+            entry.currentPresetIDX = 1
+        end
+        if order == "playerBaseBodyOrder" then
+            json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettingsData)
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+        end
+    end
+
+    MDFXLPresetTracker[entryID].lastPresetName = selectedPreset
+    isUpdaterBypass = true
+    updateFunc(MDFXLData)
+    local chunkID = entryID:sub(1, 4)
+    if (chunkID == "ch02") or (chunkID == "ch03") then
+        chunkID = entryID:sub(1, 8)
+    end
+    json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
+    json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+end
+local function presetLoader_Type5(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entryID, updateFunc, order, presetMap, filterIDX)
+    entry.currentPresetIDX = presetMap[filterIDX]
+                
+    local selectedPreset = entry.Presets[entry.currentPresetIDX]
+    local jsonPath = [[MDF-XL\\Equipment\\]] .. entryID .. [[\\]] .. selectedPreset .. [[.json]]
+    local temp = json.load_file(jsonPath)
+    if temp.Parts ~= nil then
+        if MDFXLSettingsData.isDebug then
+            log.info("[MDF-XL] [Manual Preset Loader Type-2: " .. entryID .. "]")
+        end
+        
+        if check_IfPartsMatch(temp.Parts, entry.Parts) then
+            if temp.presetVersion ~= MDFXLSettingsData.presetVersion then
+                temp = check_DefaultOptions(temp, MDFXL_Cache.defaultPreset)
+                log.info("[MDF-XL] [WARNING-000] [" .. entryID .. " Preset Version is outdated.]")
+                temp.presetVersion = MDFXLSettingsData.presetVersion
+            end
+            temp.Presets = nil
+            temp.currentPresetIDX = nil
+
+            for key, value in pairs(temp) do
+                entry[key] = value
+            end
+            for i, material in pairs(entry.Materials) do
+                if material["AddColorUV"] ~= nil then
+                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
+                end
+                if material["Enable_VFXMaterialBlend"] ~= nil then
+                    material["Enable_VFXMaterialBlend"] = {0.0}
+                end
+                if order == "playerBaseBodyOrder" then
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
+                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
+                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
+                    end
+                end
+            end
+        else
+            log.info("[MDF-XL] [ERROR-000] [Parts do not match, skipping the update.]")
+            entry.currentPresetIDX = 1
+        end
+        if order == "weaponOrder" and temp.Transmog.ID ~= "" then
+            lastTransmogEntryKey = temp.Transmog.ID
+            isTransmogBypass = true
+            isWeaponTransmogRequest = true
+        end
+        if order == "playerBaseBodyOrder" then
+            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
+        end
+    end
+    if MDFXLSettingsData.isInheritPresetName then
+        local trimmedName = selectedPreset:match("^(.-)__TAG") or selectedPreset:match("^(.-)__BY") or selectedPreset
+        presetName = trimmedName
+    end
+    if changed or wc then
+       entry.isUpdated = true
+    end
+    MDFXLPresetTracker[entryID].lastPresetName = selectedPreset
+    isUpdaterBypass = true
+    
+    updateFunc(MDFXLData)
+    local chunkID = entryID:sub(1, 4)
+    if (chunkID == "ch02") or (chunkID == "ch03") then
+        chunkID = entryID:sub(1, 8)
+    end
+    json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
+    json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
 end
 --Master Functions
 local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSaveData)
@@ -3190,111 +3463,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 end
                 func.tooltip("Select a file from the dropdown menu to load the variant from that file.")
                 if changed then
-                    local selected_preset = MDFXLData[entry.MeshName].Presets[MDFXLData[entry.MeshName].currentPresetIDX]
-                    local json_filepath = [[MDF-XL\\Equipment\\]] ..entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                    local temp_parts = json.load_file(json_filepath)
-
-                    if temp_parts.Parts ~= nil then
-                        if MDFXLSettingsData.isDebug then
-                            log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
-                        end
-                        
-                        local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
-    
-                        if partsMatch then
-                            for _, part in ipairs(temp_parts.Parts) do
-                                local found = false
-                                for _, ogPart in ipairs(MDFXLData[entry.MeshName].Parts) do
-                                    if part == ogPart then
-                                        found = true
-                                        break
-                                    end
-                                end
-                
-                                if not found then
-                                    partsMatch = false
-                                    break
-                                end
-                            end
-                        end
-                
-                        if partsMatch then
-                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                                temp_parts.Transmog = {}
-                                temp_parts.Transmog = {
-                                    ID = "",
-                                    IDX = 0,
-                                    POS = {
-                                        x = 0.0,
-                                        y = 0.0,
-                                        z = 0.0
-                                    },
-                                    ROT = {
-                                        x = 0.0,
-                                        y = 0.0,
-                                        z = 0.0
-                                    },
-                                    Scale = {
-                                        x = 1.0,
-                                        y = 1.0,
-                                        z = 1.0
-                                    },
-                                    JointType = 0,
-                                    isOverride = false,
-                                    isUseBaseParams = false,
-                                }
-                                temp_parts.EFX = {}
-                                temp_parts.EFX = {
-                                    isEnabled = false
-                                }
-                            end
-                            temp_parts.Presets = nil
-                            temp_parts.currentPresetIDX = nil
-                            
-                            if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                                log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                                temp_parts.presetVersion = MDFXLSettingsData.presetVersion
-                            end
-                            for key, value in pairs(temp_parts) do
-                                MDFXLData[entry.MeshName][key] = value
-                                for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
-                                    if material["AddColorUV"] ~= nil then
-                                        material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                    end
-                                    if order == "playerBaseBodyOrder" then
-                                        if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
-                                            local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                            MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                        end
-                                        if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
-                                            local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                            MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                        end
-                                    end
-                                end
-                            end
-                        else
-                            log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
-                            MDFXLData[entry.MeshName].currentPresetIDX = 1
-                        end
-                        if order == "playerBaseBodyOrder" then
-                            json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                        end
-                    end
-
-                    if MDFXLSettingsData.isInheritPresetName then
-                        local trimmedName = selected_preset:match("^(.-)__TAG") or selected_preset:match("^(.-)__BY") or selected_preset
-                        presetName = trimmedName
-                    end
-                    MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
-                    isUpdaterBypass = true
-                    updateFunc(MDFXLData)
-                    local chunkID = entry.MeshName:sub(1, 4)
-                    if (chunkID == "ch02") or (chunkID == "ch03") then
-                        chunkID = entry.MeshName:sub(1, 8)
-                    end
-                    json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
-                    json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+                    presetLoader_Type3(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entry.MeshName, updateFunc, order)
                 end
                 
                 imgui.spacing()
@@ -3350,109 +3519,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
 
                     if MDFXLSettingsData.isAutoLoadPresetAfterSave then
-                        local saved_preset_IDX = func.find_index(MDFXLData[entry.MeshName].Presets, finalPresetName)
-                        local selected_preset = MDFXLData[entry.MeshName].Presets[saved_preset_IDX]
-                        MDFXLData[entry.MeshName].currentPresetIDX = saved_preset_IDX
-                        local json_filepath = [[MDF-XL\\Equipment\\]] .. entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                        local temp_parts = json.load_file(json_filepath)
-    
-                        if temp_parts.Parts ~= nil then
-                            if MDFXLSettingsData.isDebug then
-                                log.info("[MDF-XL] [Auto Preset Loader: " .. entry.MeshName .. " --- " .. #temp_parts.Parts .. " ]")
-                            end
-                            
-                            local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
-        
-                            if partsMatch then
-                                for _, part in ipairs(temp_parts.Parts) do
-                                    local found = false
-                                    for _, ogPart in ipairs(MDFXLData[entry.MeshName].Parts) do
-                                        if part == ogPart then
-                                            found = true
-                                            break
-                                        end
-                                    end
-                    
-                                    if not found then
-                                        partsMatch = false
-                                        break
-                                    end
-                                end
-                            end
-                    
-                            if partsMatch then
-                                if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                                    temp_parts.Transmog = {}
-                                    temp_parts.Transmog = {
-                                        ID = "",
-                                        IDX = 0,
-                                        POS = {
-                                            x = 0.0,
-                                            y = 0.0,
-                                            z = 0.0
-                                        },
-                                        ROT = {
-                                            x = 0.0,
-                                            y = 0.0,
-                                            z = 0.0
-                                        },
-                                        Scale = {
-                                            x = 1.0,
-                                            y = 1.0,
-                                            z = 1.0
-                                        },
-                                        JointType = 0,
-                                        isOverride = false,
-                                        isUseBaseParams = false,
-                                    }
-                                    temp_parts.EFX = {}
-                                    temp_parts.EFX = {
-                                        isEnabled = false
-                                    }
-                                end
-                                temp_parts.Presets = nil
-                                temp_parts.currentPresetIDX = nil
-                                if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                                    log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                                    temp_parts.presetVersion = MDFXLSettingsData.presetVersion
-                                end
-                                for key, value in pairs(temp_parts) do
-                                    MDFXLData[entry.MeshName][key] = value
-                                    for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
-                                        if material["AddColorUV"] ~= nil then
-                                            material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                        end
-                                        if order == "playerBaseBodyOrder" then
-                                            if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
-                                                local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                                MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                            end
-                                            if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
-                                                local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                                MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                            end
-                                        end
-                                    end
-                                end
-                            else
-                                log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
-                                MDFXLData[entry.MeshName].currentPresetIDX = 1
-                            end
-                            if order == "playerBaseBodyOrder" then
-                                json.dump_file("MDF-XL/_Settings/MDF-XL_Settings.json", MDFXLSettingsData)
-                                json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                            end
-                        end
-    
-                        MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
-                        isUpdaterBypass = true
-                        updateFunc(MDFXLData)
-                        local chunkID = entry.MeshName:sub(1, 4)
-                        if (chunkID == "ch02") or (chunkID == "ch03") then
-                            chunkID = entry.MeshName:sub(1, 8)
-                        end
-                        json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
-                        json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+                        presetLoader_Type4(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entry.MeshName, updateFunc, order, finalPresetName)
                     end
                 end
                 if presetNameLen < 200 and presetName ~= "" then
@@ -3616,35 +3683,47 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                             imgui.spacing()
                         end
-                        imgui.text_colored("[ Attach Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
-                        imgui.spacing()
-                        changed, MDFXLData[entry.MeshName].Transmog.isUseBaseParams = imgui.checkbox("Use Base Parameters", MDFXLData[entry.MeshName].Transmog.isUseBaseParams); wc = wc or changed
-                        if changed and MDFXLData[entry.MeshName].Transmog.isOverride then
-                            MDFXLData[entry.MeshName].Transmog.isOverride = false
-                        end
-                        imgui.same_line()
-                        changed, MDFXLData[entry.MeshName].Transmog.isOverride = imgui.checkbox("Override", MDFXLData[entry.MeshName].Transmog.isOverride); wc = wc or changed
-                        if changed and MDFXLData[entry.MeshName].Transmog.isUseBaseParams then
-                            MDFXLData[entry.MeshName].Transmog.isUseBaseParams = false
-                        end
-                        
-                        local POS = Vector3f.new(MDFXLData[entry.MeshName].Transmog.POS.x, MDFXLData[entry.MeshName].Transmog.POS.y, MDFXLData[entry.MeshName].Transmog.POS.z)
-                        changed, POS = imgui.drag_float3("Position", POS, 0.0001, -180.0, 180.0); wc = wc or changed
-                        MDFXLData[entry.MeshName].Transmog.POS.x = POS.x
-                        MDFXLData[entry.MeshName].Transmog.POS.y = POS.y
-                        MDFXLData[entry.MeshName].Transmog.POS.z = POS.z
-                        
-                        local ROT = Vector3f.new(MDFXLData[entry.MeshName].Transmog.ROT.x, MDFXLData[entry.MeshName].Transmog.ROT.y, MDFXLData[entry.MeshName].Transmog.ROT.z)
-                        changed, ROT = imgui.drag_float3("Rotation", ROT, 0.01, -360.0, 360.0); wc = wc or changed
-                        MDFXLData[entry.MeshName].Transmog.ROT.x = ROT.x
-                        MDFXLData[entry.MeshName].Transmog.ROT.y = ROT.y
-                        MDFXLData[entry.MeshName].Transmog.ROT.z = ROT.z
+                        if imgui.tree_node("Attach Options") then
+                            imgui.spacing()
+                            changed, MDFXLData[entry.MeshName].Transmog.isUseBaseParams = imgui.checkbox("Use Base Parameters", MDFXLData[entry.MeshName].Transmog.isUseBaseParams); wc = wc or changed
+                            if changed and MDFXLData[entry.MeshName].Transmog.isOverride then
+                                MDFXLData[entry.MeshName].Transmog.isOverride = false
+                            end
+                            imgui.same_line()
+                            changed, MDFXLData[entry.MeshName].Transmog.isOverride = imgui.checkbox("Override", MDFXLData[entry.MeshName].Transmog.isOverride); wc = wc or changed
+                            if changed and MDFXLData[entry.MeshName].Transmog.isUseBaseParams then
+                                MDFXLData[entry.MeshName].Transmog.isUseBaseParams = false
+                            end
+                            
+                            local POS = Vector3f.new(MDFXLData[entry.MeshName].Transmog.POS.x, MDFXLData[entry.MeshName].Transmog.POS.y, MDFXLData[entry.MeshName].Transmog.POS.z)
+                            changed, POS = imgui.drag_float3("Position", POS, MDFXLSettingsData.attachPosIncrement, -180.0, 180.0); wc = wc or changed
+                            MDFXLData[entry.MeshName].Transmog.POS.x = POS.x
+                            MDFXLData[entry.MeshName].Transmog.POS.y = POS.y
+                            MDFXLData[entry.MeshName].Transmog.POS.z = POS.z
+                            
+                            local ROT = Vector3f.new(MDFXLData[entry.MeshName].Transmog.ROT.x, MDFXLData[entry.MeshName].Transmog.ROT.y, MDFXLData[entry.MeshName].Transmog.ROT.z)
+                            changed, ROT = imgui.drag_float3("Rotation", ROT, MDFXLSettingsData.attachRotIncrement, -360.0, 360.0); wc = wc or changed
+                            MDFXLData[entry.MeshName].Transmog.ROT.x = ROT.x
+                            MDFXLData[entry.MeshName].Transmog.ROT.y = ROT.y
+                            MDFXLData[entry.MeshName].Transmog.ROT.z = ROT.z
+                            
+                            changed, MDFXLSettingsData.isUniformScale = imgui.checkbox("Uniform Scale", MDFXLSettingsData.isUniformScale); wc = wc or changed
 
-                        local Scale = Vector3f.new(MDFXLData[entry.MeshName].Transmog.Scale.x, MDFXLData[entry.MeshName].Transmog.Scale.y, MDFXLData[entry.MeshName].Transmog.Scale.z)
-                        changed, Scale = imgui.drag_float3("Scale", Scale, 0.001, 0.0, 100.0); wc = wc or changed
-                        MDFXLData[entry.MeshName].Transmog.Scale.x = Scale.x
-                        MDFXLData[entry.MeshName].Transmog.Scale.y = Scale.y
-                        MDFXLData[entry.MeshName].Transmog.Scale.z = Scale.z
+                            if MDFXLSettingsData.isUniformScale then
+                                local unifromScale = MDFXLData[entry.MeshName].Transmog.Scale.x
+                                changed, unifromScale = imgui.drag_float("Scale", unifromScale, MDFXLSettingsData.attachScaleIncrement, 0.0, 100.0); wc = wc or changed
+                                MDFXLData[entry.MeshName].Transmog.Scale.x = unifromScale
+                                MDFXLData[entry.MeshName].Transmog.Scale.y = unifromScale
+                                MDFXLData[entry.MeshName].Transmog.Scale.z = unifromScale
+                            else
+                                local Scale = Vector3f.new(MDFXLData[entry.MeshName].Transmog.Scale.x, MDFXLData[entry.MeshName].Transmog.Scale.y, MDFXLData[entry.MeshName].Transmog.Scale.z)
+                                changed, Scale = imgui.drag_float3("Scale", Scale, MDFXLSettingsData.attachScaleIncrement, 0.0, 100.0); wc = wc or changed
+                                MDFXLData[entry.MeshName].Transmog.Scale.x = Scale.x
+                                MDFXLData[entry.MeshName].Transmog.Scale.y = Scale.y
+                                MDFXLData[entry.MeshName].Transmog.Scale.z = Scale.z
+                            end
+                            imgui.tree_pop()
+                        end
                     imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.orange))    
                 end
                                
@@ -4441,122 +4520,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
             end
             imgui.pop_item_width()
             if changed then
-                MDFXLData[entry.MeshName].currentPresetIDX = presetIndexMap[currentFilteredIDX]
-                
-                local selected_preset = MDFXLData[entry.MeshName].Presets[MDFXLData[entry.MeshName].currentPresetIDX]
-                local json_filepath = [[MDF-XL\\Equipment\\]] ..entry.MeshName .. [[\\]] .. selected_preset .. [[.json]]
-                local temp_parts = json.load_file(json_filepath)
-                
-                if temp_parts.Parts ~= nil then
-                    if MDFXLSettingsData.isDebug then
-                        log.info("[MDF-XL] [Preset Loader: " .. entry.MeshName .. " ]")
-                    end
-                    
-                    local partsMatch = #temp_parts.Parts == #MDFXLData[entry.MeshName].Parts
-
-                    if partsMatch then
-                        for _, part in ipairs(temp_parts.Parts) do
-                            local found = false
-                            for _, ogPart in ipairs(MDFXLData[entry.MeshName].Parts) do
-                                if part == ogPart then
-                                    found = true
-                                    break
-                                end
-                            end
-            
-                            if not found then
-                                partsMatch = false
-                                break
-                            end
-                        end
-                    end
-            
-                    if partsMatch then
-                        if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                            temp_parts.Transmog = {}
-                            temp_parts.Transmog = {
-                                ID = "",
-                                IDX = 0,
-                                POS = {
-                                    x = 0.0,
-                                    y = 0.0,
-                                    z = 0.0
-                                },
-                                ROT = {
-                                    x = 0.0,
-                                    y = 0.0,
-                                    z = 0.0
-                                },
-                                Scale = {
-                                    x = 1.0,
-                                    y = 1.0,
-                                    z = 1.0
-                                },
-                                JointType = 0,
-                                isOverride = false,
-                                isUseBaseParams = false,
-                            }
-                            temp_parts.EFX = {}
-                            temp_parts.EFX = {
-                                isEnabled = false
-                            }
-                        end
-                        temp_parts.Presets = nil
-                        temp_parts.currentPresetIDX = nil
-                        if temp_parts.presetVersion ~= MDFXLSettingsData.presetVersion then
-                            log.info("[MDF-XL] [WARNING-000] [" .. entry.MeshName .. " Preset Version is outdated.]")
-                            temp_parts.presetVersion = MDFXLSettingsData.presetVersion
-                        end
-                        for key, value in pairs(temp_parts) do
-                            MDFXLData[entry.MeshName][key] = value
-                            for i, material in pairs(MDFXLData[entry.MeshName].Materials) do
-                                if material["AddColorUV"] ~= nil then
-                                    material["AddColorUV"] = MDFXLSubData.playerSkinColorData
-                                end
-                                if order == "playerBaseBodyOrder" then
-                                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.upper, i) and material["ColorLayer_B"] ~= nil then
-                                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                        MDFXLSubData.playerUnderArmorColorData.upper = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                    end
-                                    if func.table_contains(MDFXL_Cache.playerBaseBodyParts.lower, i) and material["ColorLayer_B"] ~= nil then
-                                        local vec4 = Vector4f.new(material["ColorLayer_B"][1][1], material["ColorLayer_B"][1][2], material["ColorLayer_B"][1][3], material["ColorLayer_B"][1][4]) 
-                                        MDFXLSubData.playerUnderArmorColorData.lower = {vec4.x, vec4.y, vec4.z, vec4.w}
-                                    end
-                                end
-                            end
-                        end
-                    else
-                        log.info("[MDF-XL] [ERROR-000] [" .. entry.MeshName .. " Parts do not match, skipping the update.]")
-                        MDFXLData[entry.MeshName].currentPresetIDX = 1
-                    end
-                    
-                    if order == "weaponOrder" and temp_parts.Transmog.ID ~= "" then
-                        lastTransmogEntryKey = temp_parts.Transmog.ID
-                        isTransmogBypass = true
-                        isWeaponTransmogRequest = true
-                    end
-                    if order == "playerBaseBodyOrder" then
-                        json.dump_file("MDF-XL/_Holders/MDF-XL_SubData.json", MDFXLSubData)
-                    end
-                end
-
-                if MDFXLSettingsData.isInheritPresetName then
-                    local trimmedName = selected_preset:match("^(.-)__TAG") or selected_preset:match("^(.-)__BY") or selected_preset
-                    presetName = trimmedName
-                end
-                if changed or wc then
-                    MDFXLData[entry.MeshName].isUpdated = true
-                end
-                MDFXLPresetTracker[entry.MeshName].lastPresetName = selected_preset
-                isUpdaterBypass = true
-                
-                updateFunc(MDFXLData)
-                local chunkID = entry.MeshName:sub(1, 4)
-                if (chunkID == "ch02") or (chunkID == "ch03") then
-                    chunkID = entry.MeshName:sub(1, 8)
-                end
-                json.dump_file("MDF-XL/_Holders/_Chunks/MDF-XL_EquipmentData_" .. chunkID .. ".json", MDFXLSaveDataChunks[chunkID].data)
-                json.dump_file("MDF-XL/_Holders/MDF-XL_PresetTracker.json", MDFXLPresetTracker)
+                presetLoader_Type5(MDFXLData, MDFXLSubData, MDFXLSettingsData, entry, entry.MeshName, updateFunc, order, presetIndexMap, currentFilteredIDX)
             end
         end
     end
@@ -5432,6 +5396,10 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.text_colored("[ UI Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.spacing()
                 imgui.push_item_width(200)
+                changed, MDFXLSettings.attachPosIncrement = imgui.drag_float("Attach Position Increment", MDFXLSettings.attachPosIncrement, 0.001, 0.0, 100.0); wc = wc or changed
+                changed, MDFXLSettings.attachRotIncrement = imgui.drag_float("Attach Rotation Increment", MDFXLSettings.attachRotIncrement, 0.001, 0.0, 100.0); wc = wc or changed
+                changed, MDFXLSettings.attachScaleIncrement = imgui.drag_float("Attach Scale Increment", MDFXLSettings.attachScaleIncrement, 0.001, 0.0, 100.0); wc = wc or changed
+                imgui.spacing()
                 changed, MDFXLSettings.primaryDividerLen = imgui.drag_int("Primary Divider Length", MDFXLSettings.primaryDividerLen, 1, 0, 500); wc = wc or changed
                 changed, MDFXLSettings.secondaryDividerLen = imgui.drag_int("Secondary Divider Length", MDFXLSettings.secondaryDividerLen, 1, 0, 500); wc = wc or changed
                 changed, MDFXLSettings.tertiaryDividerLen = imgui.drag_int("Tertiary Divider Length", MDFXLSettings.tertiaryDividerLen, 1, 0, 500); wc = wc or changed
@@ -5562,7 +5530,8 @@ local function draw_MDFXLGUI_MHWS()
                 else
                     MDFXLSettings.isUpdateGuildCard = false
                 end
-                changed, MDFXLSettings.isHideGuildCardGUI = imgui.checkbox("Hide GUI", MDFXLSettings.isHideGuildCardGUI);wc = wc or changed
+                changed, MDFXLSettings.isHideGuildCardGUI = imgui.checkbox("Hide All GUI", MDFXLSettings.isHideGuildCardGUI);wc = wc or changed
+                changed, MDFXLSettings.isHideGuildCardOverlayGUI = imgui.checkbox("Hide Overlay GUI", MDFXLSettings.isHideGuildCardOverlayGUI);wc = wc or changed
                 changed, MDFXLSettings.isNullGuildCardBG01 = imgui.checkbox("Hide Scene-01 Background", MDFXLSettings.isNullGuildCardBG01);wc = wc or changed
                 imgui.spacing()
                 changed, MDFXLSettings.isHideGuildCardHunter = imgui.checkbox("Hide Hunter", MDFXLSettings.isHideGuildCardHunter);wc = wc or changed
@@ -5701,5 +5670,4 @@ re.on_script_reset(function()
     materialParamDefaultsHolder = {}
     MDFXLSub.jsonPaths = {}
     playerBaseBody = nil
-
 end)
