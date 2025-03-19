@@ -54,4 +54,4 @@ https://github.com/user-attachments/assets/d91fc0a7-1afb-4d0c-a9f8-c1b331f17aed
 ### Credits:
 - [praydog](https://github.com/praydog) for creating [REFramework](https://github.com/praydog/REFramework).
 - [alphaZomega](https://github.com/alphazolam) for his work on [EMV Engine](https://github.com/alphazolam/EMV-Engine), which heavily inspired this tool, and for his guidance.
-- Members of the [Modding Haven Discord Server](https://discord.gg/modding-haven-718224210270617702) for testing.
+- Members of the [Haven's Night Discord Server](https://discord.gg/9Vr2SJ3) for testing.
