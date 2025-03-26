@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 03/13/2025 |",
+        header = " [ USER MANUAL ] 03/26/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -29,7 +29,7 @@ local MDFXLUserManual = {
         [023] = "MDF-XL encountered an issue it couldn't handle. If restarting the game doesn't resolve the problem navigate to\n'[PathToYourSteamLibrary]/steamapps/common/[GameName]/reframework/data/MDF-XL' and delete the '_Holders' folder.",
         [024] = "I've selected a preset but it loaded the default preset instead.",
         [025] = "This happens when the preset that you are trying to load doesn't match the material count or material names of the selected equipment.",
-        [099] = "If none of the above, then contact SilverEzredes on the Modding Haven Discord Server, or submit a bug report."
+        [099] = "If none of the above, then contact SilverEzredes on the Haven's Night Discord Server, or submit a bug report."
     },
     ReportingABug = {
         header = "1.3 Reporting a Bug",
@@ -44,7 +44,7 @@ local MDFXLUserManual = {
     },
     Credits = {
         header = "1.5 Credits",
-        [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nRaq for his help, testing and feedback.\n\nMembers of the Modding Haven Discord Server for testing and feedback.",
+        [050] = "praydog for creating REFramework.\n\nalphaZomega for his work on EMV Engine, which heavily inspired this tool and for his guidance.\n\nRaq for his help, testing and feedback.\n\nMembers of the Haven's Night Discord Server for testing and feedback.",
     },
     Usage = {
         header = "2. USAGE",
@@ -120,9 +120,9 @@ local MDFXLUserManual = {
         [200] = "https://github.com/praydog/REFramework-nightly/releases",
         [201] = "https://www.nexusmods.com/monsterhunterwilds/mods/87",
         [202] = "https://www.nexusmods.com/dragonsdogma2/mods/30",
-        [297] = "https://github.com/Modding-Haven/REEngine-Modding-Documentation/wiki",
+        [297] = "https://github.com/Havens-Night/REEngine-Modding-Documentation/wiki",
         [298] = "https://www.fluffyquack.com",
-        [299] = "https://discord.gg/modding-haven-718224210270617702"
+        [299] = "https://discord.gg/9Vr2SJ3"
     },
     Errors = {
         [000] = "[ERROR-000]\nCould not load material data from the selected preset.\nThe material count or names in the preset do not match those of the selected equipment.",

@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/17/2025"
-local modVersion = "v1.5.20"
+local modUpdated = "03/26/2025"
+local modVersion = "v1.5.22"
 local modCredits = "alphaZomega; praydog; Raq"
 
 --/////////////////////////////////////--
@@ -491,6 +491,37 @@ local function setup_MDFXLTable(MDFXLData, entry)
     }
     MDFXLData[entry].isUpdated = false
 end
+local function get_WeaponPositionParams_MHWS(gameObject, dataTable, entry)
+    local weaponData = func.get_GameObjectComponent(gameObject, weaponComp)
+
+    if weaponData then
+        local visualParam = weaponData._VisualParam
+        local attachInfo = visualParam._AttachInfo
+
+        if attachInfo then
+            dataTable[entry].Transmog.isOverride = false
+            dataTable[entry].Transmog.isUseBaseParams = attachInfo._UseBaseParam
+            dataTable[entry].Transmog.POS = {}
+            dataTable[entry].Transmog.POS = {
+                x = attachInfo._Position.x,
+                y = attachInfo._Position.y,
+                z = attachInfo._Position.z
+            }
+            dataTable[entry].Transmog.ROT = {}
+            dataTable[entry].Transmog.ROT = {
+                x = attachInfo._Rotation.x,
+                y = attachInfo._Rotation.y,
+                z = attachInfo._Rotation.z
+            }
+            dataTable[entry].Transmog.Scale = {}
+            dataTable[entry].Transmog.Scale = {
+                x = attachInfo._Scale.x,
+                y = attachInfo._Scale.y,
+                z = attachInfo._Scale.z
+            }
+        end
+    end
+end
 local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, order, saveDataTable)
     local renderMesh = func.get_GameObjectComponent(gameObject, renderComp)
 
@@ -610,34 +641,80 @@ local function get_MaterialParams(gameObject, dataTable, entry, subDataTable, or
     end
 
     if order == "weaponOrder" then
-        local weaponData = func.get_GameObjectComponent(gameObject, weaponComp)
+        get_WeaponPositionParams_MHWS(gameObject, dataTable, entry)
+    end
+end
+local function set_WeaponPositionParams_MHWS(weaponData, dataTable, entry)
+    local visualParam = weaponData._VisualParam
+    local attachInfo = visualParam._AttachInfo
+    local squatInfo = visualParam._SquatttachInfo
+    local porterRideInfo = visualParam._PorterRideAttachInfo
+    local porterRideDashInfo = visualParam._PorterRideDashAttachInfo
+    local porterRideTopSpeedInfo = visualParam._PorterRideTopSpeedAttachInfo
+    local porterRideTiltLeftInfo = visualParam._PorterRideTiltLeftAttachInfo
+    local porterRideTiltRightInfo = visualParam._PorterRideTiltRightAttachInfo
 
-        if weaponData then
-            local visualParam = weaponData._VisualParam
-            local attachInfo = visualParam._AttachInfo
-
-            if attachInfo then
-                dataTable[entry].Transmog.isOverride = false
-                dataTable[entry].Transmog.isUseBaseParams = attachInfo._UseBaseParam
-                dataTable[entry].Transmog.POS = {}
-                dataTable[entry].Transmog.POS = {
-                    x = attachInfo._Position.x,
-                    y = attachInfo._Position.y,
-                    z = attachInfo._Position.z
-                }
-                dataTable[entry].Transmog.ROT = {}
-                dataTable[entry].Transmog.ROT = {
-                    x = attachInfo._Rotation.x,
-                    y = attachInfo._Rotation.y,
-                    z = attachInfo._Rotation.z
-                }
-                dataTable[entry].Transmog.Scale = {}
-                dataTable[entry].Transmog.Scale = {
-                    x = attachInfo._Scale.x,
-                    y = attachInfo._Scale.y,
-                    z = attachInfo._Scale.z
-                }
-            end
+    if attachInfo then
+        attachInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            attachInfo._UseBaseParam = false
+            attachInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            attachInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            attachInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if squatInfo then
+        squatInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            squatInfo._UseBaseParam = false
+            squatInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            squatInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            squatInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if porterRideInfo then
+        porterRideInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            porterRideInfo._UseBaseParam = false
+            porterRideInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            porterRideInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            porterRideInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if porterRideDashInfo then
+        porterRideDashInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            porterRideDashInfo._UseBaseParam = false
+            porterRideDashInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            porterRideDashInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            porterRideDashInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if porterRideTopSpeedInfo then
+        porterRideTopSpeedInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            porterRideTopSpeedInfo._UseBaseParam = false
+            porterRideTopSpeedInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            porterRideTopSpeedInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            porterRideTopSpeedInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if porterRideTiltLeftInfo then
+        porterRideTiltLeftInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            porterRideTiltLeftInfo._UseBaseParam = false
+            porterRideTiltLeftInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            porterRideTiltLeftInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            porterRideTiltLeftInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
+        end
+    end
+    if porterRideTiltRightInfo then
+        porterRideTiltRightInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
+        if dataTable[entry.MeshName].Transmog.isOverride then 
+            porterRideTiltRightInfo._UseBaseParam = false
+            porterRideTiltRightInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
+            porterRideTiltRightInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
+            porterRideTiltRightInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
         end
     end
 end
@@ -702,78 +779,7 @@ local function set_MaterialParams(gameObject, dataTable, entry, saveDataTable)
     end
 
     if weaponData then
-        local visualParam = weaponData._VisualParam
-        local attachInfo = visualParam._AttachInfo
-        local squatInfo = visualParam._SquatttachInfo
-        local porterRideInfo = visualParam._PorterRideAttachInfo
-        local porterRideDashInfo = visualParam._PorterRideDashAttachInfo
-        local porterRideTopSpeedInfo = visualParam._PorterRideTopSpeedAttachInfo
-        local porterRideTiltLeftInfo = visualParam._PorterRideTiltLeftAttachInfo
-        local porterRideTiltRightInfo = visualParam._PorterRideTiltRightAttachInfo
-
-        if attachInfo then
-            attachInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                attachInfo._UseBaseParam = false
-                attachInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                attachInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                attachInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if squatInfo then
-            squatInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                squatInfo._UseBaseParam = false
-                squatInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                squatInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                squatInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if porterRideInfo then
-            porterRideInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                porterRideInfo._UseBaseParam = false
-                porterRideInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                porterRideInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                porterRideInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if porterRideDashInfo then
-            porterRideDashInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                porterRideDashInfo._UseBaseParam = false
-                porterRideDashInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                porterRideDashInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                porterRideDashInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if porterRideTopSpeedInfo then
-            porterRideTopSpeedInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                porterRideTopSpeedInfo._UseBaseParam = false
-                porterRideTopSpeedInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                porterRideTopSpeedInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                porterRideTopSpeedInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if porterRideTiltLeftInfo then
-            porterRideTiltLeftInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                porterRideTiltLeftInfo._UseBaseParam = false
-                porterRideTiltLeftInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                porterRideTiltLeftInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                porterRideTiltLeftInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
-        if porterRideTiltRightInfo then
-            porterRideTiltRightInfo._UseBaseParam = dataTable[entry.MeshName].Transmog.isUseBaseParams
-            if dataTable[entry.MeshName].Transmog.isOverride then 
-                porterRideTiltRightInfo._UseBaseParam = false
-                porterRideTiltRightInfo._Position = Vector3f.new(dataTable[entry.MeshName].Transmog.POS.x, dataTable[entry.MeshName].Transmog.POS.y, dataTable[entry.MeshName].Transmog.POS.z)
-                porterRideTiltRightInfo._Rotation = Vector3f.new(dataTable[entry.MeshName].Transmog.ROT.x, dataTable[entry.MeshName].Transmog.ROT.y, dataTable[entry.MeshName].Transmog.ROT.z)                              
-                porterRideTiltRightInfo._Scale = Vector3f.new(dataTable[entry.MeshName].Transmog.Scale.x, dataTable[entry.MeshName].Transmog.Scale.y, dataTable[entry.MeshName].Transmog.Scale.z)
-            end
-        end
+        set_WeaponPositionParams_MHWS(weaponData, dataTable, entry)
     end
 end
 local function manage_SaveDataChunks(MDFXLData, saveDataTable)
@@ -3457,7 +3463,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                     imgui.begin_rect()
                     changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo("Preset ", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
                     imgui.end_rect()
-                    imgui.pop_style_color(1)
+                    imgui.pop_style_color()
                 else
                     changed, MDFXLData[entry.MeshName].currentPresetIDX = imgui.combo("Preset", MDFXLData[entry.MeshName].currentPresetIDX or 1, MDFXLData[entry.MeshName].Presets); wc = wc or changed
                 end
@@ -3987,7 +3993,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             end
                             if imgui.tree_node(matName) then
                                 imgui.push_id(matName)
-                                imgui.pop_style_color(1)
+                                imgui.pop_style_color()
                                 imgui.spacing()
                                 if imgui.begin_popup_context_item() then
                                     if imgui.menu_item("Reset") then
@@ -4121,9 +4127,10 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                 end
                                                 if currentData ~= originalData then
                                                     imgui.indent(-35)
+                                                    imgui.pop_style_color()
                                                 end
                                                 imgui.pop_id()
-                                                imgui.pop_style_color()
+                                                
                                                 imgui.end_rect()
                                                 imgui.spacing()
                                             end
@@ -4294,17 +4301,19 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                 imgui.pop_id()
                                             end
                                         end
+                                        if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
+                                            imgui.pop_style_color()
+                                        end
                                         imgui.end_rect()
-                                        imgui.pop_style_color()
+                                        
                                     end
                                 end
                                 imgui.pop_id()
                                 imgui.spacing()
                                 imgui.tree_pop()
                             end
-                            imgui.pop_style_color(1)
                         end
-                        
+                        imgui.pop_style_color()
                         imgui.indent(-5)
                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                         imgui.tree_pop()
@@ -4502,7 +4511,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
                 end
                 changed, currentFilteredIDX = imgui.combo(displayName .. " ", currentFilteredIDX or 1, displayPresets); wc = wc or changed
                 imgui.end_rect()
-                imgui.pop_style_color(1)
+                imgui.pop_style_color()
             else
                 if order == "weaponOrder" and string.find(entry.MeshName, "--", 1, true) then
                     if imgui.arrow_button(_, 0) then
@@ -4646,6 +4655,7 @@ local function draw_MDFXLOutfitManagerGUI_MHWS()
         imgui.indent(-25)
         imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
         imgui.end_rect(1)
+        imgui.tree_pop()
         imgui.end_window()
     end
 end
@@ -4844,6 +4854,7 @@ local function draw_MDFXLEditorGUI_MHWS()
 
         imgui.indent(-10)
         imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
+        imgui.tree_pop()
         imgui.end_rect()
         imgui.end_window()
     end
@@ -4997,7 +5008,7 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
         
         imgui.push_style_color(ui.ImGuiCol.PlotHistogram, func.convert_rgba_to_ABGR(ui.colors.highContrast.blue))
         imgui.progress_bar(coroutineProgress, Vector2f.new(280, 15), string.format("Updating MDF-XL Data...", coroutineProgress * 100))
-        imgui.pop_style_color(1)
+        imgui.pop_style_color()
         return 
     else
         coroutineProgress = 0.0
@@ -5658,7 +5669,6 @@ re.on_frame(function ()
         end
     end
 end)
-
 --MARK:On Draw UI
 re.on_draw_ui(function()
     if reframework.get_game_name() == "mhwilds" then
