@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "03/26/2025"
-local modVersion = "v1.5.22"
+local modUpdated = "10/14/2025"
+local modVersion = "v1.5.30"
 local modCredits = "alphaZomega; praydog; Raq"
-
+local modNotes = "TODO: Some UI elements inherit a missing push_id from somewhere, find the source of the issue."
 --/////////////////////////////////////--
 MDFXL = true
 
@@ -4311,14 +4311,17 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                 imgui.pop_id()
                                 imgui.spacing()
                                 imgui.tree_pop()
+                            else
+                                imgui.pop_style_color()
                             end
                         end
-                        imgui.pop_style_color()
+                        
                         imgui.indent(-5)
                         imgui.text_colored(ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen - 15), func.convert_rgba_to_ABGR(ui.colors.cerulean))
                         imgui.tree_pop()
                     end
                 end
+                
 
                 if changed or wc then
                     MDFXLData[entry.MeshName].isUpdated = true
@@ -4536,6 +4539,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
     imgui.indent(-10)
 end
 local function draw_MDFXLOutfitManagerGUI_MHWS()
+    imgui.push_id(148) --Hack fix vol.2
     if imgui.begin_window("MDF-XL: Outfit Manager") then
         imgui.begin_rect()
         imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
@@ -4760,6 +4764,7 @@ local function draw_MDFXLPaletteGUI_MHWS()
     end
 end
 local function draw_MDFXLBodyEditorGUI_MHWS()
+    imgui.push_id(149) -- Hack fix vol.3
     if imgui.begin_window("MDF-XL: Body Editor") then
         imgui.begin_rect()
         
@@ -4776,12 +4781,13 @@ local function draw_MDFXLBodyEditorGUI_MHWS()
 
         imgui.indent(-25)
         imgui.text_colored("[ " .. ui.draw_line("=", MDFXLSettings.primaryDividerLen)  .. " ]", func.convert_rgba_to_ABGR(ui.colors.white))
-
+        imgui.tree_pop()
         imgui.end_rect()
         imgui.end_window()
     end
 end
 local function draw_MDFXLEditorGUI_MHWS()
+    imgui.push_id(147) -- Hack fix
     if imgui.begin_window("MDF-XL: Editor") then
         imgui.begin_rect()
         
@@ -5006,7 +5012,7 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
     if not isCoroutinesDone then 
         coroutineProgress = coroutineProgress + 0.12
         
-        imgui.push_style_color(ui.ImGuiCol.PlotHistogram, func.convert_rgba_to_ABGR(ui.colors.highContrast.blue))
+        imgui.push_style_color(ui.ImGuiCol.PlotHistogramHovered, func.convert_rgba_to_ABGR(ui.colors.highContrast.blue))
         imgui.progress_bar(coroutineProgress, Vector2f.new(280, 15), string.format("Updating MDF-XL Data...", coroutineProgress * 100))
         imgui.pop_style_color()
         return 
@@ -5041,7 +5047,7 @@ local function load_MDFXLEditorAndPresetGUI_MHWS()
     end
 
     if MDFXLSettings.isAutoSave and MDFXLSettings.showAutoSaveProgressBar then
-        imgui.push_style_color(ui.ImGuiCol.PlotHistogram, func.convert_rgba_to_ABGR(ui.colors.gold))
+        imgui.push_style_color(ui.ImGuiCol.PlotHistogramHovered, func.convert_rgba_to_ABGR(ui.colors.gold))
         imgui.progress_bar(autoSaveProgress, Vector2f.new(150, 5))
         imgui.pop_style_color()
     end
