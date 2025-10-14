@@ -10,7 +10,7 @@ For detailed information on all features check out the [Wiki](https://github.com
 
 ### Requirements:
 - [REFramework](https://github.com/praydog/REFramework-nightly/releases)
-- [_ScriptCore v1.2.00+](https://github.com/alphazolam/_ScriptCore/tree/SILVER-Dev)
+- [_ScriptCore v1.2.02+](https://github.com/alphazolam/_ScriptCore/tree/SILVER-Dev)
 
 ## Brief Overview
 - Toggle submeshes and mesh flags.
