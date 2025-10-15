@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "10/14/2025"
-local modVersion = "v1.5.30"
+local modUpdated = "10/15/2025"
+local modVersion = "v1.5.31"
 local modCredits = "alphaZomega; praydog; Raq"
-local modNotes = "TODO: Some UI elements inherit a missing push_id from somewhere, find the source of the issue."
+local modNotes = "Fixed an issue with underwater combat."
 --/////////////////////////////////////--
 MDFXL = true
 
@@ -868,6 +868,7 @@ local isPlayerBaseBodySetup = false
 local isCoroutinesDone = false
 local isWeaponTransmogRequest = false
 local isTransmogBypass = false
+local isUnderWater = false
 local playerBaseBody = nil
 local guildCardHunter = nil
 local guildCardOtomo = nil
@@ -1070,6 +1071,17 @@ if reframework.get_game_name() == "mhwilds" then
             if isWeaponChangedCallCount == 1 then
                 isPlayerSwappedWeapons = true
                 GUICharIDX = 0
+            end
+        end
+    )
+    --Check if the player is underwater
+    sdk.hook(sdk.find_type_definition("app.UnderWaterChainController"):get_method("setCondition(System.Boolean)"),
+        function (args)
+            local waterIDX = sdk.to_int64(args[3])
+            if waterIDX ~= 0 then
+                isUnderWater = true
+            else
+                isUnderWater = false
             end
         end
     )
@@ -3331,7 +3343,7 @@ local function update_MDFXLViaHotkeys_MHWS()
     local KBM_OutfitChangeControls = not MDFXLSettings.useOutfitModifier or hk.check_hotkey("Outfit Change Modifier", true)
     local PAD_Controls = not MDFXLSettings.useOutfitPadModifier or hk.check_hotkey("GamePad Modifier", true)
 
-    if (KBM_OutfitChangeControls and hk.check_hotkey("Outfit Next")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Next") and not isWeaponDrawn) then
+    if ((KBM_OutfitChangeControls and hk.check_hotkey("Outfit Next")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Next") and not isWeaponDrawn)) and not isUnderWater then
         if isFemale then
             OutfitPresetTable = MDFXLOutfits.FPresets
         else
@@ -3342,7 +3354,7 @@ local function update_MDFXLViaHotkeys_MHWS()
         MDFXLOutfits.currentOutfitPresetIDX = math.min(MDFXLOutfits.currentOutfitPresetIDX + 1, outfitCount)
         setup_OutfitChanger()
     end
-    if (KBM_OutfitChangeControls and hk.check_hotkey("Outfit Previous")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Previous") and not isWeaponDrawn) then
+    if ((KBM_OutfitChangeControls and hk.check_hotkey("Outfit Previous")) or (PAD_Controls and hk.check_hotkey("GamePad Outfit Previous") and not isWeaponDrawn)) and not isUnderWater then
         MDFXLOutfits.currentOutfitPresetIDX = math.max(MDFXLOutfits.currentOutfitPresetIDX - 1, 1)
         setup_OutfitChanger()
     end
