@@ -2,10 +2,10 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "10/16/2025"
-local modVersion = "v1.5.33"
+local modUpdated = "10/17/2025"
+local modVersion = "v1.5.35"
 local modCredits = "alphaZomega; praydog; Raq"
-local modNotes = "Fixed an issue with underwater combat."
+local modNotes = "Fixed several issues with preset loading."
 --/////////////////////////////////////--
 MDFXL = true
 
@@ -450,7 +450,7 @@ for i, entry in pairs(MDFXL) do
     end
 end
 --////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
---MARK:Shared Functions
+--MARK:Generic Functions
 local function setup_MDFXLTable(MDFXLData, entry)
     MDFXLData[entry] = {}
     MDFXLData[entry].Presets = {}
@@ -859,7 +859,6 @@ local isPlayerLeftSmithy = false
 local isPlayerSwappedWeapons = false
 local isAppearanceEditorOpen = false
 local isAppearanceEditorUpdater = false
-local isAppearanceSeikretEditor = false
 local isWeaponDrawn = false
 local isWeaponChanged = false
 local isWeaponChangedCallCount = 0
@@ -1044,9 +1043,6 @@ if reframework.get_game_name() == "mhwilds" then
             if GUI010300AppEditorIDX == 1 then
                 isAppearanceEditorUpdater = true
                 GUICharIDX = 0
-            end
-            if (GUI010300AppEditorIDX == 4) or (GUI010300AppEditorIDX == 5) then
-                isAppearanceSeikretEditor = true
             end
         end
     )
@@ -1243,13 +1239,11 @@ local function get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
         local otomoHelm = otomoCharacter:get_HelmGameObject()
         local otomoBody = otomoCharacter:get_BodyGameObject()
         
-        if otomoHelm then
-            if otomoHelm:get_Valid() then
-                local otomoHelmID = otomoHelm:get_Name()
-                help_GetMaterialParams_MHWS(otomoHelm, otomoHelmID, "otomoOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
-            end
+        if otomoHelm and otomoHelm:get_Valid() then
+            local otomoHelmID = otomoHelm:get_Name()
+            help_GetMaterialParams_MHWS(otomoHelm, otomoHelmID, "otomoOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
-        if otomoBody then
+        if otomoBody and otomoBody:get_Valid() then
             local otomoBodyID = otomoBody:get_Name()
             if otomoBodyID == "ch05_000_0000" then return end
             help_GetMaterialParams_MHWS(otomoBody, otomoBodyID, "otomoOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
@@ -1262,7 +1256,7 @@ local function get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
 
     if otomoCharacter then
         local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-        if otomoWeapon then
+        if otomoWeapon and otomoWeapon:get_Valid() then
             local otomoWeaponID = otomoWeapon:get_Name()
             help_GetMaterialParams_MHWS(otomoWeapon, otomoWeaponID, "otomoWeaponOrder", MDFXLData, MDFXLSubData, MDFXLSaveDataChunks)
         end
@@ -1956,13 +1950,13 @@ local function update_OtomoEquipmentMaterialParams_MHWS(MDFXLData)
                 local otomoHelm = otomoCharacter:get_HelmGameObject()
                 local otomoBody = otomoCharacter:get_BodyGameObject()
                 
-                if otomoHelm then
+                if otomoHelm and otomoHelm:get_Valid() then
                     local otomoHelmID = otomoHelm:get_Name()
                     if otomoHelmID == equipment.MeshName then
                         set_MaterialParams(otomoHelm, MDFXLData, equipment, MDFXLSaveDataChunks)
                     end
                 end
-                if otomoBody then
+                if otomoBody and otomoBody:get_Valid() then
                     local otomoBodyID = otomoBody:get_Name()
                     if otomoBodyID == equipment.MeshName then
                         set_MaterialParams(otomoBody, MDFXLData, equipment, MDFXLSaveDataChunks)
@@ -1982,7 +1976,7 @@ local function update_OtomoArmamentMaterialParams_MHWS(MDFXLData)
         if (MDFXLData[weapon.MeshName] and MDFXLData[weapon.MeshName].isUpdated) then
             if otomoCharacter then
                 local otomoWeapon = otomoCharacter:get_WeaponGameObject()
-                if otomoWeapon then
+                if otomoWeapon and otomoWeapon:get_Valid() then
                     local otomoWeaponID = otomoWeapon:get_Name()
                     if otomoWeaponID == weapon.MeshName then
                         set_MaterialParams(otomoWeapon, MDFXLData, weapon, MDFXLSaveDataChunks)
@@ -2005,7 +1999,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
                 local porterRein = porterCharacter:get_EquipRein()
                 local porterWeaponBag = porterCharacter:get_EquipWeaponBags()
                 
-                if porterSaddle then
+                if porterSaddle and porterSaddle:get_Valid() then
                     local renderMesh = func.get_GameObjectComponent(porterSaddle, renderComp)
                     local porterSaddleID = renderMesh:getMesh():ToString()
                     porterSaddleID = porterSaddleID and porterSaddleID:match(MDFXL_Cache.matchMesh)
@@ -2014,7 +2008,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
                         set_MaterialParams(porterSaddle, MDFXLData, equipment, MDFXLSaveDataChunks)
                     end
                 end
-                if porterRein then
+                if porterRein and porterRein:get_Valid() then
                     local renderMesh = func.get_GameObjectComponent(porterRein, renderComp)
                     local porterReinID = renderMesh:getMesh():ToString()
                     porterReinID = porterReinID and porterReinID:match(MDFXL_Cache.matchMesh)
@@ -2023,7 +2017,7 @@ local function update_PorterMaterialParams_MHWS(MDFXLData)
                         set_MaterialParams(porterRein, MDFXLData, equipment, MDFXLSaveDataChunks)
                     end
                 end
-                if porterWeaponBag then
+                if porterWeaponBag and porterWeaponBag:get_Valid() then
                     local renderMesh = func.get_GameObjectComponent(porterWeaponBag, renderComp)
                     local porterWeaponBagID = renderMesh:getMesh():ToString()
                     porterWeaponBagID = porterWeaponBagID and porterWeaponBagID:match(MDFXL_Cache.matchMesh)
@@ -2364,7 +2358,7 @@ local function update_PlayerBaseBody(MDFXLData)
         end
     end
 end
--- Preset Loaders
+--Preset Loaders
 local function check_IfPartsMatch(presetParts, entryParts)
     if #presetParts ~= #entryParts then
         return false
@@ -2721,8 +2715,11 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
     if masterDataCoroutine then
         local success, errorMsg = coroutine.resume(masterDataCoroutine)
         if not success then
-            log.info("[MDF-XL-COR]  Master Data Coroutine error: " .. errorMsg)
+            log.info("[MDF-XL-COR] Master Data Coroutine error: " .. errorMsg)
             masterDataCoroutine = nil
+            isDefaultsDumped = false
+            log.info("[FATAL MDF-XL ERROR]")
+            return
         elseif coroutine.status(masterDataCoroutine) == "dead" then
             masterDataCoroutine = nil
         end
@@ -2954,11 +2951,20 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             if not isPlayerSwappedWeapons then
                 isTransmogBypass = true
             end
-            if GUICharIDX == 0 then
+            if isPlayerLeftEquipmentMenu or isPlayerSwappedWeapons then
+                if GUICharIDX == 0 then
+                    get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                    get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                    coroutine.yield()
+                elseif GUICharIDX == 1 then
+                    get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                    get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
+                    coroutine.yield()
+                end
+            elseif isAppearanceEditorUpdater then
                 get_PlayerEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 get_PlayerArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 coroutine.yield()
-            elseif GUICharIDX == 1 then
                 get_OtomoEquipmentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 get_OtomoArmamentMaterialParams_MHWS(MDFXLData, MDFXLSubData)
                 coroutine.yield()
@@ -2983,13 +2989,23 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             local counter = 0
             for _, equipment in pairs(MDFXLData) do
                 local meshName = equipment.MeshName
-                
-                if GUICharIDX == 0 then
-                    if not (func.table_contains(MDFXLSubData.order, meshName) or func.table_contains(MDFXLSubData.weaponOrder, meshName)) then
-                        goto continue
+                if isPlayerLeftEquipmentMenu or isPlayerSwappedWeapons then
+                    if GUICharIDX == 0 then
+                        if not (func.table_contains(MDFXLSubData.order, meshName) or func.table_contains(MDFXLSubData.weaponOrder, meshName)) then
+                            goto continue
+                        end
+                    elseif GUICharIDX == 1 then
+                        if not (func.table_contains(MDFXLSubData.otomoOrder, meshName) or  func.table_contains(MDFXLSubData.otomoWeaponOrder, meshName)) then
+                            goto continue
+                        end
                     end
-                elseif GUICharIDX == 1 then
-                    if not (func.table_contains(MDFXLSubData.otomoOrder, meshName) or  func.table_contains(MDFXLSubData.otomoWeaponOrder, meshName)) then
+                elseif isAppearanceEditorUpdater then
+                    if not (
+                    func.table_contains(MDFXLSubData.order, meshName) or 
+                    func.table_contains(MDFXLSubData.weaponOrder, meshName) or 
+                    func.table_contains(MDFXLSubData.otomoOrder, meshName) or 
+                    func.table_contains(MDFXLSubData.otomoWeaponOrder, meshName)
+                    ) then
                         goto continue
                     end
                 end
@@ -3002,13 +3018,22 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
                 end
 
                 local updateFuncs = {}
-                if GUICharIDX == 0 then
+                if isPlayerLeftEquipmentMenu or isPlayerSwappedWeapons then
+                    if GUICharIDX == 0 then
+                        updateFuncs = {
+                            update_PlayerEquipmentMaterialParams_MHWS,
+                            update_PlayerArmamentMaterialParams_MHWS
+                        }
+                    elseif GUICharIDX == 1 then
+                        updateFuncs = {
+                            update_OtomoEquipmentMaterialParams_MHWS,
+                            update_OtomoArmamentMaterialParams_MHWS
+                        }
+                    end
+                elseif isAppearanceEditorUpdater then
                     updateFuncs = {
                         update_PlayerEquipmentMaterialParams_MHWS,
-                        update_PlayerArmamentMaterialParams_MHWS
-                    }
-                elseif GUICharIDX == 1 then
-                    updateFuncs = {
+                        update_PlayerArmamentMaterialParams_MHWS,
                         update_OtomoEquipmentMaterialParams_MHWS,
                         update_OtomoArmamentMaterialParams_MHWS
                     }
@@ -3122,20 +3147,16 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
         end)
     end
     --Camp Menu Updater
-    if ((isPlayerLeftCamp) or (isAppearanceSeikretEditor)) and isDefaultsDumped and isPlayerInScene and not campCoroutine then
+    if isPlayerLeftCamp and isDefaultsDumped and isPlayerInScene and not campCoroutine then
         campCoroutine = coroutine.create(function()
             isCoroutinesDone = false
             get_PorterMaterialParams_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
-
             manage_SaveDataChunks(MDFXLData, MDFXLSaveData)
-            coroutine.yield()
-            
             dump_DefaultMaterialParamJSON_MHWS(MDFXLData)
             clear_MDFXLJSONCache_MHWS(MDFXLData, MDFXLSubData)
             cache_MDFXLJSONFiles_MHWS(MDFXLData, MDFXLSubData)
             coroutine.yield()
-            
             for i, chunk in pairs(MDFXLSaveData) do
                 if chunk.wasUpdated then
                     json.dump_file(chunk.fileName, chunk.data)
@@ -3175,9 +3196,6 @@ local function manage_MasterMaterialData_MHWS(MDFXLData, MDFXLSubData, MDFXLSave
             if isPlayerLeftCamp then
                 log.info("[MDF-XL] [Player left the Camp Menu, MDF-XL data updated.]")
                 isPlayerLeftCamp = false
-            elseif isAppearanceSeikretEditor then
-                log.info("[MDF-XL] [Player left the Seikret Appearance Menu, MDF-XL data updated.]")
-                isAppearanceSeikretEditor = false
             end
             isCoroutinesDone = true
         end)
@@ -4552,7 +4570,7 @@ local function setup_MDFXLPresetGUI_MHWS(MDFXLData, MDFXLSettingsData, MDFXLSubD
     imgui.indent(-10)
 end
 local function draw_MDFXLOutfitManagerGUI_MHWS()
-    imgui.push_id(148) --Hack fix vol.2
+    imgui.push_id(148)
     if imgui.begin_window("MDF-XL: Outfit Manager") then
         imgui.begin_rect()
         imgui.text_colored("  [ " .. ui.draw_line("=", math.floor(MDFXLSettings.presetManager.primaryDividerLen * 0.75))  .. " ] ", func.convert_rgba_to_ABGR(ui.colors.white))
@@ -4777,7 +4795,7 @@ local function draw_MDFXLPaletteGUI_MHWS()
     end
 end
 local function draw_MDFXLBodyEditorGUI_MHWS()
-    imgui.push_id(149) -- Hack fix vol.3
+    imgui.push_id(149)
     if imgui.begin_window("MDF-XL: Body Editor") then
         imgui.begin_rect()
         
@@ -4800,7 +4818,7 @@ local function draw_MDFXLBodyEditorGUI_MHWS()
     end
 end
 local function draw_MDFXLEditorGUI_MHWS()
-    imgui.push_id(147) -- Hack fix
+    imgui.push_id(147)
     if imgui.begin_window("MDF-XL: Editor") then
         imgui.begin_rect()
         
