@@ -3,9 +3,9 @@ local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
 local modUpdated = "10/17/2025"
-local modVersion = "v1.5.35"
+local modVersion = "v1.5.36"
 local modCredits = "alphaZomega; praydog; Raq"
-local modNotes = "Fixed several issues with preset loading."
+local modNotes = "Database update: TU1"
 --/////////////////////////////////////--
 MDFXL = true
 
@@ -3664,7 +3664,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                             local currentID = MDFXLData[entry.MeshName].Transmog.ID or ""
                             
                             for _, combo in ipairs(combos) do
-                                if not MDFXLSettingsData.isLayeredWeaponShowOnlySelfType or (MDFXLSettingsData.isLayeredWeaponShowOnlySelfType and combo.wpType == MDFXLDatabase.MHWS[entry.MeshName].WPType) then
+                                if MDFXLDatabase.MHWS[entry.MeshName].WPType ~= nil and (not MDFXLSettingsData.isLayeredWeaponShowOnlySelfType or (MDFXLSettingsData.isLayeredWeaponShowOnlySelfType and combo.wpType == MDFXLDatabase.MHWS[entry.MeshName].WPType)) then
                                     local filteredWeapons = {}
                                     local weapons = weaponLists[combo.wpType]
                                     for i, w in ipairs(weapons) do

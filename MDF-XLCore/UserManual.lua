@@ -1,6 +1,6 @@
 local MDFXLUserManual = {
     Generic = {
-        header = " [ USER MANUAL ] 03/26/2025 |",
+        header = " [ USER MANUAL ] 10/17/2025 |",
     },
     About = {
         header = "1. ABOUT",
@@ -13,7 +13,7 @@ local MDFXLUserManual = {
     },
     Install = {
         header = "1.1 Install",
-        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.2.00+)",
+        [010] = "Requirements:\n\nREFramework (latest nightly)\n_ScriptCore (v1.2.02+)",
         [011] = "Download the latest REF nightly build from here:",
         [012] = "If you are not using VR, only copy the 'dinput8.dll' into your game's root folder.",
         [013] = "Download the latest version of _ScriptCore from here:",
