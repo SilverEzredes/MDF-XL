@@ -2,8 +2,8 @@
 local modName =  "MDF-XL"
 
 local modAuthor = "SilverEzredes"
-local modUpdated = "10/15/2025"
-local modVersion = "v1.5.31"
+local modUpdated = "10/16/2025"
+local modVersion = "v1.5.33"
 local modCredits = "alphaZomega; praydog; Raq"
 local modNotes = "Fixed an issue with underwater combat."
 --/////////////////////////////////////--
@@ -1007,12 +1007,11 @@ if reframework.get_game_name() == "mhwilds" then
         function(args)
             local GUI080200 = sdk.to_managed_object(args[2])
             GUICharIDX = GUI080200._CharacterType
-            
-            local onClose = sdk.to_int64(args[3])
-            local onClose2 = sdk.to_int64(args[4])
-            if onClose == 0 and onClose2 ~= 0 then
-                isPlayerLeftEquipmentMenu = true
-            end
+        end
+    )
+    sdk.hook(sdk.find_type_definition("app.GUI080200"):get_method("onCloseApp()"),
+        function(args)
+            isPlayerLeftEquipmentMenu = true
         end
     )
     --Camp and Smithy GUI
@@ -3396,7 +3395,7 @@ local function update_MDFXLViaHotkeys_MHWS()
         for _, entryName in pairs(MDFXLSub["weaponOrder"]) do
             local entry = MDFXL[entryName]
 
-            if entry.MeshName == lastLayeredWeaponStringHolder and not string.find(entry.MeshName, "Charm") and not string.find(entry.MeshName, "it12") and not string.find(entry.MeshName, "it13") then
+            if entry.MeshName == lastLayeredWeaponStringHolder and lastLayeredWeaponStringHolder ~= nil and not string.find(entry.MeshName, "Charm") and not string.find(entry.MeshName, "it12") and not string.find(entry.MeshName, "it13") then
                 isTransmogBypass = true
                 isWeaponTransmogRequest = true
                 changed = true
@@ -4173,6 +4172,7 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                             imgui.push_style_color(ui.ImGuiCol.Border, func.convert_rgba_to_ABGR(ui.colors.gold))
                                         end
                                         imgui.begin_rect()
+                                        
                                         if func.compareTables(paramValue, originalData) then
                                             if imgui.button("[ " .. tostring(paramName) .. " ]") then
                                                 paramValue[1] = MDFXLDefaultsData[entry.MeshName].Materials[matName][paramName][1]
@@ -4313,11 +4313,11 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                                                 imgui.pop_id()
                                             end
                                         end
+                                        
+                                        imgui.end_rect()
                                         if func.table_contains(MDFXLSubData.matParamFavorites, paramName) then
                                             imgui.pop_style_color()
                                         end
-                                        imgui.end_rect()
-                                        
                                     end
                                 end
                                 imgui.pop_id()
@@ -4340,7 +4340,8 @@ local function setup_MDFXLEditorGUI_MHWS(MDFXLData, MDFXLDefaultsData, MDFXLSett
                 end
                 imgui.indent(-10)
                 imgui.text_colored("  " .. ui.draw_line("=", MDFXLSettingsData.tertiaryDividerLen) .."  ", func.convert_rgba_to_ABGR(ui.colors.white))
-                imgui.end_rect(); imgui.tree_pop()
+                imgui.end_rect()
+                imgui.tree_pop()
             end
             imgui.text_colored("  " .. ui.draw_line("-", MDFXLSettingsData.primaryDividerLen) .."  ", func.convert_rgba_to_ABGR(color01))
             imgui.indent(-15)
@@ -5440,9 +5441,9 @@ local function draw_MDFXLGUI_MHWS()
                 imgui.text_colored("[ Display Settings ]", func.convert_rgba_to_ABGR(ui.colors.white50))
                 imgui.spacing()
                 changed, MDFXLSettings.presetManager.showOutfitPreset = imgui.checkbox("Show Outfit Preset", MDFXLSettings.presetManager.showOutfitPreset); wc = wc or changed
+                changed, MDFXLSettings.presetManager.showBaseBody = imgui.checkbox("Show Base Body Presets", MDFXLSettings.presetManager.showBaseBody); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterEquipment = imgui.checkbox("Show Hunter Armor Presets", MDFXLSettings.presetManager.showHunterEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showHunterArmament = imgui.checkbox("Show Hunter Weapon Presets", MDFXLSettings.presetManager.showHunterArmament); wc = wc or changed
-                changed, MDFXLSettings.presetManager.showBaseBody = imgui.checkbox("Show Base Body Presets", MDFXLSettings.presetManager.showBaseBody); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoEquipment = imgui.checkbox("Show Palico Armor Presets", MDFXLSettings.presetManager.showOtomoEquipment); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showOtomoArmament = imgui.checkbox("Show Palico Weapon Presets", MDFXLSettings.presetManager.showOtomoArmament); wc = wc or changed
                 changed, MDFXLSettings.presetManager.showPorter = imgui.checkbox("Show Seikret Presets", MDFXLSettings.presetManager.showPorter); wc = wc or changed
